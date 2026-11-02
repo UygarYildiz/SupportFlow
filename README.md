@@ -56,6 +56,8 @@ npm run dev             # http://localhost:5173
 
 Open http://localhost:5173 and sign in with a demo account (buttons on the login page in development). The API is documented at http://localhost:8000/docs.
 
+The seed also runs a few tickets through the real analysis and approval path, using the offline fake model (never a paid API), so the overview and approval queue open with work in them: two refund requests that only an admin can approve, one address change any staff member can approve, and one change Sam already approved. Ticket #1 ("Where is my order?") is left new for a live walkthrough. Use `--no-activity` to seed records only.
+
 **Demo logins** (password `supportflow-demo`, set by `DEMO_USER_PASSWORD`):
 
 | User | Role |

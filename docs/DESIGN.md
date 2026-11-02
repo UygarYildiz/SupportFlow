@@ -55,6 +55,20 @@ Defined in `frontend/src/styles/tokens.css`. Radius follows hierarchy: labels 3p
 
 Below 1024px the columns merge in decision order: message, draft, proposal, order, policy, history. Below 760px the rail becomes a top bar.
 
+## Overview (home page)
+
+Added after the first owner review. It answers "what needs me?" before "what is in the inbox?":
+
+```
+Hello, Sam                       Support agent. You can approve address changes; refunds go to an admin.
+[5 Ready for review] [14 New] [6 Waiting on customer] [0 Analyzing] [0 Failed] [5 Resolved]   -> filtered list
+┌ Waiting for your decision ┐  ┌ Waiting for an admin (agents) / Audit trail (admins) ┐
+└───────────────────────────┘  └──────────────────────────────────────────────────────┘
+┌ Recently updated tickets  ┐  ┌ Audit trail: "only admins can see this" (agents)    ┐
+```
+
+Which list a proposal lands in comes from the API's `can_decide`, never from a role check in the browser. Agents are told the audit trail exists and that only admins see it, instead of it silently missing.
+
 ## Behaviour rules
 
 - AI output is always labelled as a draft; facts it relied on are listed ("Based on ORD-1001"), warnings are shown, not hidden.
@@ -63,6 +77,14 @@ Below 1024px the columns merge in decision order: message, draft, proposal, orde
 - The only animation is the stamp press (260ms), triggered by the user's decision; it is off with `prefers-reduced-motion`.
 - Keyboard: visible focus ring, skip link, real buttons and links; status changes announced via `role="status"` / `role="alert"`.
 
-## Open for revision
+## Owner review log
 
-This is the first pass, built before owner review. Likely candidates: the login page's empty right side, density of the ticket table, and whether the draft editor should sit above the summary.
+**Round 1 (2026-11-03).**
+
+- Overall look: approved ("a good atmosphere"). Keep the dispatch-desk concept.
+- Ticket list: fine as it is.
+- Login page's empty right side: now a short "how a request moves" explainer (customer, AI draft, person decides) and a "who can do what" table for the two roles.
+- "No visible difference between agent and admin": the rule existed (refunds need an admin) but the demo data had no pending refund and admin-only data had no screen. Fixed by the overview page above, an "Admin only" marker on refund proposals, the role line under the greeting, and seeded demo activity with refunds waiting.
+- New: the overview page is the home page after sign-in.
+
+Still open: whether the draft editor should sit above the summary.

@@ -19,7 +19,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const next = (location.state as { from?: string } | null)?.from ?? '/tickets'
+  const next = (location.state as { from?: string } | null)?.from ?? '/'
 
   if (user) return <Navigate to={next} replace />
 
@@ -87,7 +87,10 @@ export function LoginPage() {
             <h2 id="demo-title" className="login__demo-title">
               Demo accounts
             </h2>
-            <p className="meta">Synthetic data only. Each role sees different approval rights.</p>
+            <p className="meta">
+              Synthetic data only. Sam is a support agent; Ada is an admin and can also approve
+              refunds.
+            </p>
             <div className="login__demo-buttons">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
@@ -104,6 +107,85 @@ export function LoginPage() {
           </section>
         ) : null}
       </div>
+      <ProductIntro />
     </div>
+  )
+}
+
+const PERMISSIONS: { what: string; agent: boolean; admin: boolean }[] = [
+  { what: 'Read tickets and orders, run AI analysis', agent: true, admin: true },
+  { what: 'Approve an address change', agent: true, admin: true },
+  { what: 'Approve a refund request', agent: false, admin: true },
+  { what: 'See the audit trail', agent: false, admin: true },
+]
+
+/** The right half: what the product does and who may do what. */
+function ProductIntro() {
+  return (
+    <aside className="intro" aria-labelledby="intro-title">
+      <h2 id="intro-title" className="intro__title">
+        How a request moves through SupportFlow
+      </h2>
+      <ol className="intro__steps">
+        <li className="intro__step">
+          <span className="intro__num">1</span>
+          <div>
+            <strong>A customer writes in</strong>
+            <p className="muted">“Please send ORD-1003 to my new address.”</p>
+          </div>
+        </li>
+        <li className="intro__step">
+          <span className="intro__num">2</span>
+          <div className="intro__draft">
+            <span className="carbon__tag">Draft by AI</span>
+            <strong>The AI checks the order and store policy</strong>
+            <p className="muted">
+              It drafts a reply and may propose a change. It never changes an order itself.
+            </p>
+          </div>
+        </li>
+        <li className="intro__step">
+          <span className="intro__num">3</span>
+          <div className="intro__decide">
+            <strong>A person decides</strong>
+            <p className="muted">Approving applies the change once. Every decision is recorded.</p>
+            <span className="intro__stamp" aria-hidden="true">
+              APPROVED
+            </span>
+          </div>
+        </li>
+      </ol>
+
+      <table className="intro__roles">
+        <caption>Who can do what</caption>
+        <thead>
+          <tr>
+            <th scope="col">
+              <span className="visually-hidden">Permission</span>
+            </th>
+            <th scope="col">Support agent</th>
+            <th scope="col">Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PERMISSIONS.map((row) => (
+            <tr key={row.what}>
+              <th scope="row">{row.what}</th>
+              <Allowed value={row.agent} />
+              <Allowed value={row.admin} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </aside>
+  )
+}
+
+function Allowed({ value }: { value: boolean }) {
+  return (
+    <td className={value ? 'yes' : 'no'}>
+      <span aria-hidden="true">{value ? '✓' : '–'}</span>
+      <span className="visually-hidden">{value ? 'Yes' : 'No'}</span>
+    </td>
   )
 }

@@ -54,8 +54,10 @@ class AuditService:
             )
         )
 
-    def list(self, *, ticket_id: int | None, limit: int, offset: int) -> list[AuditLog]:
-        stmt = select(AuditLog).order_by(AuditLog.id)
+    def list(
+        self, *, ticket_id: int | None, limit: int, offset: int, newest_first: bool = False
+    ) -> list[AuditLog]:
+        stmt = select(AuditLog).order_by(AuditLog.id.desc() if newest_first else AuditLog.id)
         if ticket_id is not None:
             stmt = stmt.where(AuditLog.ticket_id == ticket_id)
         return list(self.session.scalars(stmt.limit(limit).offset(offset)))

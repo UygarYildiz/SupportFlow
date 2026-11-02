@@ -50,7 +50,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [x] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
 - [x] Faz 4 — LangGraph agent akışı
 - [x] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
-- [x] Faz 6 — React operasyon paneli (**gösterilebilir MVP**) — ilk tasarım turu; sahibin revizyonları bekleniyor
+- [x] Faz 6 — React operasyon paneli (**gösterilebilir MVP**) — sahip revizyonu 1 tamamlandı (2026-11-03); küçük açık nokta: taslak editörünün yeri
 - [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**)
 
 **Blok B — V1 genişletmeleri**
@@ -637,7 +637,7 @@ flowchart TD
 
 ### Sayfalar
 
-1. **Dashboard:** Yeni, incelemede, onay bekleyen, çözülen talepler; son aktiviteler.
+1. **Dashboard:** Yeni, incelemede, onay bekleyen, çözülen talepler; son aktiviteler. (İlk turda yapılmamıştı; sahip revizyonu 1'de "Overview" olarak eklendi.)
 2. **Tickets:** Tablo, durum, kategori, öncelik, arama/filtreleme.
 3. **Ticket detail:** Müşteri mesajı, sipariş verileri, AI özeti, öneri, kullanılan kanıtlar, olay zaman çizelgesi.
 4. **Approval queue:** Bekleyen öneriler, gerekçe, risk ve değişiklik ön izlemesi, onay/ret.
@@ -673,6 +673,18 @@ flowchart TD
 - [x] `docs/TEST_PLAN.md`: hangi senaryonun hangi testle doğrulandığı (TC tablosu ↔ test dosyaları).
 
 **Commit:** `feat: build support operations dashboard`
+
+### Sahip revizyonu 1 (2026-11-03)
+
+Geri bildirim: genel hava beğenildi, ticket listesi iyi; giriş ekranının sağı boş; **admin ile agent arasında fark görülmüyor.** Kök neden: kural vardı (iadeyi yalnız admin onaylar) ama demo verisinde bekleyen iade yoktu ve admin'e özel veriler (audit) hiçbir ekranda gösterilmiyordu.
+
+- [x] Overview (Dashboard) ana sayfa: duruma göre sayaçlar (filtreli listeye link), "Waiting for your decision" / "Waiting for an admin", son güncellenen ticket'lar; admin'e audit trail, agent'a "yalnız admin görür" açıklaması. Gruplama API'nin `can_decide` alanından gelir.
+- [x] İade önerilerinde "Admin only" etiketi (kuyruk ve ticket detayı).
+- [x] Giriş ekranının sağ tarafı: "talep nasıl ilerler" (3 adım) + "kim ne yapabilir" rol tablosu.
+- [x] Seed demo aktivitesi: 7 ticket gerçek analiz yolundan fake LLM ile analiz edilir (2 iade admin bekler, 1 adres değişikliği bekler, 1 tanesini Sam onaylamış); S1 (ticket #1) canlı demo için `new` kalır. `--no-activity` ile kapatılabilir.
+- [x] Backend: `GET /tickets?sort=updated` ve `GET /audit?sort=newest` (yalnız sıralama; yeni iş kuralı yok).
+- [x] Testler: `DashboardPage.test.tsx` (4), `test_seed.py` demo aktivitesi, `test_tickets.py` sıralama, audit `sort=newest`; iki rolde ekran görüntüsüyle görsel kontrol (1440px; giriş 800px).
+- [ ] Açık: taslak editörü özetin üstünde mi olmalı? (sahip kararı)
 
 > **Faz 6'dan sonra doğrudan Faz 11-A'ya geç** ve MVP'yi `v0.1.0` olarak yayınla. RAG/MCP'ye ancak bundan sonra başla.
 

@@ -1000,6 +1000,8 @@ export interface operations {
                 category?: components["schemas"]["TicketCategory"] | null;
                 limit?: number;
                 offset?: number;
+                /** @description Newest first by creation (default) or by last update */
+                sort?: "created" | "updated";
             };
             header?: never;
             path?: never;
@@ -1524,6 +1526,8 @@ export interface operations {
                 ticket_id?: number | null;
                 limit?: number;
                 offset?: number;
+                /** @description Chronological (default) or newest first, for recent activity */
+                sort?: "oldest" | "newest";
             };
             header?: never;
             path?: never;

@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -189,3 +190,25 @@ def test_list_items_carry_the_customer_name(
     make_ticket(db_session, make_customer(db_session, "CUS-NAME"))
     items = client.get("/api/v1/tickets", headers=auth_headers(agent)).json()["items"]
     assert items[0]["customer_name"] == "Customer CUS-NAME"
+
+
+def test_list_can_sort_by_last_update(
+    client: TestClient, db_session: Session, agent: User, auth_headers: Headers
+) -> None:
+    customer = make_customer(db_session)
+    older = make_ticket(db_session, customer, subject="Older, touched recently")
+    newer = make_ticket(db_session, customer, subject="Newer, untouched")
+    older.created_at = newer.created_at - timedelta(days=2)
+    older.updated_at = newer.updated_at + timedelta(hours=1)
+    db_session.flush()
+
+    def ids(sort: str | None) -> list[int]:
+        params = {"sort": sort} if sort else {}
+        response = client.get("/api/v1/tickets", headers=auth_headers(agent), params=params)
+        assert response.status_code == 200
+        return [item["id"] for item in response.json()["items"]]
+
+    assert ids(None) == [newer.id, older.id]
+    assert ids("updated") == [older.id, newer.id]
+    bad = client.get("/api/v1/tickets", headers=auth_headers(agent), params={"sort": "name"})
+    assert bad.status_code == 422

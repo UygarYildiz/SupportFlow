@@ -340,6 +340,10 @@ def test_audit_trail_is_redacted_admin_only_and_append_only(
     ]
     assert entries[1]["actor_id"] == agent.id
     assert "9 New Rd" not in str(entries)  # personal data redacted
+    recent = client.get(
+        "/api/v1/audit", headers=auth_headers(admin), params={"sort": "newest", "limit": 2}
+    ).json()
+    assert [e["action"] for e in recent] == ["action.executed", "proposal.approved"]
 
     with pytest.raises(DBAPIError, match="append-only"):
         db_session.execute(text("UPDATE audit_logs SET action = 'tampered'"))

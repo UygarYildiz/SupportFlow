@@ -3,8 +3,8 @@
 How the requirements are verified. Backend tests run against a real PostgreSQL test database (each test in a rolled-back transaction); no test calls the paid LLM API.
 
 ```bash
-cd backend && uv run poe check        # lint, format, types, 130 tests
-cd frontend && npm test               # 13 component tests (Vitest + Testing Library)
+cd backend && uv run poe check        # lint, format, types, 132 tests
+cd frontend && npm test               # 17 component tests (Vitest + Testing Library)
 ```
 
 ## Scenarios (docs/REQUIREMENTS.md section 5)
@@ -52,8 +52,11 @@ cd frontend && npm test               # 13 component tests (Vitest + Testing Lib
 | Double submit is blocked; the shown version is sent | `ProposalCard.test.tsx`: blocks a second click while applying |
 | Unauthorized roles get no decision buttons (the API also refuses: TC-19) | `ProposalCard.test.tsx`: no decision buttons |
 | Wrong credentials explained | `LoginPage.test.tsx` |
+| Overview counts link to the filtered list | `DashboardPage.test.tsx`: links each status count |
+| Role difference is visible: agents see refunds as "waiting for an admin", admins decide them and see the audit trail | `DashboardPage.test.tsx`: agent never asks for the audit trail; admin gets every decision; `ProposalCard.test.tsx`: "Admin only" marker |
+| Demo data shows both roles at work, through the real analysis/approval path and without a paid model | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
 
-Visual checks are done with screenshots at 1440px and 390px wide (login, tickets, ticket detail in each state, approvals, stamp after decision).
+Visual checks are done with screenshots at 1440px and 390px wide (login, overview as agent and as admin, tickets, ticket detail in each state, approvals, stamp after decision).
 
 ## Known gaps
 

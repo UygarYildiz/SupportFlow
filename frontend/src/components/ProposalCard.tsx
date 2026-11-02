@@ -31,6 +31,12 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
         </h3>
         <span className="label__order">{proposal.order_id}</span>
       </header>
+      {proposal.type === 'create_refund_request' ? (
+        <p className="label__strip">
+          <span className="tag tag--admin">Admin only</span>
+          <span className="meta">Refund requests need an admin's approval.</span>
+        </p>
+      ) : null}
 
       <div className="label__body">
         <ProposalChange proposal={proposal} />

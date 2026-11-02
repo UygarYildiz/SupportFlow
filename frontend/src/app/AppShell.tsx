@@ -18,6 +18,11 @@ export function AppShell() {
         </div>
         <ul className="rail__links">
           <li>
+            <NavLink to="/" end className="rail__link">
+              Overview
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/tickets" className="rail__link">
               Tickets
               {summary.data ? (

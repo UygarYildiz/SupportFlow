@@ -64,6 +64,8 @@ describe('ProposalCard', () => {
 
     expect(screen.queryByRole('button', { name: 'Approve and apply' })).not.toBeInTheDocument()
     expect(screen.getByText('Only an admin can decide refund requests.')).toBeInTheDocument()
+    // Marked before anyone opens it, so the rule is visible on the queue too.
+    expect(screen.getByText('Admin only')).toBeInTheDocument()
   })
 
   it('stamps decided proposals', () => {

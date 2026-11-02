@@ -24,6 +24,9 @@ export const keys = {
   run: (id: number) => ['runs', id] as const,
   proposals: (filters: ProposalFilters) => ['proposals', filters] as const,
   audit: (ticketId: number) => ['audit', ticketId] as const,
+  recentTickets: (limit: number) => ['tickets', 'recent', limit] as const,
+  recentAudit: (limit: number) => ['audit', 'recent', limit] as const,
+  users: ['users'] as const,
 }
 
 export interface TicketFilters {
@@ -64,6 +67,15 @@ export function useTickets(filters: TicketFilters) {
         query: { ...filters, limit: PAGE_SIZE },
       }),
     placeholderData: (previous) => previous,
+  })
+}
+
+/** Tickets most recently changed (analysis, decision, status), newest first. */
+export function useRecentTickets(limit: number) {
+  return useQuery({
+    queryKey: keys.recentTickets(limit),
+    queryFn: () =>
+      request<Page<Ticket>>('GET', '/tickets', { query: { sort: 'updated', limit } }),
   })
 }
 
@@ -156,5 +168,24 @@ export function useAudit(ticketId: number, enabled: boolean) {
     queryFn: () =>
       request<AuditEntry[]>('GET', '/audit', { query: { ticket_id: ticketId, limit: 200 } }),
     enabled,
+  })
+}
+
+/** Latest audit entries across all tickets, newest first. The endpoint is admin-only (403 otherwise). */
+export function useRecentAudit(limit: number, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.recentAudit(limit),
+    queryFn: () => request<AuditEntry[]>('GET', '/audit', { query: { limit, sort: 'newest' } }),
+    enabled,
+  })
+}
+
+/** Staff directory, used to name audit actors. Admin-only endpoint. */
+export function useUsers(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.users,
+    queryFn: () => request<User[]>('GET', '/users'),
+    enabled,
+    staleTime: 5 * 60_000,
   })
 }

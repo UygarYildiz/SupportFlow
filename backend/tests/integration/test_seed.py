@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Customer, Order, Ticket, TicketEvent, User
+from app.db.models import ActionProposal, AgentRun, Customer, Order, Ticket, TicketEvent, User
+from app.demo.activity import PRE_ANALYZED_TICKETS, seed_demo_activity
 from app.demo.seed import TOTAL_ORDERS, TOTAL_TICKETS, seed_demo_data
-from app.domain.enums import OrderStatus
+from app.domain.enums import ActionType, OrderStatus, ProposalStatus, TicketStatus
 
 NOW = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
 
@@ -64,3 +65,31 @@ def test_scenario_orders_contain_the_products_their_tickets_mention(db_session: 
         order = db_session.get(Order, order_id)
         assert order is not None
         assert any(product in item["name"] for item in order.items), order_id
+
+
+def test_demo_activity_shows_both_approval_roles_and_is_idempotent(db_session: Session) -> None:
+    seed_demo_data(db_session, NOW, "demo-pass")
+    first = seed_demo_activity(db_session, lambda: NOW)
+    second = seed_demo_activity(db_session, lambda: NOW)
+
+    assert (first.analyzed, first.approved) == (len(PRE_ANALYZED_TICKETS), 1)
+    assert (second.analyzed, second.approved) == (0, 0)
+
+    proposals = {
+        p.ticket_id: (p.type, p.status) for p in db_session.scalars(select(ActionProposal))
+    }
+    assert proposals == {
+        2: (ActionType.CREATE_REFUND_REQUEST, ProposalStatus.PENDING),
+        3: (ActionType.CHANGE_SHIPPING_ADDRESS, ProposalStatus.PENDING),
+        8: (ActionType.CREATE_REFUND_REQUEST, ProposalStatus.PENDING),
+        15: (ActionType.CHANGE_SHIPPING_ADDRESS, ProposalStatus.EXECUTED),
+    }
+    statuses = {t.id: t.status for t in db_session.scalars(select(Ticket))}
+    assert statuses[1] == TicketStatus.NEW  # S1 stays fresh for the live demo
+    assert statuses[5] == TicketStatus.NEEDS_INFO  # unknown order: nothing invented
+    assert statuses[15] == TicketStatus.RESOLVED
+    order_1010 = db_session.get(Order, "ORD-1010")
+    assert order_1010 is not None
+    assert order_1010.shipping_address == "15 Station Rd, Brookfield"
+    models = set(db_session.scalars(select(AgentRun.model)))
+    assert models == {"fake-llm"}  # seeding never calls a paid model

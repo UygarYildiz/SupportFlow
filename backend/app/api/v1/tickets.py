@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, status
 
@@ -41,11 +41,17 @@ def list_tickets(
     category: TicketCategory | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
+    sort: Annotated[
+        Literal["created", "updated"],
+        Query(description="Newest first by creation (default) or by last update"),
+    ] = "created",
 ) -> Page[TicketOut]:
     filters = TicketFilters(
         status=status_filter, priority=priority, customer_id=customer_id, category=category
     )
-    tickets, total = TicketService(session).list(filters, limit=limit, offset=offset)
+    tickets, total = TicketService(session).list(
+        filters, limit=limit, offset=offset, recently_updated=sort == "updated"
+    )
     return Page(
         items=[TicketOut.model_validate(ticket) for ticket in tickets],
         total=total,

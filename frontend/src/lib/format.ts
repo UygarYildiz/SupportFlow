@@ -48,6 +48,17 @@ export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
   expired: 'Expired',
 }
 
+/** Audit actions as a sentence predicate: "<actor> approved a change". */
+export const AUDIT_LABEL: Record<string, string> = {
+  'proposal.created': 'proposed a change',
+  'proposal.approved': 'approved a change',
+  'proposal.rejected': 'rejected a change',
+  'proposal.expired': 'let a proposal expire',
+  'proposal.integrity_failed': 'hit a changed proposal',
+  'action.executed': 'applied a change to',
+  'action.failed': 'was blocked applying a change to',
+}
+
 /** Word printed by the decision stamp. Rubber-stamp lettering is uppercase by nature. */
 export const STAMP_WORD: Partial<Record<ProposalStatus, string>> = {
   executed: 'APPROVED',

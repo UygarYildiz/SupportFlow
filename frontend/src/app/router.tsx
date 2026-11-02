@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { ApprovalsPage } from '../pages/ApprovalsPage'
+import { DashboardPage } from '../pages/DashboardPage'
 import { LoginPage } from '../pages/LoginPage'
 import { TicketPage } from '../pages/TicketPage'
 import { TicketsPage } from '../pages/TicketsPage'
@@ -15,11 +16,11 @@ export const routes = [
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <Navigate to="/tickets" replace /> },
+      { index: true, element: <DashboardPage /> },
       { path: '/tickets', element: <TicketsPage /> },
       { path: '/tickets/:ticketId', element: <TicketPage /> },
       { path: '/approvals', element: <ApprovalsPage /> },
-      { path: '*', element: <Navigate to="/tickets" replace /> },
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ]

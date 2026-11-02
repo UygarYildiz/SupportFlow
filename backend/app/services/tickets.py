@@ -29,7 +29,15 @@ class TicketService:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list(self, filters: TicketFilters, limit: int, offset: int) -> tuple[list[Ticket], int]:
+    def list(
+        self,
+        filters: TicketFilters,
+        limit: int,
+        offset: int,
+        *,
+        recently_updated: bool = False,
+    ) -> tuple[list[Ticket], int]:
+        """Newest first by creation time, or by last update when `recently_updated`."""
         conditions = []
         if filters.status is not None:
             conditions.append(Ticket.status == filters.status)
@@ -45,7 +53,10 @@ class TicketService:
             select(Ticket)
             .where(*conditions)
             .options(selectinload(Ticket.customer))
-            .order_by(Ticket.created_at.desc(), Ticket.id.desc())
+            .order_by(
+                (Ticket.updated_at if recently_updated else Ticket.created_at).desc(),
+                Ticket.id.desc(),
+            )
             .limit(limit)
             .offset(offset)
         )

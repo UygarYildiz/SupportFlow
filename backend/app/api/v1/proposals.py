@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Query, status
 
@@ -82,7 +82,13 @@ def list_audit_logs(
     ticket_id: int | None = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    sort: Annotated[
+        Literal["oldest", "newest"],
+        Query(description="Chronological (default) or newest first, for recent activity"),
+    ] = "oldest",
 ) -> list[AuditLogOut]:
     """Audit trail (admin only). Personal data in details is redacted."""
-    entries = AuditService(session).list(ticket_id=ticket_id, limit=limit, offset=offset)
+    entries = AuditService(session).list(
+        ticket_id=ticket_id, limit=limit, offset=offset, newest_first=sort == "newest"
+    )
     return [AuditLogOut.model_validate(entry) for entry in entries]
