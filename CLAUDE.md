@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-The project is in **Phase 0 (planning)**. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs. No code, build tooling or tests exist yet. Update this file once the Phase 1 scaffold (backend, frontend, compose) lands, and replace the "planned" commands below with the real ones.
+Phase 1 (skeleton) is in place: FastAPI app with `/health` and `/ready`, Alembic with an empty baseline migration, Postgres via Docker Compose, a Vite + React status page, and GitHub Actions CI. No domain code yet. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
 
@@ -12,16 +12,19 @@ SupportFlow AI is a portfolio project: a customer-support operations platform fo
 
 - Work proceeds phase by phase (Faz 0–12 in `ROADMAP.md`), grouped into Block A (MVP: Phases 0–6 + 11-A, released as `v0.1.0`), Block B (RAG, MCP, live deploy) and Block C (optional: n8n, advanced hardening, V2). **Do not add a later phase's technology early.** For example: no RAG/pgvector before Phase 7, no MCP before Phase 8, no n8n before Phase 9, no Redis/Celery unless a real need appears.
 - **Everything in the repo is in English** (code, comments, commits, docs, UI). `ROADMAP.md` is the owner's personal plan and stays in Turkish. Converse with the user in Turkish.
-- Take on one issue or one vertical slice at a time. Before coding, present a 5–10 step plan and the files that will change. When done, report: changed files, actual test output, known risks, how to verify manually, and which `ROADMAP.md` checkboxes to tick (`[ ]` → `[x]`).
+- Take on one issue or one vertical slice at a time. Before coding, present a 5–10 step plan and the files that will change.
+- **Keep `ROADMAP.md` in sync with the work:** tick `[ ]` → `[x]` yourself as items are actually completed and verified, and add or adjust items when plans change. Don't tick anything that wasn't verified.
+- **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
 - Record architectural choices as short ADRs in `docs/DECISIONS.md`.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
-- Architectural decisions ADR-001…ADR-009 are listed in `ROADMAP.md` §11. Don't contradict them without writing a new ADR.
+- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-009). Don't contradict them without writing a new ADR.
+- Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
 
-## Planned stack
+## Stack
 
-Python 3.12+ with **uv** (`uv.lock` committed), FastAPI + Pydantic, **sync** SQLAlchemy 2 + psycopg 3 + Alembic (ADR-004), PostgreSQL (later pgvector), LangGraph, React + TypeScript + Vite + Tailwind, pytest + httpx, Ruff + Pyright/mypy, Docker Compose, GitHub Actions. LLM provider is the **Gemini API** via the `google-genai` SDK behind an `LLMClient` interface; model name comes from `GEMINI_MODEL` (ADR-009). The SDK may only be imported inside `app/agent/` adapters. The Python backend needs a container host. Don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages).
+Python 3.12 with **uv** (`uv.lock` committed), FastAPI + Pydantic, **sync** SQLAlchemy 2 + psycopg 3 + Alembic (ADR-004), PostgreSQL (later pgvector), LangGraph, React + TypeScript + Vite (Tailwind from Phase 6), pytest + httpx, Ruff + Pyright, oxlint for the frontend, Docker Compose, GitHub Actions. LLM provider is the **Gemini API** via the `google-genai` SDK behind an `LLMClient` interface; model name comes from `GEMINI_MODEL` (ADR-009). The SDK may only be imported inside `app/agent/` adapters. The Python backend needs a container host. Don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages).
 
-Planned layout: `backend/app/{api,core,db,domain,services,integrations,agent,rag,schemas}`, `backend/tests/{unit,integration,agent,fixtures}`, `backend/scripts/seed_demo.py`, `frontend/src/...`, `docs/`, `evals/`, `automation/` (n8n exports).
+Target layout (create modules when their phase starts): `backend/app/{api,core,db,domain,services,integrations,agent,rag,schemas}`, `backend/tests/{unit,integration,agent,fixtures}`, `backend/scripts/seed_demo.py`, `frontend/src/...`, `docs/`, `evals/`, `automation/` (n8n exports).
 
 ## Architecture invariants (non-negotiable)
 
@@ -46,6 +49,28 @@ These span multiple modules and are the core of the project:
 
 Scenarios S1–S6 (§1.3), the access model (§1.5) and test matrix TC-01…TC-20 (§6) in `ROADMAP.md` define expected behavior. Convert them into backend integration tests and `evals/scenarios.jsonl`. P0 cases (unapproved action never executes, double approval yields one action, no fabricated orders, cross-customer access denied, injection doesn't escalate) are mandatory regression tests.
 
-## Commands (planned, not yet available)
+## Commands
 
-Phase 1 calls for a single-command test runner (Makefile/Taskfile) and README steps: clone → `.env` from `.env.example` → `docker compose up` → Alembic migrate → `seed_demo.py` → run. Once these exist, document here the exact commands for backend lint/typecheck/test (including running a single pytest test), frontend dev/build/lint, migrations and seeding.
+Local Postgres runs in Docker on host port **5433** (5432 is taken on the dev machine). `.env` lives in the repo root and is read by `app/core/config.py`. Docker commands work from PowerShell; the Git Bash shell may not have `docker` on PATH.
+
+```bash
+docker compose up -d db              # Postgres only (creates supportflow + supportflow_test DBs)
+docker compose up --build            # db + backend (:8000) + frontend (:5173)
+
+# backend/ (uv + poethepoet tasks defined in pyproject.toml)
+uv run poe check                     # ruff lint + format check + pyright + pytest (what CI runs)
+uv run poe test                      # pytest; tests marked `db` need the compose Postgres
+uv run pytest tests/test_health.py::test_ready_reports_database_ok   # single test
+uv run poe dev                       # uvicorn --reload on :8000
+uv run poe migrate                   # alembic upgrade head
+uv run alembic revision --autogenerate -m "..."
+
+# frontend/
+npm run dev | npm run lint | npm run typecheck | npm run build
+```
+
+Testing conventions:
+- `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides` (e.g. `get_engine`).
+- DB tests use the `db_engine` / `test_database_url` fixtures (`tests/conftest.py`), pointing at `TEST_DATABASE_URL`. Never point tests at the dev database.
+- New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.
+- The frontend calls the backend only through `src/lib/api.ts`. Vite proxies `/api`, `/health` and `/ready` to the backend, so no CORS setup is needed in dev.

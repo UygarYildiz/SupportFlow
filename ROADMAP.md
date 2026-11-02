@@ -339,42 +339,45 @@ supportflow-ai/
 ### Repository
 
 - [x] Proje klasöründe **kendi** git reposunu başlat (üst klasördeki ortak bir repoya bağlı olmamalı; `git rev-parse --show-toplevel` proje klasörünü göstermeli).
-- [ ] GitHub'da private `supportflow-ai` reposu oluştur ve bağla; MVP yayınlanınca public yap.
+- [x] GitHub reposu oluşturuldu ve bağlandı: `UygarYildiz/SupportFlow` (MVP yayınlanana kadar private tutulması önerilir).
+- [x] Ön koşul: Docker Desktop kurulu ve çalışıyor (`docker compose version`).
+- [x] `.gitattributes` ile satır sonlarını sabitle (Windows CRLF / Linux container LF).
 
 ### Backend
 
-- [ ] `uv init` ile Python projesi oluştur.
-- [ ] FastAPI `/health` ve `/ready` endpoint'lerini ekle.
-- [ ] Environment tabanlı Pydantic Settings (`.env.example`) kullan.
-- [ ] PostgreSQL'i Docker Compose ile başlat.
-- [ ] SQLAlchemy bağlantısı ve Alembic migration altyapısını ekle.
-- [ ] `/docs` OpenAPI arayüzünü kontrol et.
-- [ ] Ruff, type checker, pytest yapılandırmasını oluştur.
-- [ ] Testler için ayrı bir test veritabanı (compose'daki Postgres'te ayrı DB veya testcontainers); her test transaction rollback ile izole.
+- [x] `uv init` ile Python projesi oluştur.
+- [x] FastAPI `/health` ve `/ready` endpoint'lerini ekle.
+- [x] Environment tabanlı Pydantic Settings (`.env.example`) kullan.
+- [x] PostgreSQL'i Docker Compose ile başlat.
+- [x] SQLAlchemy bağlantısı ve Alembic migration altyapısını ekle.
+- [x] `/docs` OpenAPI arayüzünü kontrol et.
+- [x] Ruff, type checker, pytest yapılandırmasını oluştur.
+- [x] Testler için ayrı bir test veritabanı (`supportflow_test`, compose ilk açılışta oluşturur).
+- [ ] Her testin transaction rollback ile izole edilmesi → ilk tablolarla birlikte Faz 2'de.
 - [ ] Minimal GitHub Actions: backend lint + typecheck + test. (CI'ı en sona bırakma; erken kurmak her fazda kaliteyi korur.)
 
 ### Frontend
 
-- [ ] Vite + React + TypeScript kur.
-- [ ] Tek sayfalık, backend'e bağlanan sağlık kontrolü ekranı yap.
-- [ ] API base URL ve development proxy ayarlarını düzgün kur.
+- [x] Vite + React + TypeScript kur.
+- [x] Tek sayfalık, backend'e bağlanan sağlık kontrolü ekranı yap.
+- [x] API base URL ve development proxy ayarlarını düzgün kur.
 
 ### Geliştirici deneyimi
 
-- [ ] `.gitignore`: `.env`, anahtarlar, veritabanı dosyaları, node_modules, local cache.
-- [ ] `.env.example`: sahte değerlerle gerekli env değişkenleri.
-- [ ] `compose.yaml`: postgres + backend + frontend (geliştirme için).
-- [ ] `README.md`: `git clone` → env → compose → migrate → seed → çalıştır adımları.
-- [ ] Tek komutla test çalıştıran script veya Makefile/Taskfile ekle.
+- [x] `.gitignore`: `.env`, anahtarlar, veritabanı dosyaları, node_modules, local cache.
+- [x] `.env.example`: sahte değerlerle gerekli env değişkenleri.
+- [x] `compose.yaml`: postgres + backend + frontend (geliştirme için).
+- [x] `README.md`: `git clone` → env → compose → migrate → çalıştır adımları (seed adımı Faz 2'de eklenecek).
+- [x] Tek komutla test çalıştıran script veya Makefile/Taskfile ekle → `uv run poe check` (poethepoet; Windows'ta `make` olmadığı için).
 
 **Çıkış kriterleri**
 
 - [ ] Yeni bir klasörde README adımlarını izleyince uygulama ayağa kalkıyor.
-- [ ] `/health` başarılı, `/ready` DB durumunu doğru bildiriyor.
-- [ ] Migration ve en az bir örnek test çalışıyor.
+- [x] `/health` başarılı, `/ready` DB durumunu doğru bildiriyor.
+- [x] Migration ve en az bir örnek test çalışıyor.
 - [ ] CI ilk push'ta yeşil.
-- [ ] Gizli anahtar repoya commit edilmemiş.
-- [ ] `CLAUDE.md` gerçek komutlarla (çalıştırma, lint, test, tek test, migration) güncellendi.
+- [x] Gizli anahtar repoya commit edilmemiş.
+- [x] `CLAUDE.md` gerçek komutlarla (çalıştırma, lint, test, tek test, migration) güncellendi.
 
 **Commit:** `chore: bootstrap backend frontend postgres and tooling`
 
@@ -418,7 +421,8 @@ supportflow-ai/
 - [ ] `PATCH /api/v1/tickets/{ticket_id}` — sadece izinli alan ve durumlar.
 - [ ] `GET /api/v1/customers/{id}/orders` — müşteri siparişleri.
 - [ ] `GET /api/v1/orders/{id}` — bir siparişin bilgileri.
-- [ ] `seed_demo.py` — tekrar çalıştırılabilir, deterministik sahte veri.
+- [ ] `seed_demo.py` — tekrar çalıştırılabilir, deterministik sahte veri; README kurulum adımlarına seed komutunu ekle.
+- [ ] DB testleri için transaction-rollback fixture'ı (her test izole).
 - [ ] `TicketService`, `OrderService` ve `PolicyService` için temiz arayüzler.
 - [ ] Ticket durum geçişlerini kodla; imkânsız geçişlere 409 döndür.
 
@@ -1173,13 +1177,13 @@ Neden: Tek bir status alanında iki yaşam döngüsünü karıştırmak tutarsı
 Bu bölümü sıfırdan başlarken uygula. Önce aşağıdaki kutuları tamamla; Faz 2'ye atlama.
 
 - [x] Proje klasöründe kendi git reposunu başlat (üst klasördeki ortak repoya bağlı olmasın).
-- [ ] GitHub'da `supportflow-ai` adında **private** repository oluştur ve bağla (MVP yayınında public yap).
+- [x] GitHub reposunu oluştur ve bağla: `UygarYildiz/SupportFlow`.
 - [x] LLM sağlayıcı/model kararını ver (ADR-009).
 - [x] `README.md` içine 1 paragraf ürün tanımını yaz (İngilizce).
 - [x] `docs/REQUIREMENTS.md` oluştur; S1–S6 senaryolarını ve erişim modelini taşı.
 - [x] `docs/ARCHITECTURE.md` oluştur, ana bileşenleri ve yazma/onay sınırını çiz.
 - [x] `docs/DECISIONS.md` oluştur ve ADR-001 … ADR-009'u kaydet.
-- [ ] İlk commit: `docs: define supportflow requirements and architecture`.
+- [x] İlk commit: `docs: define supportflow requirements and architecture`.
 - [ ] Backend (FastAPI, uv) iskeletini kur; `GET /health` ve `/ready` yaz; PostgreSQL için Compose hazırla; Alembic bağlantısını test et.
 - [ ] Frontend (React/TS) başlangıcını ve basit `API connected` ekranını yap; ikinci commit: `chore: bootstrap backend frontend postgres and tooling`.
 
