@@ -70,3 +70,16 @@ Each record: decision, reason, alternatives, and when to revisit.
 
 **Reason:** Readable external IDs are what customers and the LLM will reference ("ORD-1001"). `CHECK` constraints keep integrity without `ALTER TYPE` migrations when values are added. Ownership is a security rule, so it gets a database-level guarantee in addition to application code.
 **Alternatives:** UUIDs everywhere (less readable in demos and prompts); native enums (harder to evolve).
+
+## ADR-011: Analysis graph with deterministic decisions around two model calls
+
+**Decision:** The analysis is a LangGraph state graph (`app/agent/graph.py`) with nine nodes. Only two call the model: `classify` (intent, referenced order, requested address) and `draft` (summary and reply). Everything that decides something is plain code:
+- which order is in scope (the model's order reference is used only if the customer actually wrote that ID);
+- which policy applies to which category, and its result (`PolicyService`);
+- whether an action may be proposed (`plan_action`: policy must allow it, and never when the message contains instructions aimed at the system);
+- which cited evidence is valid (`assemble_result`).
+
+Tools are an explicit allowlist (`get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`) bound to the ticket's customer from the database. The model does not choose tools; nodes call them. Every node is recorded in `agent_run_steps` (duration, small summary, tool calls). Limits: graph step limit, token budget per run, run deadline. No checkpointer is used (ADR-006).
+
+**Reason:** A model call can be wrong, fooled or unavailable. Keeping it to classification and wording makes every consequential decision testable without a model, explainable in the UI and identical across providers. Two focused calls are cheaper and easier to validate than one large prompt or free tool use.
+**Alternatives:** One prompt doing everything (Phase 3; harder to control and explain); a ReAct-style agent choosing its own tools (more flexible, but authorization and determinism become harder to guarantee; reconsider for V2 read-only research tasks).

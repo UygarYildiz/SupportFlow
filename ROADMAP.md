@@ -48,7 +48,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [ ] Faz 1 — Repository ve geliştirme ortamı
 - [x] Faz 2 — Deterministik destek sistemi + demo auth (AI olmadan)
 - [x] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
-- [ ] Faz 4 — LangGraph agent akışı
+- [x] Faz 4 — LangGraph agent akışı
 - [ ] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
 - [ ] Faz 6 — React operasyon paneli (**gösterilebilir MVP**)
 - [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**)
@@ -538,31 +538,31 @@ flowchart TD
 
 ### Görevler
 
-- [ ] `AgentState` tanımla (ticket_id, customer_id, intent, facts, policy_results, proposal, errors, run_id).
-- [ ] Node'lar küçük ve test edilebilir olsun; tek yan etki son adımdaki proposal kaydıdır ve idempotent'tir (run_id + proposal fingerprint unique).
-- [ ] Koşullu edge'ler belirle; hangi durumlarda insan incelemesi gerekiyor yaz.
-- [ ] Faz 3'teki run/worker altyapısını kullan; graph bir run içinde baştan sona çalışır. Checkpointer MVP'de zorunlu değil (ileride `interrupt()` için gerekir).
-- [ ] Tool'ları açık allowlist üzerinden çağır: `get_order`, `get_customer_orders`, `get_customer_tickets` (S6), `get_policy`.
-- [ ] S6 için müşterinin önceki ticket'larını facts'e ekle (Faz 3 canlı testinde model geçmişi göremediği için doğru biçimde "inceleyeceğiz" demekle yetindi).
-- [ ] Politika kararlarını (`PolicyService`) facts'e ekle; böylece taslak, uygun olmayan talepte (S5, kargolanmış siparişte adres değişikliği) kuralı açıklayabilir. Araçlar `customer_id`'yi state'teki ticket'tan alır, LLM'den gelen parametreyle başka müşteriye erişemez.
-- [ ] MVP'de `get_policy` deterministik, versiyonlu kural tablosundan okur (RAG Faz 7'de).
-- [ ] Maksimum adım/tekrar, timeout ve toplam maliyet bütçesi koy.
-- [ ] Hata ve eksik veride insan inceleme yolunu tanımla.
-- [ ] Her node'un girişini/çıkışını (özet, süre, hata) `agent_run_steps` veya structured log ile kaydet; panelde "Runs" görünümü bunu okur.
+- [x] `AgentState` tanımla (ticket_id, customer_id, intent, facts, policy_results, proposal, errors, run_id).
+- [x] Node'lar küçük ve test edilebilir olsun. Graph'ın iş verisine yan etkisi yok (yalnız adım kaydı); önerilen işlem run sonucunda duruyor. → Proposal'ın DB'ye yazılması ve idempotency'si Faz 5'e taşındı.
+- [x] Koşullu edge'ler belirle; hangi durumlarda insan incelemesi gerekiyor yaz.
+- [x] Faz 3'teki run/worker altyapısını kullan; graph bir run içinde baştan sona çalışır. Checkpointer MVP'de zorunlu değil (ileride `interrupt()` için gerekir).
+- [x] Tool'ları açık allowlist üzerinden çağır: `get_order`, `get_customer_orders`, `get_customer_tickets` (S6), `get_policy`.
+- [x] S6 için müşterinin önceki ticket'larını facts'e ekle (Faz 3 canlı testinde model geçmişi göremediği için doğru biçimde "inceleyeceğiz" demekle yetindi).
+- [x] Politika kararlarını (`PolicyService`) facts'e ekle; böylece taslak, uygun olmayan talepte (S5, kargolanmış siparişte adres değişikliği) kuralı açıklayabilir. Araçlar `customer_id`'yi state'teki ticket'tan alır, LLM'den gelen parametreyle başka müşteriye erişemez.
+- [x] MVP'de `get_policy` deterministik, versiyonlu kural tablosundan okur (RAG Faz 7'de).
+- [x] Maksimum adım/tekrar, timeout ve toplam maliyet bütçesi koy. (Adım limiti 20, run süresi 120 sn, run başına 12.000 token bütçesi.)
+- [x] Hata ve eksik veride insan inceleme yolunu tanımla.
+- [x] Her node'un girişini/çıkışını (özet, süre, hata) `agent_run_steps` veya structured log ile kaydet; panelde "Runs" görünümü bunu okur.
 
 ### Testler
 
-- [ ] S1: `load → classify → fetch order → draft` geçiyor.
-- [ ] S4: olmayan siparişte uydurma yok; `needs_info`.
-- [ ] Servis hatası sonrası run `failed`; veriler tutarlı kalıyor.
-- [ ] İkinci run aynı ticket için duplicate `pending` proposal üretmiyor.
-- [ ] LLM başka bir müşterinin sipariş ID'sini araca verirse → `not_found`, veri sızmıyor.
+- [x] S1: `load → classify → fetch order → draft` geçiyor. (2026-11-02 canlı test: 10 senaryo ticket'ının 10'u başarılı, ticket başına 2 Gemini çağrısı, ~2–3 sn.)
+- [x] S4: olmayan siparişte uydurma yok; `needs_info`.
+- [x] Servis hatası sonrası run `failed`; veriler tutarlı kalıyor.
+- [ ] İkinci run aynı ticket için duplicate `pending` proposal üretmiyor. → Faz 5 (proposal kalıcılığı ile birlikte).
+- [x] LLM başka bir müşterinin sipariş ID'sini araca verirse → `not_found`, veri sızmıyor.
 
 **Çıkış kriterleri**
 
-- [ ] Node grafiği README'de var.
-- [ ] Her node'u fake dependencies ile ayrı test edebiliyorum.
-- [ ] Agent önerileri/veri kaynakları debug edilebilir.
+- [x] Node grafiği README'de var.
+- [x] Her node'u fake dependencies ile ayrı test edebiliyorum.
+- [x] Agent önerileri/veri kaynakları debug edilebilir.
 
 **Commit:** `feat: orchestrate support cases with LangGraph`
 
@@ -589,6 +589,7 @@ flowchart TD
 
 ### Görevler
 
+- [ ] Graph sonucundaki `proposed_action`'ı `ActionProposal` olarak kaydet; aynı run/ticket için duplicate `pending` proposal oluşmasın (unique kısıt). (Faz 4'ten taşındı.)
 - [ ] `ActionProposal` veri modeli ve state: `pending`, `approved`, `rejected`, `executing`, `executed`, `failed`, `expired`; `version` alanı (optimistic locking) ve `payload_hash`.
 - [ ] Kritik eylemler için **sunucu taraflı** onay şartı: UI'dan gizlemek yeterli değil.
 - [ ] `ActionExecutor` domain/services katmanında; LangGraph'a bağımlı değil. Agent bu sınıfa erişemez.

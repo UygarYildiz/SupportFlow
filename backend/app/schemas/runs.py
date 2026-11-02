@@ -1,8 +1,17 @@
 from datetime import datetime
+from typing import Any
 
 from app.agent.schemas import AnalysisResult
 from app.domain.enums import AgentRunStatus
 from app.schemas.common import ApiModel
+
+
+class RunStepOut(ApiModel):
+    sequence: int
+    node: str
+    status: str
+    summary: dict[str, Any]
+    duration_ms: int
 
 
 class RunOut(ApiModel):
@@ -21,3 +30,4 @@ class RunOut(ApiModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    steps: list[RunStepOut]

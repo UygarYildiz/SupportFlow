@@ -18,7 +18,13 @@ router = APIRouter(tags=["analysis"])
 @lru_cache
 def get_analysis_executor() -> AnalysisExecutor:
     """One executor per process; tests override this dependency."""
-    return AnalysisExecutor(session_scope, build_llm_client(get_settings()))
+    settings = get_settings()
+    return AnalysisExecutor(
+        session_scope,
+        build_llm_client(settings),
+        max_tokens_per_run=settings.agent_max_tokens_per_run,
+        run_timeout_seconds=settings.agent_run_timeout_seconds,
+    )
 
 
 Executor = Annotated[AnalysisExecutor, Depends(get_analysis_executor)]

@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     llm_timeout_seconds: float = 30.0
     llm_max_attempts: int = 3
+    # Per-run limits of the analysis graph (Phase 4).
+    agent_max_tokens_per_run: int = 12_000
+    agent_run_timeout_seconds: float = 120.0
 
     @model_validator(mode="after")
     def _require_real_secret_in_production(self) -> "Settings":

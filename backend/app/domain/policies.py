@@ -56,6 +56,21 @@ def is_delivery_delayed(
     return business_days_between(shipped_at.date(), now.date()) > DELIVERY_DELAY_BUSINESS_DAYS
 
 
+def check_delivery(
+    order_status: OrderStatus, shipped_at: datetime | None, now: datetime
+) -> PolicyDecision:
+    """Informational: `allowed` is True when the order counts as delayed."""
+    rule = f"delivery_{POLICY_VERSION}"
+    if order_status != OrderStatus.SHIPPED or shipped_at is None:
+        return PolicyDecision(False, rule, f"Order is '{order_status.value}', not in transit.")
+    days = business_days_between(shipped_at.date(), now.date())
+    delayed = days > DELIVERY_DELAY_BUSINESS_DAYS
+    reason = f"Shipped {days} business day(s) ago; standard delivery is 3-5 business days" + (
+        f" and orders count as delayed after {DELIVERY_DELAY_BUSINESS_DAYS}." if delayed else "."
+    )
+    return PolicyDecision(delayed, rule, reason)
+
+
 def business_days_between(start: date, end: date) -> int:
     """Number of weekdays after `start` up to and including `end`."""
     days = 0

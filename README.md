@@ -1,6 +1,6 @@
 # SupportFlow AI
 
-> Production-oriented portfolio demo. Status: **Phase 3, first AI analysis pipeline**
+> Production-oriented portfolio demo. Status: **Phase 4, LangGraph agent workflow**
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
@@ -73,7 +73,17 @@ In `/docs`, call `POST /api/v1/auth/login`, then use **Authorize** with the retu
 | `fake` (default) | Deterministic keyword-based stand-in. Free and offline; used by tests, CI and the public demo. |
 | `live` | Calls the Gemini API (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`). Requires `GEMINI_API_KEY` from Google AI Studio in `.env`. |
 
-The model only suggests. The backend validates its output, discards order IDs it could not verify, and never changes orders based on it.
+The analysis is a LangGraph workflow: load ticket → resolve orders → classify (LLM) → fetch context → check policy → plan action → draft (LLM) → validate. Every step is recorded on the run.
+
+```mermaid
+flowchart LR
+    A[load_ticket] --> B[resolve_orders] --> C[classify - LLM]
+    C -->|order-related, no order in scope| E[request_info]
+    C -->|otherwise| F[fetch_context] --> G[check_policy] --> H[plan_action]
+    E --> I[draft - LLM]
+    H --> I --> J[validate]
+```
+ The model only classifies and writes; deterministic code decides which order is in scope, which policy applies and whether an action (address change, refund request) may be proposed. Proposals always wait for human approval.
 
 Postgres is published on host port **5433** so it doesn't collide with a locally installed Postgres. Change `POSTGRES_HOST_PORT` and the URLs in `.env` if needed.
 

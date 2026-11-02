@@ -3,9 +3,10 @@ from typing import Any
 
 from sqlalchemy import ForeignKey, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.models.agent_run_step import AgentRunStep
 from app.db.types import TZDateTime, str_enum, utcnow
 from app.domain.enums import AgentRunStatus
 
@@ -42,3 +43,5 @@ class AgentRun(Base):
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(TZDateTime)
     finished_at: Mapped[datetime | None] = mapped_column(TZDateTime)
+
+    steps: Mapped[list[AgentRunStep]] = relationship(order_by=AgentRunStep.sequence)

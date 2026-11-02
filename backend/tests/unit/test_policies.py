@@ -64,3 +64,18 @@ def test_shipped_order_is_delayed_after_seven_business_days() -> None:
     assert is_delivery_delayed(OrderStatus.SHIPPED, wednesday, NOW)
     # Only orders in transit can be delayed.
     assert not is_delivery_delayed(OrderStatus.DELIVERED, NOW - timedelta(days=30), NOW)
+
+
+def test_delivery_check_explains_the_timeline() -> None:
+    from app.domain.policies import check_delivery
+
+    delayed = check_delivery(OrderStatus.SHIPPED, datetime(2026, 10, 21, tzinfo=UTC), NOW)
+    on_time = check_delivery(OrderStatus.SHIPPED, datetime(2026, 10, 30, tzinfo=UTC), NOW)
+    delivered = check_delivery(OrderStatus.DELIVERED, None, NOW)
+
+    assert delayed.allowed
+    assert "8 business day(s)" in delayed.reason
+    assert not on_time.allowed
+    assert "1 business day(s)" in on_time.reason
+    assert not delivered.allowed
+    assert "not in transit" in delivered.reason

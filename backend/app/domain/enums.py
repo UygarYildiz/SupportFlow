@@ -41,6 +41,23 @@ class TicketCategory(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ActionType(StrEnum):
+    """State-changing actions that always require human approval (docs/REQUIREMENTS.md)."""
+
+    CHANGE_SHIPPING_ADDRESS = "change_shipping_address"
+    CREATE_REFUND_REQUEST = "create_refund_request"
+
+
+ORDER_RELATED_CATEGORIES = frozenset(
+    {
+        TicketCategory.DELIVERY_DELAY,
+        TicketCategory.REFUND_REQUEST,
+        TicketCategory.ADDRESS_CHANGE,
+        TicketCategory.DAMAGED_ITEM,
+    }
+)
+
+
 class TicketEventType(StrEnum):
     CREATED = "ticket_created"
     STATUS_CHANGED = "status_changed"

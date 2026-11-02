@@ -66,36 +66,39 @@ sequenceDiagram
 - On startup, runs still `running` are marked `failed` with reason `interrupted`.
 - Graph limits: max steps, LLM timeout, retry with backoff, token budget per run.
 
-Phase 3 implementation (`app/agent/`):
-
-| Piece | Role |
-|---|---|
-| `facts.py` | Collects the customer's orders (scoped), resolves order IDs mentioned in the message, records unknown ones |
-| `prompts.py` | System rules + prompt; customer text sits inside delimiter tags and cannot close them |
-| `llm/` | `LLMClient` protocol, Gemini adapter (only place importing the SDK), `FakeLLMClient`, retry with backoff |
-| `analyzer.py` | Validates output against `TicketAnalysis`, verifies cited order IDs, decides `awaiting_review` vs `needs_info` |
-| `executor.py` | Runs a queued run end to end; a started run always ends `succeeded` or `failed` |
-
-Run state transitions live in `services/analysis_runs.py`, which knows nothing about LLMs.
-
-### 3.2 Agent graph (Phase 4)
+### 3.2 Agent graph (`app/agent/graph.py`, ADR-011)
 
 ```mermaid
 flowchart TD
-    A[Load ticket] --> B[Validate customer / order]
-    B --> C[Classify intent]
-    C --> D{Enough data?}
-    D -->|No| E[needs_info / human review]
-    D -->|Yes| F[Fetch authorized order data]
-    F --> G[Check deterministic policy]
-    G --> H[Draft reply and proposal]
-    H --> I[Validate output]
-    I --> J{Write action proposed?}
-    J -->|No| K[Draft ready]
-    J -->|Yes| L[Persist pending proposal]
+    A[load_ticket] --> B[resolve_orders]
+    B --> C[classify - LLM]
+    C --> D{order-related and no order in scope?}
+    D -->|yes| E[request_info]
+    D -->|no| F[fetch_context]
+    F --> G[check_policy]
+    G --> H[plan_action - deterministic]
+    E --> I[draft - LLM]
+    H --> I
+    I --> J[validate]
 ```
 
-Tool allowlist (read-only, scoped to the ticket's customer): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
+| Node | Does | Model? |
+|---|---|---|
+| `load_ticket` | Loads the ticket; binds the tools to its customer | no |
+| `resolve_orders` | Customer's orders + order IDs mentioned in the text; foreign or missing IDs become `unknown_order_ids` | no |
+| `classify` | Category, priority, referenced order, requested address, injection flag | yes |
+| `request_info` | Order-related request without a usable order: ask for it | no |
+| `fetch_context` | Customer's previous tickets (follow-ups, S6) | no |
+| `check_policy` | Applies the category's NovaShop rule to the order in scope | no |
+| `plan_action` | Proposes `change_shipping_address` / `create_refund_request` only if policy allows | no |
+| `draft` | Summary and reply from the facts, policy results and planned action | yes |
+| `validate` | Drops unverified evidence, decides `awaiting_review` vs `needs_info`, sets review flag | no |
+
+Tools (allowlist, read-only, bound to the ticket's customer): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
+
+Supporting modules: `prompts.py` (two prompts; customer text inside delimiter tags it cannot close), `llm/` (provider adapters, fake client, retry), `tools.py`, `executor.py` (runs a queued run; records steps in `agent_run_steps`; a started run always ends `succeeded` or `failed`). Run state transitions live in `services/analysis_runs.py`, which knows nothing about LLMs.
+
+The proposed action is part of the stored result. Persisting it as an `ActionProposal` and the approval flow are Phase 5.
 
 ### 3.3 Approval and execution
 

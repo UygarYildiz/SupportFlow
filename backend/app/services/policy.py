@@ -33,6 +33,10 @@ class PolicyService:
         order = self.orders.get_customer_order(customer_id, order_id)
         return policies.check_damage_report(order.delivered_at, self.clock())
 
+    def delivery(self, customer_id: str, order_id: str) -> PolicyDecision:
+        order = self.orders.get_customer_order(customer_id, order_id)
+        return policies.check_delivery(order.status, order.shipped_at, self.clock())
+
     def is_delivery_delayed(self, customer_id: str, order_id: str) -> bool:
         order = self.orders.get_customer_order(customer_id, order_id)
         return policies.is_delivery_delayed(order.status, order.shipped_at, self.clock())
