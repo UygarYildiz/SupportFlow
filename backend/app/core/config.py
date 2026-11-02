@@ -4,9 +4,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# Development-only fallback. Production refuses to start with it (see validator).
+DEV_JWT_SECRET = "dev-only-insecure-secret-change-me-0123456789"  # noqa: S105
 
 
 class Settings(BaseSettings):
@@ -25,6 +29,18 @@ class Settings(BaseSettings):
     test_database_url: str = (
         "postgresql+psycopg://supportflow:supportflow@localhost:5433/supportflow_test"
     )
+
+    # Demo authentication (ADR-007)
+    jwt_secret_key: SecretStr = SecretStr(DEV_JWT_SECRET)
+    jwt_algorithm: Literal["HS256"] = "HS256"
+    access_token_expire_minutes: int = 30
+
+    @model_validator(mode="after")
+    def _require_real_secret_in_production(self) -> "Settings":
+        secret = self.jwt_secret_key.get_secret_value()
+        if self.app_env == "production" and (secret == DEV_JWT_SECRET or len(secret) < 32):
+            raise ValueError("JWT_SECRET_KEY must be set to a random value of 32+ characters")
+        return self
 
 
 @lru_cache

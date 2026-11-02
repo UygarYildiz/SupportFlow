@@ -58,3 +58,15 @@ Each record: decision, reason, alternatives, and when to revisit.
 **Reason:** Native structured output support, a free tier suitable for development, and a single provider keeps the adapter simple.
 **Consequences:** Free-tier terms may allow the provider to use submitted data; this is acceptable only because all data is synthetic. Never send real customer data. The API key lives only in server-side environment variables.
 **Alternatives:** Other providers remain possible by implementing `LLMClient`; no domain or route code depends on the SDK.
+
+## ADR-010: Persistence conventions
+
+**Decision:**
+- Customers and orders keep the string IDs of the (mock) external system (`CUS-0001`, `ORD-1001`). Tickets and users, which this system owns, use integer identity keys.
+- Status enums are stored as `VARCHAR` with a `CHECK` constraint, not native PostgreSQL enums.
+- A ticket's order must belong to the ticket's customer. The service checks it, and a composite foreign key `(order_id, customer_id) → orders(id, customer_id)` enforces it in the database as well.
+- Services own the unit of work and commit; route handlers never touch the session directly.
+- Timestamps are timezone-aware UTC.
+
+**Reason:** Readable external IDs are what customers and the LLM will reference ("ORD-1001"). `CHECK` constraints keep integrity without `ALTER TYPE` migrations when values are added. Ownership is a security rule, so it gets a database-level guarantee in addition to application code.
+**Alternatives:** UUIDs everywhere (less readable in demos and prompts); native enums (harder to evolve).

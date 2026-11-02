@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phase 1 (skeleton) is in place: FastAPI app with `/health` and `/ready`, Alembic with an empty baseline migration, Postgres via Docker Compose, a Vite + React status page, and GitHub Actions CI. No domain code yet. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
+Phases 0–2 are done: FastAPI app with demo JWT auth (`agent_user`/`admin`), customers/orders/tickets/ticket_events with Alembic migrations, ticket state machine and NovaShop policy rules in `app/domain/`, services in `app/services/`, `/api/v1` routers, an idempotent demo seed, a Vite + React status page, Docker Compose and GitHub Actions CI. No AI code yet (Phase 3 next). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
 
@@ -17,7 +17,7 @@ SupportFlow AI is a portfolio project: a customer-support operations platform fo
 - **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
 - Record architectural choices as short ADRs in `docs/DECISIONS.md`.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
-- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-009). Don't contradict them without writing a new ADR.
+- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-010). Don't contradict them without writing a new ADR.
 - Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
 
 ## Stack
@@ -60,17 +60,29 @@ docker compose up --build            # db + backend (:8000) + frontend (:5173)
 # backend/ (uv + poethepoet tasks defined in pyproject.toml)
 uv run poe check                     # ruff lint + format check + pyright + pytest (what CI runs)
 uv run poe test                      # pytest; tests marked `db` need the compose Postgres
-uv run pytest tests/test_health.py::test_ready_reports_database_ok   # single test
+uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates   # single test
 uv run poe dev                       # uvicorn --reload on :8000
 uv run poe migrate                   # alembic upgrade head
+uv run poe seed [--reset]            # idempotent NovaShop demo data (password: DEMO_USER_PASSWORD)
+uv run pytest -m "not db"            # unit tests only, no Docker needed
 uv run alembic revision --autogenerate -m "..."
 
 # frontend/
 npm run dev | npm run lint | npm run typecheck | npm run build
 ```
 
+Code conventions (backend):
+- Request flow: router (`app/api/v1/*`, thin) → service (`app/services/*`, owns the transaction and calls `commit()`) → domain (`app/domain/*`, pure Python, no SQLAlchemy/FastAPI).
+- Services raise domain errors (`NotFoundError`, `InvalidStateTransitionError`, `BusinessRuleViolationError`); `app/api/errors.py` maps them to 404/409/422. Don't raise `HTTPException` from services.
+- Auth dependencies live in `app/api/deps.py`: `CurrentUser`, `StaffUser` (any staff role), `AdminUser`. Every new business endpoint must take one of them.
+- Enums are `StrEnum`s in `app/domain/enums.py`, stored via `app.db.types.str_enum` (VARCHAR + CHECK, ADR-010).
+- Anything acting on behalf of a ticket (agent tools, policy checks) must use `OrderService.get_customer_order(customer_id, order_id)`, never `get_order`.
+- Policy rules take the current time as a parameter (`PolicyService(clock=...)`). Don't call `datetime.now()` inside domain code.
+
 Testing conventions:
-- `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides` (e.g. `get_engine`).
-- DB tests use the `db_engine` / `test_database_url` fixtures (`tests/conftest.py`), pointing at `TEST_DATABASE_URL`. Never point tests at the dev database.
+- `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides`.
+- `tests/unit/` is pure (no DB). `tests/integration/` uses the `db_session` fixture: one transaction per test, rolled back at the end (service `commit()`s become savepoints). The session start migrates the test DB from base to head. Tests using the DB are auto-marked `db`.
+- Build data with `tests/factories.py` (`make_user`, `make_customer`, `make_order`, `make_ticket`). Authenticate with the `admin`/`agent` fixtures plus `auth_headers(user)`.
+- DB tests point at `TEST_DATABASE_URL`. Never point tests at the dev database.
 - New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.
 - The frontend calls the backend only through `src/lib/api.ts`. Vite proxies `/api`, `/health` and `/ready` to the backend, so no CORS setup is needed in dev.

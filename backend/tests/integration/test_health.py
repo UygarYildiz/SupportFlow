@@ -1,4 +1,3 @@
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
@@ -13,7 +12,6 @@ def test_health_returns_ok_without_touching_dependencies(client: TestClient) -> 
     assert response.json() == {"status": "ok"}
 
 
-@pytest.mark.db
 def test_ready_reports_database_ok(app: FastAPI, client: TestClient, db_engine: Engine) -> None:
     app.dependency_overrides[get_engine] = lambda: db_engine
 

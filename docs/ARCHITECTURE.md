@@ -108,7 +108,18 @@ sequenceDiagram
 
 ## 4. Status machines
 
-**Ticket:** `new → triaging → awaiting_review → resolved`; side states `needs_info`, `failed` (can return to `new`).
+**Ticket** (`app/domain/ticket_status.py`): two separate transition tables.
+
+| From | Manual (staff via `PATCH /tickets/{id}`) | System (analysis pipeline only) |
+|---|---|---|
+| `new` | `resolved`, `needs_info` | `triaging` |
+| `triaging` | none | `awaiting_review`, `needs_info`, `failed` |
+| `awaiting_review` | `resolved`, `needs_info` | none |
+| `needs_info` | `new` | none |
+| `failed` | `new` | none |
+| `resolved` | none (terminal) | none |
+
+Staff cannot fake an AI triage step, and the pipeline cannot resolve a ticket on its own. Invalid transitions return 409. Every change is appended to `ticket_events`.
 
 **Action proposal:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`.
 
@@ -118,7 +129,8 @@ sequenceDiagram
 
 - LLM output is an untrusted suggestion. It is validated against a Pydantic schema, and any order IDs it cites are checked against data the tools actually returned.
 - Ticket text, tool results and (later) policy documents and webhook payloads are data, never instructions.
-- Authorization is always server-side. Hiding a button in the UI is not a control.
+- Authorization is always server-side. Hiding a button in the UI is not a control. The user's role is re-read from the database on every request, so deactivation takes effect immediately.
+- Order lookups for a customer go through `OrderService.get_customer_order`, which reports another customer's order exactly like a missing one.
 - Logs carry `correlation_id`, `ticket_id` and `run_id`, with PII redacted.
 
 ## 6. Frontend

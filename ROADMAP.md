@@ -353,8 +353,8 @@ supportflow-ai/
 - [x] `/docs` OpenAPI arayüzünü kontrol et.
 - [x] Ruff, type checker, pytest yapılandırmasını oluştur.
 - [x] Testler için ayrı bir test veritabanı (`supportflow_test`, compose ilk açılışta oluşturur).
-- [ ] Her testin transaction rollback ile izole edilmesi → ilk tablolarla birlikte Faz 2'de.
-- [ ] Minimal GitHub Actions: backend lint + typecheck + test. (CI'ı en sona bırakma; erken kurmak her fazda kaliteyi korur.)
+- [x] Her testin transaction rollback ile izole edilmesi (Faz 2'de eklendi).
+- [x] Minimal GitHub Actions: backend lint + typecheck + test. (CI'ı en sona bırakma; erken kurmak her fazda kaliteyi korur.)
 
 ### Frontend
 
@@ -375,7 +375,7 @@ supportflow-ai/
 - [ ] Yeni bir klasörde README adımlarını izleyince uygulama ayağa kalkıyor.
 - [x] `/health` başarılı, `/ready` DB durumunu doğru bildiriyor.
 - [x] Migration ve en az bir örnek test çalışıyor.
-- [ ] CI ilk push'ta yeşil.
+- [x] CI ilk push'ta yeşil (backend, frontend, Docker image job'ları).
 - [x] Gizli anahtar repoya commit edilmemiş.
 - [x] `CLAUDE.md` gerçek komutlarla (çalıştırma, lint, test, tek test, migration) güncellendi.
 
@@ -407,24 +407,24 @@ supportflow-ai/
 
 ### Auth görevleri (demo seviyesi)
 
-- [ ] `users` tablosu; seed ile en az 1 `admin`, 2 `agent_user` (şifreler yalnız `.env`/seed'de, repoda hash'li veya demo amaçlı açıkça belirtilmiş).
-- [ ] `POST /api/v1/auth/login` → kısa ömürlü JWT; `GET /api/v1/auth/me`.
-- [ ] `get_current_user` ve `require_role(...)` FastAPI bağımlılıkları; `/health` ve `/ready` hariç tüm endpoint'ler kimlik ister.
-- [ ] Audit için `actor_id` her yazma işleminde servislere bağımlılıkla aktarılır (route'tan global state ile değil).
-- [ ] Prod için gerçek kimlik sağlayıcı gerektiği README'de not edilir.
+- [x] `users` tablosu; seed ile en az 1 `admin`, 2 `agent_user` (şifreler yalnız `.env`/seed'de, repoda hash'li veya demo amaçlı açıkça belirtilmiş).
+- [x] `POST /api/v1/auth/login` → kısa ömürlü JWT; `GET /api/v1/auth/me`.
+- [x] `get_current_user` ve `require_role(...)` FastAPI bağımlılıkları; `/health` ve `/ready` hariç tüm endpoint'ler kimlik ister.
+- [x] Audit için `actor_id` her yazma işleminde servislere bağımlılıkla aktarılır (route'tan global state ile değil).
+- [x] Prod için gerçek kimlik sağlayıcı gerektiği README'de not edilir.
 
 ### Backend görevleri
 
-- [ ] `GET /api/v1/tickets` — filtre + sayfalama.
-- [ ] `POST /api/v1/tickets` — yeni ticket oluştur.
-- [ ] `GET /api/v1/tickets/{ticket_id}` — detay + olaylar.
-- [ ] `PATCH /api/v1/tickets/{ticket_id}` — sadece izinli alan ve durumlar.
-- [ ] `GET /api/v1/customers/{id}/orders` — müşteri siparişleri.
-- [ ] `GET /api/v1/orders/{id}` — bir siparişin bilgileri.
-- [ ] `seed_demo.py` — tekrar çalıştırılabilir, deterministik sahte veri; README kurulum adımlarına seed komutunu ekle.
-- [ ] DB testleri için transaction-rollback fixture'ı (her test izole).
-- [ ] `TicketService`, `OrderService` ve `PolicyService` için temiz arayüzler.
-- [ ] Ticket durum geçişlerini kodla; imkânsız geçişlere 409 döndür.
+- [x] `GET /api/v1/tickets` — filtre + sayfalama.
+- [x] `POST /api/v1/tickets` — yeni ticket oluştur.
+- [x] `GET /api/v1/tickets/{ticket_id}` — detay + olaylar.
+- [x] `PATCH /api/v1/tickets/{ticket_id}` — sadece izinli alan ve durumlar.
+- [x] `GET /api/v1/customers/{id}/orders` — müşteri siparişleri.
+- [x] `GET /api/v1/orders/{id}` — bir siparişin bilgileri.
+- [x] `seed_demo.py` — tekrar çalıştırılabilir, deterministik sahte veri; README kurulum adımlarına seed komutunu ekle.
+- [x] DB testleri için transaction-rollback fixture'ı (her test izole).
+- [x] `TicketService`, `OrderService` ve `PolicyService` için temiz arayüzler. (`PolicyService` NovaShop v1 kurallarını kodda uygular; saat enjekte edilebilir.)
+- [x] Ticket durum geçişlerini kodla; imkânsız geçişlere 409 döndür.
 
 ### Önerilen ticket durumları
 
@@ -437,19 +437,19 @@ Yan durumlar: `needs_info` (müşteriden bilgi bekleniyor), `failed` (analiz ba�
 
 ### Testler
 
-- [ ] Var olmayan sipariş → 404; asla uydurma veri yok.
-- [ ] Token olmadan istek → 401; yanlış rol → 403.
-- [ ] `customer_id` ile sipariş eşleşmiyorsa (`GET /customers/{id}/orders` başka müşterinin siparişini döndürmüyor) → veri sızıntısı yok.
-- [ ] Geçersiz ticket state geçişi → 409.
-- [ ] Tekrarlı seed → veri çoğalmıyor.
-- [ ] Şema migration ileri ve geri uygulanabiliyor (geri dönüş güvenliyse).
+- [x] Var olmayan sipariş → 404; asla uydurma veri yok.
+- [x] Token olmadan istek → 401; yanlış rol → 403.
+- [x] Ticket'a başka müşterinin siparişi bağlanamıyor (servis + DB composite FK, ADR-010); `customer_id` ile sipariş eşleşmiyorsa (`GET /customers/{id}/orders` başka müşterinin siparişini döndürmüyor) → veri sızıntısı yok.
+- [x] Geçersiz ticket state geçişi → 409.
+- [x] Tekrarlı seed → veri çoğalmıyor.
+- [x] Şema migration ileri ve geri uygulanabiliyor (geri dönüş güvenliyse).
 
 **Çıkış kriterleri**
 
-- [ ] AI devre dışı iken ticket ve sipariş API'leri çalışıyor.
-- [ ] Tüm iş endpoint'leri kimlik doğrulamalı; rol kontrolleri test edilmiş.
-- [ ] En az 10 backend testi yeşil.
-- [ ] Domain kuralları API route dosyalarında değil servislerde.
+- [x] AI devre dışı iken ticket ve sipariş API'leri çalışıyor.
+- [x] Tüm iş endpoint'leri kimlik doğrulamalı; rol kontrolleri test edilmiş.
+- [x] En az 10 backend testi yeşil.
+- [x] Domain kuralları API route dosyalarında değil servislerde.
 
 **Commit'ler:** `feat: add demo auth and role dependencies`, `feat: implement ticket and mock order domain`
 
