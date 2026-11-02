@@ -95,3 +95,10 @@ If the process dies between the steps, startup recovery re-runs step 2; the idem
 **Reason:** Recording the decision before acting gives a durable trail even if execution fails, and separates "a human said yes" from "the system did it". Version checks and idempotency keys make double clicks, concurrent reviewers and retries harmless. Re-checking at execution time protects against the world changing after the proposal.
 **Alternatives:** A single transaction for decision and execution (simpler, but no record of approvals whose execution failed, and it does not carry over to real external systems); LangGraph `interrupt()` resuming the graph (ADR-006).
 **Revisit when:** A real external system is integrated: add an `unknown` outcome and reconcile through its idempotency API instead of assuming a rollback means "nothing happened".
+
+## ADR-013: Frontend stack and API contract
+
+**Decision:** React + TypeScript + Vite with React Router and TanStack Query. Styles are plain CSS on design tokens (`frontend/src/styles/tokens.css`, see [DESIGN.md](DESIGN.md)) instead of Tailwind. API types are generated from the backend's OpenAPI schema (`npm run gen:api`, committed as `src/api/schema.d.ts`); all HTTP goes through `src/api/client.ts` and the hooks in `src/api/queries.ts`. Self-hosted fonts via Fontsource (no third-party font CDN).
+**Reason:** The interface has a deliberate visual language (labels, carbon drafts, stamps) that is easier to express and review as named tokens and component styles than as utility classes. Generated types keep the frontend honest when the API changes; TanStack Query handles polling runs, refetching after decisions and stale data after a 409.
+**Alternatives:** Tailwind (planned originally; fine for speed, weaker for a bespoke visual system); hand-written API types (drift silently).
+**Notes:** `openapi-typescript` needs TypeScript 5 while the app uses TypeScript 7, so it runs through `npx` at generation time instead of being a project dependency.

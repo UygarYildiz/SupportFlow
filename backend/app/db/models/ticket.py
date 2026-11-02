@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.models.commerce import Customer
 from app.db.types import TZDateTime, str_enum, utcnow
 from app.domain.enums import (
     ActorType,
@@ -50,6 +51,12 @@ class Ticket(Base):
     events: Mapped[list["TicketEvent"]] = relationship(
         back_populates="ticket", order_by="TicketEvent.id"
     )
+    # Loaded on demand (never joined: ticket rows are locked with SELECT ... FOR UPDATE).
+    customer: Mapped["Customer"] = relationship()
+
+    @property
+    def customer_name(self) -> str:
+        return self.customer.display_name
 
 
 class TicketEvent(Base):

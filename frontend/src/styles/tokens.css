@@ -1,0 +1,51 @@
+/* SupportFlow design tokens. Concept: a dispatch desk (docs/DESIGN.md).
+   Orders look like shipping labels, AI output like carbon-copy drafts,
+   and decisions like rubber stamps. */
+
+:root {
+  /* Color */
+  --ink: #1c2b3a; /* text, label borders */
+  --ink-muted: #5b6b7c; /* secondary text */
+  --ink-faint: #8a9aab; /* placeholders, disabled */
+  --paper: #eef1f4; /* app background */
+  --sheet: #ffffff; /* surfaces */
+  --rule: #cbd3dc; /* dividers, quiet borders */
+  --carbon: #f3f5fa; /* AI draft background */
+  --carbon-line: #8494ad; /* AI draft dashed frame */
+  --route: #0f6b73; /* interactive, focus */
+  --route-strong: #0b5359;
+  --route-wash: #e3f0f1;
+  --stamp-green: #1e7b4f; /* approved / applied */
+  --stamp-red: #b42318; /* rejected / blocked / errors */
+  --stamp-amber: #a15c07; /* waiting / needs attention */
+  --green-wash: #e6f2ec;
+  --red-wash: #fbeceb;
+  --amber-wash: #fbf1e3;
+
+  /* Type */
+  --font-ui: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-stamp: 'Big Shoulders Stencil Display', 'Atkinson Hyperlegible', sans-serif;
+  --text-xs: 0.8125rem; /* 13: timestamps, meta */
+  --text-sm: 0.875rem; /* 14: secondary */
+  --text-md: 1rem; /* 16: body */
+  --text-lg: 1.25rem; /* 20: section titles */
+  --text-xl: 1.625rem; /* 26: page titles */
+  --leading: 1.5;
+
+  /* Space (4px grid) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  /* Shape: radius follows hierarchy, not one value everywhere */
+  --radius-label: 3px; /* shipping labels: nearly square */
+  --radius-sheet: 8px; /* page surfaces */
+  --radius-control: 6px;
+  --label-border: 2px solid var(--ink);
+
+  --rail-width: 216px;
+}

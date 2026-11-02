@@ -50,7 +50,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [x] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
 - [x] Faz 4 — LangGraph agent akışı
 - [x] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
-- [ ] Faz 6 — React operasyon paneli (**gösterilebilir MVP**)
+- [x] Faz 6 — React operasyon paneli (**gösterilebilir MVP**) — ilk tasarım turu; sahibin revizyonları bekleniyor
 - [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**)
 
 **Blok B — V1 genişletmeleri**
@@ -318,14 +318,14 @@ supportflow-ai/
 - [x] `docs/ARCHITECTURE.md`: sistem diyagramı, katman sorumlulukları, yazma/onay sınırı.
 - [x] `docs/DECISIONS.md`: ADR-001 … ADR-009 (bkz. §11). Her biri 3–5 cümle.
 - [x] Sahte veri setinin şeklini belirle: ~20 müşteri, ~50 sipariş, ~30 ticket; S1–S6'nın her biri için en az bir ticket ve uç durumlar (kargolanmış sipariş, olmayan sipariş, başka müşterinin siparişi).
-- [ ] Üç ekranın kaba taslağı (kağıt/Excalidraw yeterli): ticket listesi, ticket detayı, onay kuyruğu. → **Karar (2026-11-02):** Faz 5 bittikten sonra, AI'ın gerçek çıktıları görülünce birlikte yapılacak; Faz 6'nın ön koşulu.
+- [x] Üç ekranın kaba taslağı (kağıt/Excalidraw yeterli): ticket listesi, ticket detayı, onay kuyruğu. (Faz 6'da `docs/DESIGN.md` içinde; revizyon sahiple yapılacak.) → **Karar (2026-11-02):** Faz 5 bittikten sonra, AI'ın gerçek çıktıları görülünce birlikte yapılacak; Faz 6'nın ön koşulu.
 
 > `SECURITY.md`, `TEST_PLAN.md`, `DEMO_SCRIPT.md` bu fazda **yazılmaz**; ilgili fazlarda oluşturulur.
 
 **Çıkış kriterleri**
 
 - [ ] 5 dakikada projenin amacı, mimarisi, kapsamı ve risklerini açıklayabiliyorum.
-- [ ] Yukarıdaki üç karar ve dokuz ADR yazılı.
+- [x] Yukarıdaki üç karar ve dokuz ADR yazılı. (Şu an ADR-001…ADR-013.)
 - [ ] AI'ya “her şeyi yap” demeden bir sonraki fazın görevlerini atayabiliyorum.
 
 **Commit:** `docs: define supportflow requirements and architecture`
@@ -645,32 +645,32 @@ flowchart TD
 
 ### Görevler
 
-- [ ] Önce basit wireframe; sonra kod.
-- [ ] React Router ve tek API client katmanı kur.
-- [ ] API tiplerini OpenAPI'den üretmeyi değerlendir; manuel tipleri tekrar etme.
-- [ ] Mock/gerçek API geçişi için karmaşık frontend state mimarisinden kaçın.
-- [ ] Loading, empty state, retry, hata banner'ları ekle.
-- [ ] AI önerilerini kesin karar gibi değil **öneri** etiketiyle göster.
-- [ ] “Kullanılan sipariş bilgisi”, “politika kaynağı” ve “işlem onayı” ekranlarını ayır.
-- [ ] Onay/ret sonrası veri yeniden çekilsin; çift submit engellensin.
-- [ ] Faz 2'deki login endpoint'ini kullanan giriş ekranı; iki demo rolü için hızlı giriş butonları (yalnız demo modunda).
-- [ ] Analiz başlatıldığında run durumunu polling ile göster (`queued/running/succeeded/failed`).
-- [ ] Faz 6'da Runs sayfası basit kalsın; zaman kalmazsa ticket detayındaki zaman çizelgesi yeterli.
-- [ ] Erişilebilir formlar, odak sırası, metin kontrastı, klavyeyle buton kontrolü.
+- [x] Önce basit wireframe; sonra kod. (Sahip kararı, 2026-11-02: tasarımı önce Claude benzer ürünleri araştırarak yapsın, sonra birlikte revize edilsin. Yerleşim ve gerekçeler `docs/DESIGN.md`'de.)
+- [x] React Router ve tek API client katmanı kur.
+- [x] API tiplerini OpenAPI'den üretmeyi değerlendir; manuel tipleri tekrar etme. (`npm run gen:api`, ADR-013.)
+- [x] Mock/gerçek API geçişi için karmaşık frontend state mimarisinden kaçın.
+- [x] Loading, empty state, retry, hata banner'ları ekle.
+- [x] AI önerilerini kesin karar gibi değil **öneri** etiketiyle göster.
+- [x] “Kullanılan sipariş bilgisi”, “politika kaynağı” ve “işlem onayı” ekranlarını ayır.
+- [x] Onay/ret sonrası veri yeniden çekilsin; çift submit engellensin.
+- [x] Faz 2'deki login endpoint'ini kullanan giriş ekranı; iki demo rolü için hızlı giriş butonları (yalnız demo modunda).
+- [x] Analiz başlatıldığında run durumunu polling ile göster (`queued/running/succeeded/failed`).
+- [x] Faz 6'da Runs sayfası basit kalsın; zaman kalmazsa ticket detayındaki zaman çizelgesi yeterli. (Ayrı sayfa yerine ticket detayında "How this suggestion was made": adımlar, süreler, araç çağrıları, model ve token.)
+- [x] Erişilebilir formlar, odak sırası, metin kontrastı, klavyeyle buton kontrolü.
 
 ### Testler
 
-- [ ] Ticket listesi boşken anlamlı mesaj.
-- [ ] Yetkisiz kullanıcı approval ekranındaki eylemi API seviyesinde uygulayamıyor.
-- [ ] Onay sonrası görünüm güncelleniyor.
-- [ ] API hata verdiğinde “başarılı” göstermiyor.
+- [x] Ticket listesi boşken anlamlı mesaj.
+- [x] Yetkisiz kullanıcı approval ekranındaki eylemi API seviyesinde uygulayamıyor.
+- [x] Onay sonrası görünüm güncelleniyor. (Playwright ile doğrulandı: damga, durum ve geçmiş yenileniyor.)
+- [x] API hata verdiğinde “başarılı” göstermiyor.
 
 **Çıkış kriterleri (PORTFÖY İÇİN GÖSTERİLEBİLİR MVP)**
 
-- [ ] “S1 müşterisi talep açtı → AI analiz etti → çalışan onayladı → talep çözüldü” akışı yalnız UI üzerinden gösteriliyor.
-- [ ] Ekranda ham JSON görmek zorunda değilim.
-- [ ] 3 dakikalık ekran kaydı senaryosu hazır.
-- [ ] `docs/TEST_PLAN.md`: hangi senaryonun hangi testle doğrulandığı (TC tablosu ↔ test dosyaları).
+- [x] “S1 müşterisi talep açtı → AI analiz etti → çalışan onayladı → talep çözüldü” akışı yalnız UI üzerinden gösteriliyor.
+- [x] Ekranda ham JSON görmek zorunda değilim.
+- [ ] 3 dakikalık ekran kaydı senaryosu hazır. → Faz 11-A (`docs/DEMO_SCRIPT.md` ile birlikte).
+- [x] `docs/TEST_PLAN.md`: hangi senaryonun hangi testle doğrulandığı (TC tablosu ↔ test dosyaları).
 
 **Commit:** `feat: build support operations dashboard`
 

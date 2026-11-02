@@ -38,6 +38,7 @@ class TicketUpdate(BaseModel):
 class TicketOut(ApiModel):
     id: int
     customer_id: str
+    customer_name: str
     order_id: str | None
     subject: str
     status: TicketStatus
@@ -61,3 +62,11 @@ class TicketDetail(TicketOut):
     customer: CustomerSummary
     order: OrderOut | None
     events: list[TicketEventOut]
+
+
+class TicketSummary(BaseModel):
+    """Counts for the inbox header: tickets per status and proposals awaiting a decision."""
+
+    by_status: dict[TicketStatus, int]
+    total: int
+    pending_proposals: int

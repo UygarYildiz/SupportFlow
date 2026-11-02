@@ -4,9 +4,10 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.models import Customer, Order, Ticket, TicketEvent, User
+from app.db.models import ActionProposal, Customer, Order, Ticket, TicketEvent, User
 from app.domain.enums import (
     ActorType,
+    ProposalStatus,
     TicketCategory,
     TicketEventType,
     TicketPriority,
@@ -43,11 +44,23 @@ class TicketService:
         stmt = (
             select(Ticket)
             .where(*conditions)
+            .options(selectinload(Ticket.customer))
             .order_by(Ticket.created_at.desc(), Ticket.id.desc())
             .limit(limit)
             .offset(offset)
         )
         return list(self.session.scalars(stmt)), total
+
+    def summary(self) -> tuple[dict[TicketStatus, int], int]:
+        """(tickets per status, pending proposals). Every status is present, zero included."""
+        rows = self.session.execute(select(Ticket.status, func.count()).group_by(Ticket.status))
+        counts = dict.fromkeys(TicketStatus, 0) | {status: count for status, count in rows}
+        pending = self.session.scalar(
+            select(func.count(ActionProposal.id)).where(
+                ActionProposal.status == ProposalStatus.PENDING
+            )
+        )
+        return counts, pending or 0
 
     def get(self, ticket_id: int) -> Ticket:
         stmt = (

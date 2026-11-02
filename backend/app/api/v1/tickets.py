@@ -7,7 +7,14 @@ from app.db.models import Ticket
 from app.domain.enums import TicketCategory, TicketPriority, TicketStatus
 from app.schemas.commerce import CustomerSummary, OrderOut
 from app.schemas.common import ErrorResponse, Page
-from app.schemas.tickets import TicketCreate, TicketDetail, TicketEventOut, TicketOut, TicketUpdate
+from app.schemas.tickets import (
+    TicketCreate,
+    TicketDetail,
+    TicketEventOut,
+    TicketOut,
+    TicketSummary,
+    TicketUpdate,
+)
 from app.services.tickets import TicketFilters, TicketService
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
@@ -45,6 +52,12 @@ def list_tickets(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/summary")
+def ticket_summary(_: StaffUser, session: DbSession) -> TicketSummary:
+    counts, pending = TicketService(session).summary()
+    return TicketSummary(by_status=counts, total=sum(counts.values()), pending_proposals=pending)
 
 
 @router.post(

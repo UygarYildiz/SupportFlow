@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–5 are done (MVP backend): demo JWT auth, tickets/orders with state machines and NovaShop policies, a LangGraph analysis graph (ADR-011) producing pending `ActionProposal`s, and a two-step approval flow with an idempotent mock executor, TOCTOU re-check, expiry, append-only audit log (ADR-012, `docs/SECURITY.md`). Next: agree on screen wireframes with the owner, then Phase 6 (React dashboard). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
+Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The dashboard is a first design pass that the owner will review and ask to revise. Next: owner's design feedback, then Phase 11-A (release v0.1.0). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
 
@@ -17,12 +17,12 @@ SupportFlow AI is a portfolio project: a customer-support operations platform fo
 - **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
 - Record architectural choices as short ADRs in `docs/DECISIONS.md`.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
-- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-012). Threats and the tests that prove each control are in `docs/SECURITY.md`; keep it in sync when adding controls. Don't contradict them without writing a new ADR.
+- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-013). Threats and the tests that prove each control are in `docs/SECURITY.md`; keep it in sync when adding controls. Don't contradict them without writing a new ADR.
 - Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
 
 ## Stack
 
-Python 3.12 with **uv** (`uv.lock` committed), FastAPI + Pydantic, **sync** SQLAlchemy 2 + psycopg 3 + Alembic (ADR-004), PostgreSQL (later pgvector), LangGraph, React + TypeScript + Vite (Tailwind from Phase 6), pytest + httpx, Ruff + Pyright, oxlint for the frontend, Docker Compose, GitHub Actions. LLM provider is the **Gemini API** via the `google-genai` SDK behind an `LLMClient` interface; model name comes from `GEMINI_MODEL` (ADR-009). The SDK may only be imported inside `app/agent/` adapters. The Python backend needs a container host. Don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages).
+Python 3.12 with **uv** (`uv.lock` committed), FastAPI + Pydantic, **sync** SQLAlchemy 2 + psycopg 3 + Alembic (ADR-004), PostgreSQL (later pgvector), LangGraph, React + TypeScript 7 + Vite + React Router + TanStack Query with plain CSS on design tokens (ADR-013), Vitest + Testing Library, pytest + httpx, Ruff + Pyright, oxlint for the frontend, Docker Compose, GitHub Actions. LLM provider is the **Gemini API** via the `google-genai` SDK behind an `LLMClient` interface; model name comes from `GEMINI_MODEL` (ADR-009). The SDK may only be imported inside `app/agent/` adapters. The Python backend needs a container host. Don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages).
 
 Target layout (create modules when their phase starts): `backend/app/{api,core,db,domain,services,integrations,agent,rag,schemas}`, `backend/tests/{unit,integration,agent,fixtures}`, `backend/scripts/seed_demo.py`, `frontend/src/...`, `docs/`, `evals/`, `automation/` (n8n exports).
 
@@ -68,7 +68,8 @@ uv run pytest -m "not db"            # unit tests only, no Docker needed
 uv run alembic revision --autogenerate -m "..."
 
 # frontend/
-npm run dev | npm run lint | npm run typecheck | npm run build
+npm run dev | npm run lint | npm run typecheck | npm test | npm run build
+npm run gen:api                      # regenerate src/api/schema.d.ts from the running backend's OpenAPI
 ```
 
 Code conventions (backend):
@@ -94,4 +95,10 @@ Testing conventions:
 - Build data with `tests/factories.py` (`make_user`, `make_customer`, `make_order`, `make_ticket`). Authenticate with the `admin`/`agent` fixtures plus `auth_headers(user)`.
 - DB tests point at `TEST_DATABASE_URL`. Never point tests at the dev database.
 - New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.
-- The frontend calls the backend only through `src/lib/api.ts`. Vite proxies `/api`, `/health` and `/ready` to the backend, so no CORS setup is needed in dev.
+Frontend conventions:
+- All HTTP goes through `src/api/client.ts`; components use hooks from `src/api/queries.ts` (TanStack Query) and types from `src/api/types.ts`, which alias the generated `src/api/schema.d.ts`. After changing a backend schema, run `npm run gen:api` and commit the result.
+- Visual language and tokens are in `docs/DESIGN.md` and `src/styles/tokens.css`: orders as shipping labels, AI output in the dashed "carbon" draft frame, decisions as the stamp. Use tokens, not raw colors; sentence-case copy; no all-caps labels except the stamp.
+- Mutations disable their buttons while pending and invalidate affected queries on settle (a 409 means our copy is stale).
+- Tests: `src/test/utils.tsx` provides `mockApi` (fetch router), `renderWithProviders` and a `proposal()` fixture.
+- Font gotcha: `@fontsource/big-shoulders-stencil-display` maps `./*` to `./*.css`, so import its weights without `.css` (declared in `src/fonts.d.ts`).
+- Vite proxies `/api`, `/health` and `/ready` to the backend, so no CORS setup is needed in dev.

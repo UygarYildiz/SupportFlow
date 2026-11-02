@@ -161,3 +161,31 @@ def test_list_filters_and_paginates(
     ids = {t["id"] for t in first_page["items"]} | {t["id"] for t in second_page["items"]}
     assert len(ids) == 3
     assert "message" not in first_page["items"][0]  # list view stays lightweight
+
+
+def test_summary_counts_every_status_and_pending_proposals(
+    client: TestClient, db_session: Session, agent: User, auth_headers: Headers
+) -> None:
+    from tests.factories import make_proposal
+
+    customer = make_customer(db_session)
+    order = make_order(db_session, "ORD-1", customer)
+    make_ticket(db_session, customer)
+    review = make_ticket(db_session, customer, order=order, status=TicketStatus.AWAITING_REVIEW)
+    make_proposal(db_session, review, order)
+
+    body = client.get("/api/v1/tickets/summary", headers=auth_headers(agent)).json()
+
+    assert body["total"] == 2
+    assert body["by_status"]["new"] == 1
+    assert body["by_status"]["awaiting_review"] == 1
+    assert body["by_status"]["resolved"] == 0
+    assert body["pending_proposals"] == 1
+
+
+def test_list_items_carry_the_customer_name(
+    client: TestClient, db_session: Session, agent: User, auth_headers: Headers
+) -> None:
+    make_ticket(db_session, make_customer(db_session, "CUS-NAME"))
+    items = client.get("/api/v1/tickets", headers=auth_headers(agent)).json()["items"]
+    assert items[0]["customer_name"] == "Customer CUS-NAME"

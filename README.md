@@ -1,6 +1,6 @@
 # SupportFlow AI
 
-> Production-oriented portfolio demo. Status: **Phase 5, human approval and safe execution (MVP core)**
+> Production-oriented portfolio demo. Status: **Phase 6, operations dashboard (MVP complete, first design pass)**
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
@@ -14,10 +14,12 @@ The demo runs against **NovaShop**, a fictional online store with synthetic data
 - [Architecture](docs/ARCHITECTURE.md): components, layers, key flows
 - [Decisions](docs/DECISIONS.md): architecture decision records
 - [Security](docs/SECURITY.md): threats, controls and the tests that prove them
+- [Design](docs/DESIGN.md): the dashboard's visual language and layout
+- [Test plan](docs/TEST_PLAN.md): scenarios and test matrix mapped to tests
 
 ## Tech stack
 
-FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL · LangGraph · Gemini API · React · TypeScript · Vite · Docker Compose · GitHub Actions
+FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL · LangGraph · Gemini API · React · TypeScript · Vite · TanStack Query · Docker Compose · GitHub Actions
 
 ## Run locally
 
@@ -52,7 +54,7 @@ npm install
 npm run dev             # http://localhost:5173
 ```
 
-Open http://localhost:5173. The status page shows whether the API and the database are reachable. The API is documented at http://localhost:8000/docs.
+Open http://localhost:5173 and sign in with a demo account (buttons on the login page in development). The API is documented at http://localhost:8000/docs.
 
 **Demo logins** (password `supportflow-demo`, set by `DEMO_USER_PASSWORD`):
 
@@ -102,7 +104,8 @@ Postgres is published on host port **5433** so it doesn't collide with a locally
 | Tests without Docker (unit only) | `uv run pytest -m "not db"` |
 | Lint / format / type check | `uv run poe lint` · `uv run poe format` · `uv run poe typecheck` |
 | New migration | `uv run alembic revision --autogenerate -m "describe change"` |
-| Frontend checks (in `frontend/`) | `npm run lint` · `npm run typecheck` · `npm run build` |
+| Frontend checks (in `frontend/`) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
+| Regenerate API types (backend running) | `npm run gen:api` (in `frontend/`) |
 
 Tests that touch the database (auto-marked `db`) use the separate `supportflow_test` database, which is created automatically when the compose Postgres volume is first initialized. Each test runs in a transaction that is rolled back afterwards.
 
