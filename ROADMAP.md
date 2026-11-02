@@ -153,7 +153,7 @@ Kimin neye erişebildiği baştan net olmalı; aksi halde yetki testleri anlams�
 - [ ] Tekrarlanan onay veya webhook aynı işlemi iki kez çalıştırmaz. (Onay kısmı TC-04 ile kanıtlı; webhook Faz 9'da.)
 - [x] Bir ticket'ın baştan sona işlem geçmişi izlenebilir. (Ticket olayları + append-only audit; panelde History ve admin Audit trail.)
 - [x] Kullanıcı panelde “hangi bilgi kullanıldı, ne önerildi, ne uygulandı?” sorularını yanıtlayabilir. (Ticket detayı: sipariş etiketi, politika, "How this suggestion was made", öneri kartı ve damga; Faz 6 çıkış kriteri.)
-- [ ] Yeni geliştirici README ile projeyi yerel ortamda çalıştırabilir.
+- [ ] Yeni geliştirici README ile projeyi yerel ortamda çalıştırabilir. (Temiz klon testi sahip kararıyla atlandı; işaretsiz.)
 
 ---
 
@@ -372,7 +372,7 @@ supportflow-ai/
 
 **Çıkış kriterleri**
 
-- [ ] Yeni bir klasörde README adımlarını izleyince uygulama ayağa kalkıyor.
+- [ ] Yeni bir klasörde README adımlarını izleyince uygulama ayağa kalkıyor. (Sahip kararı 2026-11-03: temiz klon testi yapılmayacak; doğrulanmadığı için işaretsiz.)
 - [x] `/health` başarılı, `/ready` DB durumunu doğru bildiriyor.
 - [x] Migration ve en az bir örnek test çalışıyor.
 - [x] CI ilk push'ta yeşil (backend, frontend, Docker image job'ları).
@@ -884,13 +884,13 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 
 ### Portföy dosyaları
 
-- [ ] README girişinde problem → çözüm → mimari → demo videosu → stack → yerel kurulum → bilinen sınırlamalar.
-- [ ] Bir tam mimari diyagram.
-- [ ] 3–5 screenshot/GIF.
+- [ ] README girişinde problem → çözüm → mimari → demo videosu → stack → yerel kurulum → bilinen sınırlamalar. (2026-11-03: yeniden yazıldı; yalnız demo videosu eksik, video çekilince eklenecek.)
+- [x] Bir tam mimari diyagram. (README'de mermaid sistem diyagramı.)
+- [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.)
 - [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`).
 - [ ] `docs/DEMO_SCRIPT.md`: gösterim adımları.
 - [ ] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel.
-- [ ] README'de gerçek üretim sistemi olduğu iddiası yerine **“production-oriented portfolio demo”** ifadesi kullan.
+- [x] README'de gerçek üretim sistemi olduğu iddiası yerine **“production-oriented portfolio demo”** ifadesi kullan. → **Sahip kararı (2026-11-03):** "portfolio" ifadesi README'den kaldırıldı; yalnız sentetik veri notu kaldı. README üretim sistemi olduğunu iddia etmiyor (Known limitations bölümü).
 - [ ] Repo public yapılır; GitHub release `v0.1.0`.
 
 ## Faz 11-B — Canlı demo deployment (opsiyonel ama önerilir)

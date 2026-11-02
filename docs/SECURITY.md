@@ -1,6 +1,6 @@
 # Security
 
-SupportFlow AI lets a language model read customer messages and suggest changes to orders. The design assumes the model can be **wrong, fooled or unavailable**, and that ticket text can be **hostile**. This document lists the threats considered, the controls in place and the tests that prove them. It is a portfolio demo with synthetic data; production gaps are listed at the end.
+SupportFlow AI lets a language model read customer messages and suggest changes to orders. The design assumes the model can be **wrong, fooled or unavailable**, and that ticket text can be **hostile**. This document lists the threats considered, the controls in place and the tests that prove them. It is a demo with synthetic data; production gaps are listed at the end.
 
 ## Trust model
 

@@ -154,4 +154,4 @@ Staff cannot fake an AI triage step, and the pipeline cannot resolve a ticket on
 
 ## 6. Frontend
 
-React + TypeScript + Vite + Tailwind. Pages: dashboard, tickets, ticket detail (message, order facts, AI summary, proposal, evidence, timeline), approval queue, simple run view. A single API client layer; types generated from the backend OpenAPI schema where practical. AI output is always labeled as a suggestion.
+React + TypeScript + Vite + React Router + TanStack Query, styled with plain CSS on design tokens (ADR-013, `docs/DESIGN.md`). Pages: overview (role-aware: decisions waiting for you or for an admin, audit trail for admins), tickets, ticket detail (message, AI draft, "how this suggestion was made" with graph steps, proposal, order, policy, history), approval queue. A single API client layer; types are generated from the backend OpenAPI schema. AI output is always labeled as a draft.

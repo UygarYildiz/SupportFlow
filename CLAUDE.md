@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The dashboard is a first design pass that the owner will review and ask to revise. Next: owner's design feedback, then Phase 11-A (release v0.1.0). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
+Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The owner's first design review is done (role-aware overview, see the review log in `docs/DESIGN.md`), and scenario evals exist (`evals/scenarios.jsonl`, `uv run poe eval`). Phase 11-A is in progress: CI and README are done; next are `docs/DEMO_SCRIPT.md`, the demo video (recorded by the owner), PR template / branch protection, then release v0.1.0. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 ## How work is organized
 
