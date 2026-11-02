@@ -6,25 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The dashboard is a first design pass that the owner will review and ask to revise. Next: owner's design feedback, then Phase 11-A (release v0.1.0). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
-SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
-
 ## How work is organized
 
 - Work proceeds phase by phase (Faz 0–12 in `ROADMAP.md`), grouped into Block A (MVP: Phases 0–6 + 11-A, released as `v0.1.0`), Block B (RAG, MCP, live deploy) and Block C (optional: n8n, advanced hardening, V2). **Do not add a later phase's technology early.** For example: no RAG/pgvector before Phase 7, no MCP before Phase 8, no n8n before Phase 9, no Redis/Celery unless a real need appears.
+- Use only synthetic data (fictional NovaShop), never real customer data.
 - **Everything in the repo is in English** (code, comments, commits, docs, UI). `ROADMAP.md` is the owner's personal plan and stays in Turkish. Converse with the user in Turkish.
 - Take on one issue or one vertical slice at a time. Before coding, present a 5–10 step plan and the files that will change.
 - **Keep `ROADMAP.md` in sync with the work:** tick `[ ]` → `[x]` yourself as items are actually completed and verified, and add or adjust items when plans change. Don't tick anything that wasn't verified.
 - **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
-- Record architectural choices as short ADRs in `docs/DECISIONS.md`.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
 - Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-013). Threats and the tests that prove each control are in `docs/SECURITY.md`; keep it in sync when adding controls. Don't contradict them without writing a new ADR.
 - Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
 
 ## Stack
 
-Python 3.12 with **uv** (`uv.lock` committed), FastAPI + Pydantic, **sync** SQLAlchemy 2 + psycopg 3 + Alembic (ADR-004), PostgreSQL (later pgvector), LangGraph, React + TypeScript 7 + Vite + React Router + TanStack Query with plain CSS on design tokens (ADR-013), Vitest + Testing Library, pytest + httpx, Ruff + Pyright, oxlint for the frontend, Docker Compose, GitHub Actions. LLM provider is the **Gemini API** via the `google-genai` SDK behind an `LLMClient` interface; model name comes from `GEMINI_MODEL` (ADR-009). The SDK may only be imported inside `app/agent/` adapters. The Python backend needs a container host. Don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages).
-
-Target layout (create modules when their phase starts): `backend/app/{api,core,db,domain,services,integrations,agent,rag,schemas}`, `backend/tests/{unit,integration,agent,fixtures}`, `backend/scripts/seed_demo.py`, `frontend/src/...`, `docs/`, `evals/`, `automation/` (n8n exports).
+The Python backend needs a container host; don't assume it runs on Cloudflare Workers (only the frontend may go to Cloudflare Pages). Package versions and tools are in `backend/pyproject.toml` and `frontend/package.json`; key choices are recorded as ADRs.
 
 ## Architecture invariants (non-negotiable)
 
@@ -61,44 +57,15 @@ docker compose up --build            # db + backend (:8000) + frontend (:5173)
 uv run poe check                     # ruff lint + format check + pyright + pytest (what CI runs)
 uv run poe test                      # pytest; tests marked `db` need the compose Postgres
 uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates   # single test
-uv run poe dev                       # uvicorn --reload on :8000
-uv run poe migrate                   # alembic upgrade head
 uv run poe seed [--reset]            # idempotent NovaShop demo data (password: DEMO_USER_PASSWORD)
 uv run pytest -m "not db"            # unit tests only, no Docker needed
+uv run poe dev                       # uvicorn --reload on :8000
+uv run poe migrate                   # alembic upgrade head
 uv run alembic revision --autogenerate -m "..."
 
 # frontend/
-npm run dev | npm run lint | npm run typecheck | npm test | npm run build
+npm run dev | npm run lint | npm run typecheck | npm test | npm run build   # CI runs lint, typecheck, test, build
 npm run gen:api                      # regenerate src/api/schema.d.ts from the running backend's OpenAPI
 ```
 
-Code conventions (backend):
-- Request flow: router (`app/api/v1/*`, thin) → service (`app/services/*`, owns the transaction and calls `commit()`) → domain (`app/domain/*`, pure Python, no SQLAlchemy/FastAPI).
-- Services raise domain errors (`NotFoundError`, `InvalidStateTransitionError`, `BusinessRuleViolationError`); `app/api/errors.py` maps them to 404/409/422. Don't raise `HTTPException` from services.
-- Auth dependencies live in `app/api/deps.py`: `CurrentUser`, `StaffUser` (any staff role), `AdminUser`. Every new business endpoint must take one of them.
-- Enums are `StrEnum`s in `app/domain/enums.py`, stored via `app.db.types.str_enum` (VARCHAR + CHECK, ADR-010).
-- Anything acting on behalf of a ticket (agent tools, policy checks) must use `OrderService.get_customer_order(customer_id, order_id)`, never `get_order`.
-- `app/agent/` may import services and domain; `domain/` and `services/` must never import `app/agent/` or the Google SDK. Only `app/agent/llm/gemini.py` imports `google.genai`.
-- The graph's model outputs are `IntentClassification` and `DraftReply` (`app/agent/schemas.py`), parsed in `AnalysisGraph._ask`; never store or log raw model output. Bump `PROMPT_VERSION` in `app/agent/prompts.py` whenever prompt wording changes.
-- Keep decisions out of the model: order scope (`_focus_order`), policy (`check_policy`), action proposals (`plan_action`) and evidence (`assemble_result`) are pure code with unit tests. New graph nodes return `(state_update, step_summary)`; the summary goes to `agent_run_steps`, so keep it small and free of customer text.
-- Agent tools must go through the allowlist in `app/agent/tools.py` and stay read-only and customer-scoped. Adding a tool means adding it to `ALLOWED_TOOLS`, `DatabaseTools` and `tests.fakes.InMemoryTools`.
-- Default model `gemini-3.5-flash-lite` (free-tier quota; `gemini-3.8-flash` hit 429 quickly, 2.5 models are 404 for new users). When calling the live API from scripts, space requests out (a few seconds apart) to stay within free-tier limits.
-- State changes to orders happen only in `app/integrations/mock_orders.py`, called only from `ProposalService._execute` after an approval. Never add another write path, and never let `app/agent/` import `app.integrations`, `ProposalService` or the executor (a test enforces this).
-- Every proposal transition goes through `ProposalService._move` (status check + `version += 1`) and writes a ticket event and an audit entry in the same transaction. Audit `details` pass through `redact()`; `audit_logs` is append-only at the database level.
-- Policy rules take the current time as a parameter (`PolicyService(clock=...)`). Don't call `datetime.now()` inside domain code.
-
-Testing conventions:
-- `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides`.
-- `tests/unit/` is pure (no DB). `tests/integration/` uses the `db_session` fixture: one transaction per test, rolled back at the end (service `commit()`s become savepoints). The session start migrates the test DB from base to head. Tests using the DB are auto-marked `db`.
-- Analysis tests: the `app` fixture runs background tasks synchronously against the test session and uses `llm_slot.client` (default `FakeLLMClient`). Swap it with `tests.fakes.ScriptedLLMClient(intent_output(...), draft_output(...))`; each analysis makes two calls in that order (unless it fails earlier). Graph unit tests use `InMemoryTools` and `ListRecorder` (no DB). Tests never call Gemini.
-- `make_proposal(session, ticket, order, ...)` creates a pending proposal as an analysis would. In tests that edit data and then hit an endpoint that may `rollback()` (409 paths), `db_session.commit()` the edit first; otherwise the rollback reverts it with the request's savepoint.
-- Build data with `tests/factories.py` (`make_user`, `make_customer`, `make_order`, `make_ticket`). Authenticate with the `admin`/`agent` fixtures plus `auth_headers(user)`.
-- DB tests point at `TEST_DATABASE_URL`. Never point tests at the dev database.
-- New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.
-Frontend conventions:
-- All HTTP goes through `src/api/client.ts`; components use hooks from `src/api/queries.ts` (TanStack Query) and types from `src/api/types.ts`, which alias the generated `src/api/schema.d.ts`. After changing a backend schema, run `npm run gen:api` and commit the result.
-- Visual language and tokens are in `docs/DESIGN.md` and `src/styles/tokens.css`: orders as shipping labels, AI output in the dashed "carbon" draft frame, decisions as the stamp. Use tokens, not raw colors; sentence-case copy; no all-caps labels except the stamp.
-- Mutations disable their buttons while pending and invalidate affected queries on settle (a 409 means our copy is stale).
-- Tests: `src/test/utils.tsx` provides `mockApi` (fetch router), `renderWithProviders` and a `proposal()` fixture.
-- Font gotcha: `@fontsource/big-shoulders-stencil-display` maps `./*` to `./*.css`, so import its weights without `.css` (declared in `src/fonts.d.ts`).
-- Vite proxies `/api`, `/health` and `/ready` to the backend, so no CORS setup is needed in dev.
+Module-specific conventions load automatically from `backend/CLAUDE.md` and `frontend/CLAUDE.md` when working in those directories.
