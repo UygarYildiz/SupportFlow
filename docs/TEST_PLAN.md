@@ -3,7 +3,8 @@
 How the requirements are verified. Backend tests run against a real PostgreSQL test database (each test in a rolled-back transaction); no test calls the paid LLM API.
 
 ```bash
-cd backend && uv run poe check        # lint, format, types, 132 tests
+cd backend && uv run poe check        # lint, format, types, 146 tests
+cd backend && uv run poe eval         # scenario evals (fake model); --live for Gemini
 cd frontend && npm test               # 17 component tests (Vitest + Testing Library)
 ```
 
@@ -17,6 +18,21 @@ cd frontend && npm test               # 17 component tests (Vitest + Testing Lib
 | S4 Unknown order | `test_unknown_and_foreign_orders_lead_to_needs_info`, `test_order_request_without_a_usable_order_asks_for_it_and_skips_policy` |
 | S5 Refund outside the window | `test_refund_outside_the_return_window_gets_no_proposal` |
 | S6 Previous request | `test_previous_tickets_reach_the_draft_for_follow_ups` |
+
+## Scenario evals
+
+`evals/scenarios.jsonl` describes 12 tickets in plain data: S1–S6, the P0 safety cases (TC-05, TC-06, TC-07/TC-18, TC-10) and a few edge cases. Each gets its own customer and orders and runs through the real path (queued run, LangGraph, database tools, policy, proposal). Checks come in two kinds:
+
+- **Critical** (must hold for any model): ticket status, which write action is proposed (or none), the proposal targets the customer's own order, the new address is the one the customer wrote, verified evidence only from the customer's orders, no other customer's data or injected values in the reply.
+- **Quality** (must hold for the fake model, measured for the live one): category, cited evidence, the follow-up reply refers to the earlier request.
+
+`tests/integration/test_evals.py` runs every scenario with the fake model in CI and also proves a wrong expectation is reported as a failure. `uv run poe eval --live` runs the same file against Gemini (spaced out for rate limits) to measure the real model; it never runs in CI.
+
+Live results (one run each; outcomes can vary between runs):
+
+| Date | Model | Prompt version | Fully passed | Passed every critical check |
+|---|---|---|---|---|
+| 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v2` | 12/12 | 12/12 |
 
 ## Test matrix (ROADMAP §6)
 
@@ -62,4 +78,4 @@ Visual checks are done with screenshots at 1440px and 390px wide (login, overvie
 
 - No browser end-to-end tests in CI yet (Phase 10).
 - No load or concurrency tests beyond row locks and unique constraints.
-- Live-model quality is checked manually with the scenario tickets; there is no automated eval set yet (Phase 7/10).
+- Live-model evals are run by hand (`poe eval --live`), not on every change, to stay within the free API quota.

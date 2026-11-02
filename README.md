@@ -105,6 +105,7 @@ Postgres is published on host port **5433** so it doesn't collide with a locally
 | A single test | `uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates` |
 | Tests without Docker (unit only) | `uv run pytest -m "not db"` |
 | Lint / format / type check | `uv run poe lint` · `uv run poe format` · `uv run poe typecheck` |
+| Scenario evals (S1–S6 and P0 cases, `evals/scenarios.jsonl`) | `uv run poe eval` (fake model) · `uv run poe eval --live` (Gemini, uses quota) |
 | New migration | `uv run alembic revision --autogenerate -m "describe change"` |
 | Frontend checks (in `frontend/`) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
 | Regenerate API types (backend running) | `npm run gen:api` (in `frontend/`) |

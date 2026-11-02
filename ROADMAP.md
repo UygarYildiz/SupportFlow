@@ -147,12 +147,12 @@ Kimin neye erişebildiği baştan net olmalı; aksi halde yetki testleri anlams�
 
 ### 1.7 Başarı ölçütleri
 
-- [ ] S1–S6 senaryolarının tamamı beklenen sonuca ulaşır.
-- [ ] Agent hiçbir zaman olmayan bir siparişin durumunu uydurmaz.
-- [ ] Dış sistemde değişiklik yapan her eylem için yetkili kullanıcı onayı doğrulanır.
-- [ ] Tekrarlanan onay veya webhook aynı işlemi iki kez çalıştırmaz.
-- [ ] Bir ticket'ın baştan sona işlem geçmişi izlenebilir.
-- [ ] Kullanıcı panelde “hangi bilgi kullanıldı, ne önerildi, ne uygulandı?” sorularını yanıtlayabilir.
+- [x] S1–S6 senaryolarının tamamı beklenen sonuca ulaşır. (`evals/scenarios.jsonl` 12/12, fake model, CI'da `test_evals.py`. Canlı ölçüm 2026-11-03, `gemini-3.5-flash-lite`: 12/12 tam geçti, tek koşum.)
+- [x] Agent hiçbir zaman olmayan bir siparişin durumunu uydurmaz. (TC-06, eval S4 ve TC-07: doğrulanmış kanıt yalnız müşterinin kendi siparişlerinden.)
+- [x] Dış sistemde değişiklik yapan her eylem için yetkili kullanıcı onayı doğrulanır. (TC-02/03/19, `test_agent_code_cannot_reach_the_executor`.)
+- [ ] Tekrarlanan onay veya webhook aynı işlemi iki kez çalıştırmaz. (Onay kısmı TC-04 ile kanıtlı; webhook Faz 9'da.)
+- [x] Bir ticket'ın baştan sona işlem geçmişi izlenebilir. (Ticket olayları + append-only audit; panelde History ve admin Audit trail.)
+- [x] Kullanıcı panelde “hangi bilgi kullanıldı, ne önerildi, ne uygulandı?” sorularını yanıtlayabilir. (Ticket detayı: sipariş etiketi, politika, "How this suggestion was made", öneri kartı ve damga; Faz 6 çıkış kriteri.)
 - [ ] Yeni geliştirici README ile projeyi yerel ortamda çalıştırabilir.
 
 ---
@@ -850,7 +850,7 @@ MCP sunucusu ilk olarak **read-only** olsun. `get_order_status`, `get_customer_o
 
 - [ ] Tüm testler CI'da geçiyor.
 - [ ] Typecheck ve linter temiz.
-- [ ] Kritik 6 senaryo için regression test mevcut.
+- [x] Kritik 6 senaryo için regression test mevcut. (`test_evals.py`, S1–S6; 2026-11-03.)
 - [ ] Yüksek riskli 5 negatif test mevcut.
 - [ ] Core domain servislerinde hedeflenen test kapsamı en az %80; **sayıdan önce kritik senaryoların kapsanmasına bak**.
 
@@ -876,10 +876,10 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 
 ### CI
 
-- [ ] Backend: Ruff + typecheck + pytest (Faz 1'de kuruldu; frontend'i de ekle).
-- [ ] Frontend: ESLint/typecheck + build + kritik UI testleri.
-- [ ] Docker image build doğrulaması.
-- [ ] Secrets yalnız CI secrets olarak tutuluyor; CI'da `LLM_MODE=fake`.
+- [x] Backend: Ruff + typecheck + pytest (Faz 1'de kuruldu; frontend'i de ekle). (2026-11-03: `8a4707b` CI'da yeşil.)
+- [x] Frontend: ESLint/typecheck + build + kritik UI testleri. (oxlint + tsc + Vitest + build; `8a4707b` CI'da yeşil.)
+- [x] Docker image build doğrulaması. (`8a4707b` CI'da yeşil.)
+- [x] Secrets yalnız CI secrets olarak tutuluyor; CI'da `LLM_MODE=fake`. (CI hiç secret kullanmıyor; `LLM_MODE` varsayılanı `fake`, testler zaten fake/scripted LLM kullanıyor. Git geçmişi tarandı: `.env` ve anahtar yok.)
 - [ ] `main` branch koruması, temel PR şablonu.
 
 ### Portföy dosyaları

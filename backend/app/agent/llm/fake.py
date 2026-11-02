@@ -22,6 +22,15 @@ _KEYWORDS: list[tuple[TicketCategory, tuple[str, ...]]] = [
     (TicketCategory.DELIVERY_DELAY, ("where is", "not arrived", "hasn't arrived", "still not",
                                      "not received", "haven't received", "delayed", "status")),
 ]  # fmt: skip
+_FOLLOW_UP_MARKERS = (
+    "previous request",
+    "earlier request",
+    "my last request",
+    "follow-up",
+    "follow up",
+    "never heard back",
+    "what happened to my",
+)
 _INJECTION_MARKERS = ("ignore all previous", "ignore previous", "you are now", "system instruction")
 _ORDER_ID = re.compile(r"\bORD-\d{3,6}\b", re.IGNORECASE)
 # "... to 42 Harbor St, Riverton." / "new address: 7 Cedar Rd." / "... instead?"
@@ -87,6 +96,8 @@ def _draft(prompt: str) -> dict[str, Any]:
     order = next((o for o in facts["orders"] if o["id"] == focus), None)
     denied = [c for c in facts["policy_checks"] if not c["allowed"] and not c["informational"]]
     category = facts["category"]
+    message = _between(prompt, "<ticket_message>", "</ticket_message>").lower()
+    follow_up = bool(facts["previous_tickets"]) and any(m in message for m in _FOLLOW_UP_MARKERS)
 
     if facts["missing_information"]:
         if facts["unknown_order_ids"]:
@@ -105,12 +116,13 @@ def _draft(prompt: str) -> dict[str, Any]:
             f"We received your request regarding order {focus}. "
             "A team member will review it and get back to you shortly."
         )
+    elif follow_up:  # S6: the customer asks about an earlier ticket, not about the order
+        body = _previous_tickets_text(facts["previous_tickets"])
     elif order is not None:
         checks = " ".join(c["reason"] for c in facts["policy_checks"])
         body = f"Your order {focus} is currently '{order['status']}'. {checks}".strip()
     elif facts["previous_tickets"]:
-        subjects = ", ".join(f"'{t['subject']}' ({t['status']})" for t in facts["previous_tickets"])
-        body = f"We found your earlier requests: {subjects}. A team member will follow up."
+        body = _previous_tickets_text(facts["previous_tickets"])
     else:
         body = "Thanks for reaching out. A team member will get back to you shortly."
 
@@ -122,6 +134,11 @@ def _draft(prompt: str) -> dict[str, Any]:
         "missing_information": [],
         "evidence_order_ids": [focus] if order else [],
     }
+
+
+def _previous_tickets_text(tickets: list[dict[str, Any]]) -> str:
+    subjects = ", ".join(f"'{t['subject']}' ({t['status']})" for t in tickets)
+    return f"We found your earlier requests: {subjects}. A team member will follow up."
 
 
 def _category(message: str) -> TicketCategory:
