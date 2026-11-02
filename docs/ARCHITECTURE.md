@@ -1,0 +1,126 @@
+# Architecture
+
+SupportFlow AI is a **modular monolith**: one FastAPI backend with strictly separated modules, a PostgreSQL database and a React dashboard. Rationale and trade-offs are in [DECISIONS.md](DECISIONS.md).
+
+## 1. System overview
+
+```mermaid
+flowchart TD
+    C[Customer request via API / webhook] --> API[FastAPI backend]
+    U[Support dashboard - React] --> API
+    API --> DB[(PostgreSQL)]
+    API -->|enqueue run| W[In-process run worker]
+    W --> G[LangGraph agent]
+    G --> LLM[LLM adapter - Gemini / fake]
+    G --> T[Scoped read-only tools]
+    T --> S[Domain services]
+    G -->|persist| P[(Action proposal - pending)]
+    U -->|approve / reject| API
+    API --> X[Action executor]
+    X --> S
+    S --> DB
+    API --> A[Audit log]
+```
+
+## 2. Backend modules and dependency rules
+
+| Module | Responsibility | May depend on |
+|---|---|---|
+| `api/` | Routers, auth dependencies, request/response mapping, HTTP errors | `services`, `schemas`, `core` |
+| `schemas/` | Pydantic API contracts | — |
+| `core/` | Settings, auth (JWT), logging | — |
+| `domain/` | Entities, status machines, policy rules, approver-role rules | — (pure Python) |
+| `services/` | Use cases: tickets, orders, runs, proposals, action executor, audit | `domain`, `db`, `integrations` |
+| `integrations/` | Mock order/CRM data access; later MCP / n8n adapters | `db` |
+| `agent/` | Graph state, nodes, edges, prompts, tool wrappers, LLM adapters | `services` (read-only methods), `domain` |
+| `db/` | SQLAlchemy models, session, migrations | — |
+
+Hard rules:
+
+- `domain/` and `services/` never import LangGraph, the LLM SDK or n8n. Business logic is testable without the agent.
+- `agent/` never imports the action executor. The agent's only write is persisting a `pending` proposal through the proposal service.
+- Business rules live in `domain/` and `services/`, never in route handlers or graph nodes.
+
+## 3. Key flows
+
+### 3.1 Ticket analysis (background run)
+
+```mermaid
+sequenceDiagram
+    participant UI
+    participant API
+    participant DB
+    participant Worker
+    participant Graph
+    UI->>API: POST /tickets/{id}/analyze
+    API->>DB: insert agent_run (queued) [unique: one active run per ticket]
+    API-->>UI: 202 + run_id (409 if a run is active)
+    Worker->>DB: run -> running
+    Worker->>Graph: execute(ticket_id, run_id)
+    Graph->>Graph: load ticket, classify, fetch facts, check policy, draft
+    Graph->>DB: save analysis + pending proposal (idempotent)
+    Worker->>DB: run -> succeeded / failed, ticket -> awaiting_review / needs_info / failed
+    UI->>API: GET /runs/{run_id} (polling)
+```
+
+- On startup, runs still `running` are marked `failed` with reason `interrupted`.
+- Graph limits: max steps, LLM timeout, retry with backoff, token budget per run.
+
+### 3.2 Agent graph
+
+```mermaid
+flowchart TD
+    A[Load ticket] --> B[Validate customer / order]
+    B --> C[Classify intent]
+    C --> D{Enough data?}
+    D -->|No| E[needs_info / human review]
+    D -->|Yes| F[Fetch authorized order data]
+    F --> G[Check deterministic policy]
+    G --> H[Draft reply and proposal]
+    H --> I[Validate output]
+    I --> J{Write action proposed?}
+    J -->|No| K[Draft ready]
+    J -->|Yes| L[Persist pending proposal]
+```
+
+Tool allowlist (read-only, scoped to the ticket's customer): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
+
+### 3.3 Approval and execution
+
+```mermaid
+sequenceDiagram
+    participant UI
+    participant API
+    participant Exec as ActionExecutor
+    participant DB
+    UI->>API: POST /proposals/{id}/decision (approve, expected_proposal_version)
+    API->>API: authenticate, check approver role for action type
+    API->>Exec: execute(proposal_id, actor)
+    Exec->>DB: lock proposal, verify status=pending and version
+    Exec->>DB: re-check current order state (TOCTOU)
+    Exec->>DB: apply mock change + action_execution (unique idempotency_key) + audit, one transaction
+    Exec-->>API: executed / rejected with reason
+    API-->>UI: result (repeat request -> same result or 409, never a second effect)
+```
+
+- Pending approvals live in `action_proposals`, so they survive restarts. No graph state is involved after the run ends.
+- Expired proposals are never executed.
+
+## 4. Status machines
+
+**Ticket:** `new → triaging → awaiting_review → resolved`; side states `needs_info`, `failed` (can return to `new`).
+
+**Action proposal:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`.
+
+**Agent run:** `queued → running → succeeded | failed`.
+
+## 5. Trust boundaries
+
+- LLM output is an untrusted suggestion. It is validated against a Pydantic schema, and any order IDs it cites are checked against data the tools actually returned.
+- Ticket text, tool results and (later) policy documents and webhook payloads are data, never instructions.
+- Authorization is always server-side. Hiding a button in the UI is not a control.
+- Logs carry `correlation_id`, `ticket_id` and `run_id`, with PII redacted.
+
+## 6. Frontend
+
+React + TypeScript + Vite + Tailwind. Pages: dashboard, tickets, ticket detail (message, order facts, AI summary, proposal, evidence, timeline), approval queue, simple run view. A single API client layer; types generated from the backend OpenAPI schema where practical. AI output is always labeled as a suggestion.
