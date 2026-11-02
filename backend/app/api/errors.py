@@ -5,14 +5,14 @@ from fastapi.responses import JSONResponse
 
 from app.domain.errors import (
     BusinessRuleViolationError,
+    ConflictError,
     DomainError,
-    InvalidStateTransitionError,
     NotFoundError,
 )
 
 _STATUS_BY_ERROR: list[tuple[type[DomainError], int]] = [
     (NotFoundError, status.HTTP_404_NOT_FOUND),
-    (InvalidStateTransitionError, status.HTTP_409_CONFLICT),
+    (ConflictError, status.HTTP_409_CONFLICT),
     (BusinessRuleViolationError, status.HTTP_422_UNPROCESSABLE_CONTENT),
 ]
 

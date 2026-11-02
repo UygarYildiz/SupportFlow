@@ -10,6 +10,7 @@ the end. Service code may call `commit()`; with `join_transaction_mode=
 """
 
 from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 
 import pytest
 from alembic import command
@@ -19,6 +20,8 @@ from sqlalchemy import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from app.agent.executor import AnalysisExecutor
+from app.api.v1.runs import get_analysis_executor
 from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.db.models import User
@@ -27,6 +30,7 @@ from app.domain.enums import UserRole
 from app.main import create_app
 from tests.db_utils import alembic_config
 from tests.factories import make_user
+from tests.fakes import LLMSlot
 
 
 @pytest.fixture(scope="session")
@@ -68,11 +72,33 @@ def db_session(db_engine: Engine) -> Iterator[Session]:
 
 
 @pytest.fixture
-def app(request: pytest.FixtureRequest) -> FastAPI:
-    application = create_app()
+def llm_slot() -> LLMSlot:
+    """The LLM used by API-triggered analyses. Defaults to FakeLLMClient; tests may swap it."""
+    return LLMSlot()
+
+
+@pytest.fixture
+def session_scope_for(db_session: Session) -> Callable[[], AbstractContextManager[Session]]:
+    """Background work reuses the test session, so it stays inside the rolled-back transaction."""
+
+    @contextmanager
+    def scope() -> Iterator[Session]:
+        yield db_session
+
+    return scope
+
+
+@pytest.fixture
+def app(request: pytest.FixtureRequest, llm_slot: LLMSlot) -> FastAPI:
+    application = create_app(recover_interrupted_runs=False)
     if "db_session" in request.fixturenames:
         session: Session = request.getfixturevalue("db_session")
+        scope = request.getfixturevalue("session_scope_for")
         application.dependency_overrides[get_db] = lambda: session
+        # Built per request so a test can swap llm_slot.client before calling the API.
+        application.dependency_overrides[get_analysis_executor] = lambda: AnalysisExecutor(
+            scope, llm_slot.client
+        )
     return application
 
 

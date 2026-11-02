@@ -65,6 +65,8 @@ class OrderSpec:
     days_since_created: int
     days_since_shipped: int | None = None
     days_since_delivered: int | None = None
+    # Fixed products for scenario orders, so ticket messages match the order contents.
+    skus: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -81,17 +83,27 @@ class TicketSpec:
 
 # Orders that drive the scenarios in REQUIREMENTS.md section 5.
 SCENARIO_ORDERS = [
-    OrderSpec("ORD-1001", 1, OrderStatus.SHIPPED, 5, days_since_shipped=2),  # S1
-    OrderSpec("ORD-1002", 2, OrderStatus.DELIVERED, 9, 7, 5),  # S2 damaged, in window
-    OrderSpec("ORD-1003", 3, OrderStatus.PROCESSING, 1),  # S3 address change allowed
-    OrderSpec("ORD-1004", 4, OrderStatus.SHIPPED, 3, days_since_shipped=1),  # too late
-    OrderSpec("ORD-1005", 5, OrderStatus.DELIVERED, 66, 63, 60),  # S5 outside window
-    OrderSpec("ORD-1006", 5, OrderStatus.DELIVERED, 18, 16, 13),  # return just inside
-    OrderSpec("ORD-1007", 6, OrderStatus.DELIVERED, 20, 18, 15),  # return just outside
-    OrderSpec("ORD-1008", 7, OrderStatus.SHIPPED, 16, days_since_shipped=14),  # delayed
-    OrderSpec("ORD-1009", 8, OrderStatus.DELIVERED, 26, 24, 20),  # S6 history
-    OrderSpec("ORD-1010", 9, OrderStatus.PENDING, 0),  # address change allowed
-]
+    OrderSpec("ORD-1001", 1, OrderStatus.SHIPPED, 5, days_since_shipped=2,
+              skus=("NS-HDP-01",)),  # S1 where is my order
+    OrderSpec("ORD-1002", 2, OrderStatus.DELIVERED, 9, 7, 5,
+              skus=("NS-KTL-02",)),  # S2 damaged, inside the 30-day window
+    OrderSpec("ORD-1003", 3, OrderStatus.PROCESSING, 1,
+              skus=("NS-BKP-03",)),  # S3 address change allowed
+    OrderSpec("ORD-1004", 4, OrderStatus.SHIPPED, 3, days_since_shipped=1,
+              skus=("NS-LMP-04",)),  # address change too late
+    OrderSpec("ORD-1005", 5, OrderStatus.DELIVERED, 66, 63, 60,
+              skus=("NS-YOG-06",)),  # S5 outside the return window
+    OrderSpec("ORD-1006", 5, OrderStatus.DELIVERED, 18, 16, 13,
+              skus=("NS-SPK-07",)),  # return just inside the window
+    OrderSpec("ORD-1007", 6, OrderStatus.DELIVERED, 20, 18, 15,
+              skus=("NS-PAN-08",)),  # return just outside the window
+    OrderSpec("ORD-1008", 7, OrderStatus.SHIPPED, 16, days_since_shipped=14,
+              skus=("NS-SPK-07",)),  # delayed delivery
+    OrderSpec("ORD-1009", 8, OrderStatus.DELIVERED, 26, 24, 20,
+              skus=("NS-MUG-05",)),  # S6 history
+    OrderSpec("ORD-1010", 9, OrderStatus.PENDING, 0,
+              skus=("NS-HDP-01", "NS-MUG-05")),  # address change allowed
+]  # fmt: skip
 
 SCENARIO_TICKETS = [
     TicketSpec(1, 1, "ORD-1001", "Where is my order?",
@@ -252,6 +264,8 @@ def _seed_orders(session: Session, now: datetime, rng: random.Random) -> int:
         # Draw random values before the existence check so the random sequence
         # (and therefore all later records) is identical on every run.
         items = _order_items(rng)
+        if spec.skus:
+            items = _fixed_items(spec.skus)
         address = f"{rng.randint(1, 99)} {rng.choice(STREETS)}, {rng.choice(CITIES)}"
         if session.get(Order, spec.id) is not None:
             continue
@@ -280,6 +294,14 @@ def _order_items(rng: random.Random) -> list[dict[str, Any]]:
     return [
         {"sku": sku, "name": name, "quantity": rng.randint(1, 2), "unit_price": str(price)}
         for sku, name, price in chosen
+    ]
+
+
+def _fixed_items(skus: tuple[str, ...]) -> list[dict[str, Any]]:
+    catalog = {sku: (name, price) for sku, name, price in PRODUCTS}
+    return [
+        {"sku": sku, "name": catalog[sku][0], "quantity": 1, "unit_price": str(catalog[sku][1])}
+        for sku in skus
     ]
 
 

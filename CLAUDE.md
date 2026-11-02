@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–2 are done: FastAPI app with demo JWT auth (`agent_user`/`admin`), customers/orders/tickets/ticket_events with Alembic migrations, ticket state machine and NovaShop policy rules in `app/domain/`, services in `app/services/`, `/api/v1` routers, an idempotent demo seed, a Vite + React status page, Docker Compose and GitHub Actions CI. No AI code yet (Phase 3 next). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
+Phases 0–3 are done: demo JWT auth, customers/orders/tickets with a state machine and NovaShop policy rules, an idempotent demo seed, and an AI analysis pipeline (`app/agent/`: facts → prompt → LLM → validation/evidence check) running as background `agent_runs`. Gemini via `LLM_MODE=live`, deterministic `FakeLLMClient` by default. Vite + React status page, Docker Compose, GitHub Actions CI. Phase 4 (LangGraph) is next. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
 
@@ -77,11 +77,15 @@ Code conventions (backend):
 - Auth dependencies live in `app/api/deps.py`: `CurrentUser`, `StaffUser` (any staff role), `AdminUser`. Every new business endpoint must take one of them.
 - Enums are `StrEnum`s in `app/domain/enums.py`, stored via `app.db.types.str_enum` (VARCHAR + CHECK, ADR-010).
 - Anything acting on behalf of a ticket (agent tools, policy checks) must use `OrderService.get_customer_order(customer_id, order_id)`, never `get_order`.
+- `app/agent/` may import services and domain; `domain/` and `services/` must never import `app/agent/` or the Google SDK. Only `app/agent/llm/gemini.py` imports `google.genai`.
+- LLM output is parsed with `TicketAnalysis.model_validate_json` and then `analyzer.verify()`; never store or log raw model output. Bump `PROMPT_VERSION` in `app/agent/prompts.py` whenever prompt wording changes.
+- Default model `gemini-3.5-flash-lite` (free-tier quota; `gemini-3.8-flash` hit 429 quickly, 2.5 models are 404 for new users). When calling the live API from scripts, space requests out (a few seconds apart) to stay within free-tier limits.
 - Policy rules take the current time as a parameter (`PolicyService(clock=...)`). Don't call `datetime.now()` inside domain code.
 
 Testing conventions:
 - `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides`.
 - `tests/unit/` is pure (no DB). `tests/integration/` uses the `db_session` fixture: one transaction per test, rolled back at the end (service `commit()`s become savepoints). The session start migrates the test DB from base to head. Tests using the DB are auto-marked `db`.
+- Analysis tests: the `app` fixture runs background tasks synchronously against the test session and uses `llm_slot.client` (default `FakeLLMClient`). Swap it with `tests.fakes.ScriptedLLMClient(...)` to script outputs or errors; `analysis_output(**overrides)` builds a valid payload. Tests never call Gemini.
 - Build data with `tests/factories.py` (`make_user`, `make_customer`, `make_order`, `make_ticket`). Authenticate with the `admin`/`agent` fixtures plus `auth_headers(user)`.
 - DB tests point at `TEST_DATABASE_URL`. Never point tests at the dev database.
 - New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.

@@ -12,7 +12,11 @@ class NotFoundError(DomainError):
         self.identifier = identifier
 
 
-class InvalidStateTransitionError(DomainError):
+class ConflictError(DomainError):
+    """The request conflicts with the current state of a resource."""
+
+
+class InvalidStateTransitionError(ConflictError):
     def __init__(self, entity: str, current: str, target: str) -> None:
         super().__init__(f"{entity} cannot move from '{current}' to '{target}'")
         self.entity = entity

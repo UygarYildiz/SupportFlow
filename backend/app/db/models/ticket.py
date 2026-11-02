@@ -7,7 +7,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.types import TZDateTime, str_enum, utcnow
-from app.domain.enums import ActorType, TicketEventType, TicketPriority, TicketStatus
+from app.domain.enums import (
+    ActorType,
+    TicketCategory,
+    TicketEventType,
+    TicketPriority,
+    TicketStatus,
+)
 
 
 class Ticket(Base):
@@ -33,6 +39,10 @@ class Ticket(Base):
     )
     priority: Mapped[TicketPriority] = mapped_column(
         str_enum(TicketPriority, "ticket_priority"), default=TicketPriority.MEDIUM
+    )
+    # Set by a successful analysis; NULL until the ticket has been analyzed.
+    category: Mapped[TicketCategory | None] = mapped_column(
+        str_enum(TicketCategory, "ticket_category")
     )
     created_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, default=utcnow, onupdate=utcnow)

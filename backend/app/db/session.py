@@ -1,6 +1,7 @@
 """Engine and session management (synchronous SQLAlchemy, see ADR-004)."""
 
 from collections.abc import Iterator
+from contextlib import contextmanager
 from functools import lru_cache
 
 from sqlalchemy import Engine, create_engine, text
@@ -30,6 +31,16 @@ def _session_factory() -> sessionmaker[Session]:
 
 def get_db() -> Iterator[Session]:
     """FastAPI dependency: one session per request, always closed."""
+    session = _session_factory()()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@contextmanager
+def session_scope() -> Iterator[Session]:
+    """A session for work outside a request (background runs, startup tasks)."""
     session = _session_factory()()
     try:
         yield session

@@ -46,8 +46,8 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 
 - [ ] Faz 0 — Kapsam, gereksinimler ve kritik kararlar (hafif)
 - [ ] Faz 1 — Repository ve geliştirme ortamı
-- [ ] Faz 2 — Deterministik destek sistemi + demo auth (AI olmadan)
-- [ ] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
+- [x] Faz 2 — Deterministik destek sistemi + demo auth (AI olmadan)
+- [x] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
 - [ ] Faz 4 — LangGraph agent akışı
 - [ ] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
 - [ ] Faz 6 — React operasyon paneli (**gösterilebilir MVP**)
@@ -318,7 +318,7 @@ supportflow-ai/
 - [x] `docs/ARCHITECTURE.md`: sistem diyagramı, katman sorumlulukları, yazma/onay sınırı.
 - [x] `docs/DECISIONS.md`: ADR-001 … ADR-009 (bkz. §11). Her biri 3–5 cümle.
 - [x] Sahte veri setinin şeklini belirle: ~20 müşteri, ~50 sipariş, ~30 ticket; S1–S6'nın her biri için en az bir ticket ve uç durumlar (kargolanmış sipariş, olmayan sipariş, başka müşterinin siparişi).
-- [ ] Üç ekranın kaba taslağı (kağıt/Excalidraw yeterli): ticket listesi, ticket detayı, onay kuyruğu.
+- [ ] Üç ekranın kaba taslağı (kağıt/Excalidraw yeterli): ticket listesi, ticket detayı, onay kuyruğu. → **Karar (2026-11-02):** Faz 5 bittikten sonra, AI'ın gerçek çıktıları görülünce birlikte yapılacak; Faz 6'nın ön koşulu.
 
 > `SECURITY.md`, `TEST_PLAN.md`, `DEMO_SCRIPT.md` bu fazda **yazılmaz**; ilgili fazlarda oluşturulur.
 
@@ -479,34 +479,34 @@ Yan durumlar: `needs_info` (müşteriden bilgi bekleniyor), `failed` (analiz ba�
 
 ### Görevler
 
-- [ ] `LLMClient` arayüzü tanımla (`generate_structured`, timeout, retry, token usage).
-- [ ] Bir LLM sağlayıcısına gerçek adapter; test için fake/stub adapter yaz.
-- [ ] Kategori enum: `delivery_delay`, `refund_request`, `address_change`, `damaged_item`, `general`, `unknown`.
-- [ ] Pydantic ile çıktı doğrulaması; geçersiz JSON/alanlar için kontrollü hata.
-- [ ] Kullanıcı metnini *veri* kabul eden, araç/sistem talimatlarını taklit eden metinleri önemsemeyen prompt.
-- [ ] Halüsinasyon önlemi: veri yoksa “bilmiyorum / kontrol edemedim / insan incelemesi” sonucuna dön.
-- [ ] Token/latency/cost kullanımını (varsa) `agent_runs` veya log'a kaydet.
-- [ ] Model timeout, 429, servis hatası için backoff ve kullanıcıya güvenli hata mesajı.
-- [ ] `agent_runs` tablosu (status: `queued → running → succeeded | failed`) bu fazda migration ile eklenir.
-- [ ] `POST /api/v1/tickets/{id}/analyze` → **202 Accepted** + `run_id`; LLM çağrısı istek içinde beklenmez, worker çalıştırır (ADR-005).
-- [ ] `GET /api/v1/runs/{run_id}` → durum, sonuç, hata (frontend polling yapar).
-- [ ] Aynı ticket için aktif (`queued`/`running`) run varken yeni analiz → 409. DB'de partial unique index ile garanti edilir, yalnız uygulama kontrolüyle değil.
-- [ ] Uygulama açılışında `running` kalmış run'lar `failed` (reason: `interrupted`) işaretlenir.
-- [ ] `LLM_MODE=fake|live` ayarı; testler ve public demo `fake` kullanır.
+- [x] `LLMClient` arayüzü tanımla (`generate_structured`, timeout, retry, token usage).
+- [x] Bir LLM sağlayıcısına gerçek adapter; test için fake/stub adapter yaz. (Gemini `gemini-3.5-flash-lite`; 2026-11-02 canlı smoke test: 9 senaryo ticket'ının 9'u başarılı, ~1.3 sn, ~600–1100 giriş token'ı.)
+- [x] Kategori enum: `delivery_delay`, `refund_request`, `address_change`, `damaged_item`, `general`, `unknown`.
+- [x] Pydantic ile çıktı doğrulaması; geçersiz JSON/alanlar için kontrollü hata.
+- [x] Kullanıcı metnini *veri* kabul eden, araç/sistem talimatlarını taklit eden metinleri önemsemeyen prompt.
+- [x] Halüsinasyon önlemi: veri yoksa “bilmiyorum / kontrol edemedim / insan incelemesi” sonucuna dön.
+- [x] Token/latency/cost kullanımını (varsa) `agent_runs` veya log'a kaydet. (Token ve latency kaydediliyor; maliyet hesabı fiyatlar değiştiği için Faz 10'a bırakıldı.)
+- [x] Model timeout, 429, servis hatası için backoff ve kullanıcıya güvenli hata mesajı.
+- [x] `agent_runs` tablosu (status: `queued → running → succeeded | failed`) bu fazda migration ile eklenir.
+- [x] `POST /api/v1/tickets/{id}/analyze` → **202 Accepted** + `run_id`; LLM çağrısı istek içinde beklenmez, worker çalıştırır (ADR-005).
+- [x] `GET /api/v1/runs/{run_id}` → durum, sonuç, hata (frontend polling yapar).
+- [x] Aynı ticket için aktif (`queued`/`running`) run varken yeni analiz → 409. DB'de partial unique index ile garanti edilir, yalnız uygulama kontrolüyle değil.
+- [x] Uygulama açılışında `running` kalmış run'lar `failed` (reason: `interrupted`) işaretlenir.
+- [x] `LLM_MODE=fake|live` ayarı; testler ve public demo `fake` kullanır.
 
 ### Testler
 
-- [ ] Mock LLM ile sözleşme testleri.
-- [ ] Hatalı model çıktısı -> sistem 500 crash yerine kontrollü `failed / needs_review`.
-- [ ] LLM sonucu mevcut olmayan order ID içeriyor -> arayüz bunu doğrulanmış kaynak diye göstermiyor.
-- [ ] Prompt injection örneği -> sahte “system” talimatıyla admin eylemi yapılmıyor.
-- [ ] Aynı ticket'a eş zamanlı iki analyze isteği → biri 202, diğeri 409.
+- [x] Mock LLM ile sözleşme testleri.
+- [x] Hatalı model çıktısı -> sistem 500 crash yerine kontrollü `failed / needs_review`.
+- [x] LLM sonucu mevcut olmayan order ID içeriyor -> arayüz bunu doğrulanmış kaynak diye göstermiyor.
+- [x] Prompt injection örneği -> sahte “system” talimatıyla admin eylemi yapılmıyor.
+- [x] Aynı ticket'a eş zamanlı iki analyze isteği → biri 202, diğeri 409. (Ticket satır kilidi + servis testi + partial unique index testi; gerçek paralel HTTP yükü testi yok.)
 
 **Çıkış kriterleri**
 
-- [ ] Ticket tek analyze çağrısıyla kategorilendiriliyor ve taslak hazırlanıyor; sonuç run üzerinden okunuyor.
-- [ ] Testlerde gerçek API çağrısı gerekmiyor.
-- [ ] LLM provider değiştirmek `domain/` veya route kodunu etkilemiyor.
+- [x] Ticket tek analyze çağrısıyla kategorilendiriliyor ve taslak hazırlanıyor; sonuç run üzerinden okunuyor.
+- [x] Testlerde gerçek API çağrısı gerekmiyor.
+- [x] LLM provider değiştirmek `domain/` veya route kodunu etkilemiyor.
 
 **Commit:** `feat: add typed LLM classification and reply drafting`
 
@@ -542,7 +542,9 @@ flowchart TD
 - [ ] Node'lar küçük ve test edilebilir olsun; tek yan etki son adımdaki proposal kaydıdır ve idempotent'tir (run_id + proposal fingerprint unique).
 - [ ] Koşullu edge'ler belirle; hangi durumlarda insan incelemesi gerekiyor yaz.
 - [ ] Faz 3'teki run/worker altyapısını kullan; graph bir run içinde baştan sona çalışır. Checkpointer MVP'de zorunlu değil (ileride `interrupt()` için gerekir).
-- [ ] Tool'ları açık allowlist üzerinden çağır: `get_order`, `get_customer_orders`, `get_customer_tickets` (S6), `get_policy`. Araçlar `customer_id`'yi state'teki ticket'tan alır, LLM'den gelen parametreyle başka müşteriye erişemez.
+- [ ] Tool'ları açık allowlist üzerinden çağır: `get_order`, `get_customer_orders`, `get_customer_tickets` (S6), `get_policy`.
+- [ ] S6 için müşterinin önceki ticket'larını facts'e ekle (Faz 3 canlı testinde model geçmişi göremediği için doğru biçimde "inceleyeceğiz" demekle yetindi).
+- [ ] Politika kararlarını (`PolicyService`) facts'e ekle; böylece taslak, uygun olmayan talepte (S5, kargolanmış siparişte adres değişikliği) kuralı açıklayabilir. Araçlar `customer_id`'yi state'teki ticket'tan alır, LLM'den gelen parametreyle başka müşteriye erişemez.
 - [ ] MVP'de `get_policy` deterministik, versiyonlu kural tablosundan okur (RAG Faz 7'de).
 - [ ] Maksimum adım/tekrar, timeout ve toplam maliyet bütçesi koy.
 - [ ] Hata ve eksik veride insan inceleme yolunu tanımla.
@@ -941,7 +943,7 @@ Bunların hepsi birinci sprintte yazılmayacak. İlgili fazda ekle.
 | GET | `/api/v1/orders/{id}` | Sipariş | 2 |
 | POST | `/api/v1/tickets/{id}/analyze` | Agent run kuyruğa al → **202** + `run_id`; aktif run varsa 409 | 3 |
 | GET | `/api/v1/runs/{run_id}` | Run durumu ve sonucu (polling) | 3 |
-| GET | `/api/v1/tickets/{id}/runs` | Ticket'ın run geçmişi | 4 |
+| GET | `/api/v1/tickets/{id}/runs` | Ticket'ın run geçmişi (Faz 3'te eklendi) | 4 |
 | GET | `/api/v1/proposals?status=pending` | Onay kuyruğu | 5 |
 | POST | `/api/v1/proposals/{id}/decision` | Onay/ret | 5 |
 | GET | `/api/v1/audit?ticket_id=...` | Denetim izi (yetkili) | 5 |

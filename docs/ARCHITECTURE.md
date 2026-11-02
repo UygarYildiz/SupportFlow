@@ -66,7 +66,19 @@ sequenceDiagram
 - On startup, runs still `running` are marked `failed` with reason `interrupted`.
 - Graph limits: max steps, LLM timeout, retry with backoff, token budget per run.
 
-### 3.2 Agent graph
+Phase 3 implementation (`app/agent/`):
+
+| Piece | Role |
+|---|---|
+| `facts.py` | Collects the customer's orders (scoped), resolves order IDs mentioned in the message, records unknown ones |
+| `prompts.py` | System rules + prompt; customer text sits inside delimiter tags and cannot close them |
+| `llm/` | `LLMClient` protocol, Gemini adapter (only place importing the SDK), `FakeLLMClient`, retry with backoff |
+| `analyzer.py` | Validates output against `TicketAnalysis`, verifies cited order IDs, decides `awaiting_review` vs `needs_info` |
+| `executor.py` | Runs a queued run end to end; a started run always ends `succeeded` or `failed` |
+
+Run state transitions live in `services/analysis_runs.py`, which knows nothing about LLMs.
+
+### 3.2 Agent graph (Phase 4)
 
 ```mermaid
 flowchart TD

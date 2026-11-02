@@ -23,6 +23,10 @@ services:
 
   backend:
     build: ./backend
+    # LLM_MODE, GEMINI_API_KEY etc. come from .env; `environment` below takes precedence.
+    env_file:
+      - path: .env
+        required: false
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://supportflow:supportflow@db:5432/supportflow

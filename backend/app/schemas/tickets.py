@@ -3,7 +3,13 @@ from typing import Any, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.domain.enums import ActorType, TicketEventType, TicketPriority, TicketStatus
+from app.domain.enums import (
+    ActorType,
+    TicketCategory,
+    TicketEventType,
+    TicketPriority,
+    TicketStatus,
+)
 from app.schemas.commerce import CustomerSummary, OrderOut
 from app.schemas.common import ApiModel
 
@@ -36,6 +42,7 @@ class TicketOut(ApiModel):
     subject: str
     status: TicketStatus
     priority: TicketPriority
+    category: TicketCategory | None = Field(description="Set by AI analysis; null before it")
     created_at: datetime
     updated_at: datetime
 

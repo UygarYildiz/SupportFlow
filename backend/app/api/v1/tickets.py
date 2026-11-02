@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query, status
 
 from app.api.deps import DbSession, StaffUser
 from app.db.models import Ticket
-from app.domain.enums import TicketPriority, TicketStatus
+from app.domain.enums import TicketCategory, TicketPriority, TicketStatus
 from app.schemas.commerce import CustomerSummary, OrderOut
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.tickets import TicketCreate, TicketDetail, TicketEventOut, TicketOut, TicketUpdate
@@ -31,10 +31,13 @@ def list_tickets(
     status_filter: Annotated[TicketStatus | None, Query(alias="status")] = None,
     priority: TicketPriority | None = None,
     customer_id: str | None = None,
+    category: TicketCategory | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> Page[TicketOut]:
-    filters = TicketFilters(status=status_filter, priority=priority, customer_id=customer_id)
+    filters = TicketFilters(
+        status=status_filter, priority=priority, customer_id=customer_id, category=category
+    )
     tickets, total = TicketService(session).list(filters, limit=limit, offset=offset)
     return Page(
         items=[TicketOut.model_validate(ticket) for ticket in tickets],

@@ -54,3 +54,13 @@ def test_new_tickets_after_seeding_do_not_collide_with_seeded_ids(db_session: Se
     db_session.add(ticket)
     db_session.flush()
     assert ticket.id > TOTAL_TICKETS
+
+
+def test_scenario_orders_contain_the_products_their_tickets_mention(db_session: Session) -> None:
+    seed_demo_data(db_session, NOW, "demo-pass")
+    expected = {"ORD-1001": "Headphones", "ORD-1002": "Kettle", "ORD-1005": "Yoga Mat",
+                "ORD-1006": "Speaker", "ORD-1007": "Pan", "ORD-1009": "Mug Set"}  # fmt: skip
+    for order_id, product in expected.items():
+        order = db_session.get(Order, order_id)
+        assert order is not None
+        assert any(product in item["name"] for item in order.items), order_id

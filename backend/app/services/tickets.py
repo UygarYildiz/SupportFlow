@@ -5,7 +5,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import Customer, Order, Ticket, TicketEvent, User
-from app.domain.enums import ActorType, TicketEventType, TicketPriority, TicketStatus
+from app.domain.enums import (
+    ActorType,
+    TicketCategory,
+    TicketEventType,
+    TicketPriority,
+    TicketStatus,
+)
 from app.domain.errors import BusinessRuleViolationError, NotFoundError
 from app.domain.ticket_status import ensure_manual_transition
 
@@ -15,6 +21,7 @@ class TicketFilters:
     status: TicketStatus | None = None
     priority: TicketPriority | None = None
     customer_id: str | None = None
+    category: TicketCategory | None = None
 
 
 class TicketService:
@@ -29,6 +36,8 @@ class TicketService:
             conditions.append(Ticket.priority == filters.priority)
         if filters.customer_id is not None:
             conditions.append(Ticket.customer_id == filters.customer_id)
+        if filters.category is not None:
+            conditions.append(Ticket.category == filters.category)
 
         total = self.session.scalar(select(func.count(Ticket.id)).where(*conditions)) or 0
         stmt = (

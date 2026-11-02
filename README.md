@@ -1,6 +1,6 @@
 # SupportFlow AI
 
-> Production-oriented portfolio demo. Status: **Phase 2, support domain without AI**
+> Production-oriented portfolio demo. Status: **Phase 3, first AI analysis pipeline**
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
@@ -63,6 +63,17 @@ Open http://localhost:5173. The status page shows whether the API and the databa
 In `/docs`, call `POST /api/v1/auth/login`, then use **Authorize** with the returned token.
 
 > Authentication here is a demo mechanism (seeded users, short-lived JWTs). A production deployment would delegate login to an external identity provider (OIDC/SSO).
+
+### AI analysis
+
+`POST /api/v1/tickets/{id}/analyze` queues an analysis and returns `202` with a run ID; poll `GET /api/v1/runs/{run_id}` for the result (category, summary, draft reply, verified evidence, warnings).
+
+| `LLM_MODE` | Behavior |
+|---|---|
+| `fake` (default) | Deterministic keyword-based stand-in. Free and offline; used by tests, CI and the public demo. |
+| `live` | Calls the Gemini API (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`). Requires `GEMINI_API_KEY` from Google AI Studio in `.env`. |
+
+The model only suggests. The backend validates its output, discards order IDs it could not verify, and never changes orders based on it.
 
 Postgres is published on host port **5433** so it doesn't collide with a locally installed Postgres. Change `POSTGRES_HOST_PORT` and the URLs in `.env` if needed.
 
