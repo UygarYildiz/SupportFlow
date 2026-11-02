@@ -13,17 +13,20 @@ from app.api.v1 import api_router
 from app.core.config import get_settings
 from app.db.session import session_scope
 from app.services.analysis_runs import AnalysisRunService
+from app.services.proposals import ProposalService
 
 logger = logging.getLogger(__name__)
 
 
-def _recover_interrupted_runs() -> None:
+def _recover_interrupted_work() -> None:
+    """Single-process assumption (ADR-005): nothing else is running work right now."""
     try:
         with session_scope() as session:
             AnalysisRunService(session).recover_interrupted()
+            ProposalService(session, ttl_hours=get_settings().proposal_ttl_hours).recover()
     except SQLAlchemyError:
         # Don't block startup: /ready reports the database problem.
-        logger.exception("Could not recover interrupted analysis runs")
+        logger.exception("Could not recover interrupted work")
 
 
 def create_app(*, recover_interrupted_runs: bool = True) -> FastAPI:
@@ -34,7 +37,7 @@ def create_app(*, recover_interrupted_runs: bool = True) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if recover_interrupted_runs:
-            _recover_interrupted_runs()
+            _recover_interrupted_work()
         yield
 
     app = FastAPI(

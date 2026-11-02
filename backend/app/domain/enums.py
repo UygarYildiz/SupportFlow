@@ -65,6 +65,37 @@ class TicketEventType(StrEnum):
     ANALYSIS_REQUESTED = "analysis_requested"
     ANALYSIS_COMPLETED = "analysis_completed"
     ANALYSIS_FAILED = "analysis_failed"
+    PROPOSAL_CREATED = "proposal_created"
+    PROPOSAL_APPROVED = "proposal_approved"
+    PROPOSAL_REJECTED = "proposal_rejected"
+    PROPOSAL_EXPIRED = "proposal_expired"
+    ACTION_EXECUTED = "action_executed"
+    ACTION_FAILED = "action_failed"
+
+
+class ProposalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    EXECUTING = "executing"
+    EXECUTED = "executed"
+    REJECTED = "rejected"
+    FAILED = "failed"
+    EXPIRED = "expired"
+
+
+OPEN_PROPOSAL_STATUSES = frozenset(
+    {ProposalStatus.PENDING, ProposalStatus.APPROVED, ProposalStatus.EXECUTING}
+)
+
+
+class Decision(StrEnum):
+    APPROVE = "approve"
+    REJECT = "reject"
+
+
+class ExecutionOutcome(StrEnum):
+    SUCCEEDED = "succeeded"
+    REJECTED_BY_PRECHECK = "rejected_by_precheck"
 
 
 class AgentRunStatus(StrEnum):

@@ -49,7 +49,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [x] Faz 2 — Deterministik destek sistemi + demo auth (AI olmadan)
 - [x] Faz 3 — İlk AI işleme hattı (arka plan run'ları)
 - [x] Faz 4 — LangGraph agent akışı
-- [ ] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
+- [x] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
 - [ ] Faz 6 — React operasyon paneli (**gösterilebilir MVP**)
 - [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**)
 
@@ -555,7 +555,7 @@ flowchart TD
 - [x] S1: `load → classify → fetch order → draft` geçiyor. (2026-11-02 canlı test: 10 senaryo ticket'ının 10'u başarılı, ticket başına 2 Gemini çağrısı, ~2–3 sn.)
 - [x] S4: olmayan siparişte uydurma yok; `needs_info`.
 - [x] Servis hatası sonrası run `failed`; veriler tutarlı kalıyor.
-- [ ] İkinci run aynı ticket için duplicate `pending` proposal üretmiyor. → Faz 5 (proposal kalıcılığı ile birlikte).
+- [x] İkinci run aynı ticket için duplicate `pending` proposal üretmiyor. (Faz 5'te: run başına tek proposal, ticket başına tek açık proposal; yeni analiz eskisini geçersiz kılıyor.)
 - [x] LLM başka bir müşterinin sipariş ID'sini araca verirse → `not_found`, veri sızmıyor.
 
 **Çıkış kriterleri**
@@ -589,41 +589,41 @@ flowchart TD
 
 ### Görevler
 
-- [ ] Graph sonucundaki `proposed_action`'ı `ActionProposal` olarak kaydet; aynı run/ticket için duplicate `pending` proposal oluşmasın (unique kısıt). (Faz 4'ten taşındı.)
-- [ ] `ActionProposal` veri modeli ve state: `pending`, `approved`, `rejected`, `executing`, `executed`, `failed`, `expired`; `version` alanı (optimistic locking) ve `payload_hash`.
-- [ ] Kritik eylemler için **sunucu taraflı** onay şartı: UI'dan gizlemek yeterli değil.
-- [ ] `ActionExecutor` domain/services katmanında; LangGraph'a bağımlı değil. Agent bu sınıfa erişemez.
-- [ ] `POST /api/v1/proposals/{id}/decision` endpoint'i: karar = approve/reject, gerekçe, `expected_proposal_version`. Approve → aynı istek içinde executor çalışır (mock işlem hızlıdır); sonuç response'ta döner.
-- [ ] Onay veren kişi kimlik doğrulamadan geçmeli; eylem türüne göre rol kuralı (§1.5) kontrol edilmeli.
-- [ ] Onaydan sonra **güncel sipariş durumu tekrar kontrol edilmeli** (TOCTOU).
-- [ ] Proposal payload'u onaydan sonra değiştirilememeli; değiştirilirse yeniden onay gerekir.
-- [ ] Eylem için `idempotency_key` + DB unique constraint + transaction kullan.
-- [ ] Dış servis timeout/yanıt kaybı: `unknown` sonucu için güvenli uzlaştırma yolu tasarla; kör retry yapma.
-- [ ] `audit_logs`: kim, hangi siparişe, hangi gerekçeyle neyi önerdi/onayladı/uyguladı?
-- [ ] Onay süresi dolduğunda eylemi otomatik çalıştırma; `expired`.
-- [ ] Çift tıklama, eşzamanlı onay ve eski kararlar için 409/uygun idempotent response.
+- [x] Graph sonucundaki `proposed_action`'ı `ActionProposal` olarak kaydet; aynı run/ticket için duplicate `pending` proposal oluşmasın (unique kısıt). (Faz 4'ten taşındı.)
+- [x] `ActionProposal` veri modeli ve state: `pending`, `approved`, `rejected`, `executing`, `executed`, `failed`, `expired`; `version` alanı (optimistic locking) ve `payload_hash`.
+- [x] Kritik eylemler için **sunucu taraflı** onay şartı: UI'dan gizlemek yeterli değil.
+- [x] `ActionExecutor` domain/services katmanında; LangGraph'a bağımlı değil. Agent bu sınıfa erişemez.
+- [x] `POST /api/v1/proposals/{id}/decision` endpoint'i: karar = approve/reject, gerekçe, `expected_proposal_version`. Approve → aynı istek içinde executor çalışır (mock işlem hızlıdır); sonuç response'ta döner.
+- [x] Onay veren kişi kimlik doğrulamadan geçmeli; eylem türüne göre rol kuralı (§1.5) kontrol edilmeli.
+- [x] Onaydan sonra **güncel sipariş durumu tekrar kontrol edilmeli** (TOCTOU).
+- [x] Proposal payload'u onaydan sonra değiştirilememeli; değiştirilirse yeniden onay gerekir.
+- [x] Eylem için `idempotency_key` + DB unique constraint + transaction kullan.
+- [x] Dış servis timeout/yanıt kaybı: `unknown` sonucu için güvenli uzlaştırma yolu tasarla; kör retry yapma. (Mock için: iki aşamalı commit + idempotency key + açılışta uzlaştırma. Gerçek dış sistemde `unknown` sonucu gerekeceği ADR-012 ve SECURITY.md'de not edildi.)
+- [x] `audit_logs`: kim, hangi siparişe, hangi gerekçeyle neyi önerdi/onayladı/uyguladı?
+- [x] Onay süresi dolduğunda eylemi otomatik çalıştırma; `expired`.
+- [x] Çift tıklama, eşzamanlı onay ve eski kararlar için 409/uygun idempotent response.
 
 ### Testler — zorunlu
 
-- [ ] **Onaysız aksiyon gerçekleşmiyor.**
-- [ ] `reject` işlem yapılmadan sonlandırıyor.
-- [ ] Başka role sahip kullanıcı onay veremiyor (403).
-- [ ] Aynı isteğe iki onay -> tek external action.
-- [ ] Onay sonrası sipariş kargoya çıktıysa adres değişmiyor.
-- [ ] Executor başarısızsa tutarlı hata ve audit log oluşuyor.
-- [ ] Bekleyen proposal backend restart sonrası hâlâ onay kuyruğunda ve onaylanabiliyor.
-- [ ] Eski `expected_proposal_version` ile karar → 409.
-- [ ] Agent kodu (`app/agent/`) `ActionExecutor`'ı import etmiyor (basit bir import-sınırı testi).
+- [x] **Onaysız aksiyon gerçekleşmiyor.**
+- [x] `reject` işlem yapılmadan sonlandırıyor.
+- [x] Başka role sahip kullanıcı onay veremiyor (403).
+- [x] Aynı isteğe iki onay -> tek external action.
+- [x] Onay sonrası sipariş kargoya çıktıysa adres değişmiyor.
+- [x] Executor başarısızsa tutarlı hata ve audit log oluşuyor.
+- [x] Bekleyen proposal backend restart sonrası hâlâ onay kuyruğunda ve onaylanabiliyor.
+- [x] Eski `expected_proposal_version` ile karar → 409.
+- [x] Agent kodu (`app/agent/`) `ActionExecutor`'ı import etmiyor (basit bir import-sınırı testi).
 
 ### Dokümantasyon
 
-- [ ] `docs/SECURITY.md`: tehdit listesi (prompt injection, yetkisiz onay, replay, TOCTOU, veri sızıntısı) ve her birine karşı önlem + ilgili test adı.
+- [x] `docs/SECURITY.md`: tehdit listesi (prompt injection, yetkisiz onay, replay, TOCTOU, veri sızıntısı) ve her birine karşı önlem + ilgili test adı.
 
 **Çıkış kriterleri (İLK GERÇEK MVP)**
 
-- [ ] Talep API'den geliyor → AI veri topluyor → öneri kaydediliyor → yetkili çalışan onaylıyor → tek bir mock değişiklik gerçekleşiyor → ticket ve audit güncelleniyor.
-- [ ] Testlerin tümü bu akışı doğruluyor.
-- [ ] Backend yeniden başlatıldıktan sonra bekleyen onay kaybolmuyor.
+- [x] (`test_mvp_flow.py` + 2026-11-02 canlı test: Gemini öneri üretti, Docker'daki API üzerinden onaylandı; agent_user iade onayında 403, çift tıklamada 409.) Talep API'den geliyor → AI veri topluyor → öneri kaydediliyor → yetkili çalışan onaylıyor → tek bir mock değişiklik gerçekleşiyor → ticket ve audit güncelleniyor.
+- [x] Testlerin tümü bu akışı doğruluyor.
+- [x] Backend yeniden başlatıldıktan sonra bekleyen onay kaybolmuyor.
 
 **Commit:** `feat: enforce human approvals and idempotent actions`
 

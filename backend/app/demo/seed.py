@@ -189,8 +189,14 @@ def seed_demo_data(session: Session, reference_time: datetime, demo_password: st
 
 
 def reset_demo_data(session: Session) -> None:
+    """Wipe all demo data, audit trail included (TRUNCATE is a deliberate admin operation;
+    the append-only trigger blocks row-level UPDATE/DELETE only)."""
     session.execute(
-        text("TRUNCATE ticket_events, tickets, orders, customers, users RESTART IDENTITY CASCADE")
+        text(
+            "TRUNCATE audit_logs, refund_requests, action_executions, action_proposals, "
+            "agent_run_steps, agent_runs, ticket_events, tickets, orders, customers, users "
+            "RESTART IDENTITY CASCADE"
+        )
     )
     session.commit()
 

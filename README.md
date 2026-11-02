@@ -1,6 +1,6 @@
 # SupportFlow AI
 
-> Production-oriented portfolio demo. Status: **Phase 4, LangGraph agent workflow**
+> Production-oriented portfolio demo. Status: **Phase 5, human approval and safe execution (MVP core)**
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
@@ -13,6 +13,7 @@ The demo runs against **NovaShop**, a fictional online store with synthetic data
 - [Requirements](docs/REQUIREMENTS.md): problem, roles, access model, scenarios, scope
 - [Architecture](docs/ARCHITECTURE.md): components, layers, key flows
 - [Decisions](docs/DECISIONS.md): architecture decision records
+- [Security](docs/SECURITY.md): threats, controls and the tests that prove them
 
 ## Tech stack
 
@@ -84,6 +85,10 @@ flowchart LR
     H --> I --> J[validate]
 ```
  The model only classifies and writes; deterministic code decides which order is in scope, which policy applies and whether an action (address change, refund request) may be proposed. Proposals always wait for human approval.
+
+### Approvals
+
+Suggested actions wait in the approval queue (`GET /api/v1/proposals?status=pending`). `POST /api/v1/proposals/{id}/decision` with `{"decision": "approve" | "reject", "expected_version": n}` decides. Approval executes the action once: the order is re-checked first (it may have shipped since), repeated or concurrent decisions get `409`, and refund requests need an `admin`. Every step is in the ticket history and the admin-only audit log (`GET /api/v1/audit`).
 
 Postgres is published on host port **5433** so it doesn't collide with a locally installed Postgres. Change `POSTGRES_HOST_PORT` and the URLs in `.env` if needed.
 

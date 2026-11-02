@@ -23,6 +23,7 @@ from app.domain.enums import (
 )
 from app.domain.errors import ConflictError, InvalidStateTransitionError, NotFoundError
 from app.domain.ticket_status import ensure_system_transition
+from app.services.proposals import ProposalDraft, ProposalService
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,9 @@ INTERRUPTED = "interrupted"
 
 
 class AnalysisRunService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, proposal_ttl_hours: int = 48) -> None:
         self.session = session
+        self.proposal_ttl_hours = proposal_ttl_hours
 
     def enqueue(self, ticket_id: int, actor: User) -> AgentRun:
         """Create a queued run and move the ticket to `triaging`, atomically."""
@@ -83,7 +85,9 @@ class AnalysisRunService:
         input_tokens: int | None,
         output_tokens: int | None,
         latency_ms: int,
+        proposal: ProposalDraft | None = None,
     ) -> AgentRun:
+        """Finish a run; a suggested action becomes a pending proposal in the same transaction."""
         run, ticket = self._lock_running(run_id)
         run.status = AgentRunStatus.SUCCEEDED
         run.result = result
@@ -98,6 +102,10 @@ class AnalysisRunService:
         self._event(ticket, TicketEventType.ANALYSIS_COMPLETED, ActorType.SYSTEM, None,
                     {"run_id": run.id, "category": category.value})  # fmt: skip
         self._move_ticket(ticket, outcome, run.id)
+        if proposal is not None:
+            ProposalService(self.session, ttl_hours=self.proposal_ttl_hours).create_from_run(
+                run, ticket, proposal
+            )
         self.session.commit()
         return run
 

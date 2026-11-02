@@ -24,6 +24,7 @@ def get_analysis_executor() -> AnalysisExecutor:
         build_llm_client(settings),
         max_tokens_per_run=settings.agent_max_tokens_per_run,
         run_timeout_seconds=settings.agent_run_timeout_seconds,
+        proposal_ttl_hours=settings.proposal_ttl_hours,
     )
 
 

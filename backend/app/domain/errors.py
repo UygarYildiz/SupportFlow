@@ -26,3 +26,7 @@ class InvalidStateTransitionError(ConflictError):
 
 class BusinessRuleViolationError(DomainError):
     """The request is well-formed but conflicts with a business rule."""
+
+
+class ForbiddenError(DomainError):
+    """The actor is authenticated but not allowed to do this."""

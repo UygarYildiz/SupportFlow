@@ -98,28 +98,32 @@ Tools (allowlist, read-only, bound to the ticket's customer): `get_order`, `get_
 
 Supporting modules: `prompts.py` (two prompts; customer text inside delimiter tags it cannot close), `llm/` (provider adapters, fake client, retry), `tools.py`, `executor.py` (runs a queued run; records steps in `agent_run_steps`; a started run always ends `succeeded` or `failed`). Run state transitions live in `services/analysis_runs.py`, which knows nothing about LLMs.
 
-The proposed action is part of the stored result. Persisting it as an `ActionProposal` and the approval flow are Phase 5.
+The proposed action is stored on the run result and, in the same transaction, as a pending `ActionProposal` (Phase 5).
 
-### 3.3 Approval and execution
+### 3.3 Approval and execution (ADR-012)
 
 ```mermaid
 sequenceDiagram
     participant UI
     participant API
-    participant Exec as ActionExecutor
+    participant Svc as ProposalService
+    participant Orders as MockOrderSystem
     participant DB
-    UI->>API: POST /proposals/{id}/decision (approve, expected_proposal_version)
-    API->>API: authenticate, check approver role for action type
-    API->>Exec: execute(proposal_id, actor)
-    Exec->>DB: lock proposal, verify status=pending and version
-    Exec->>DB: re-check current order state (TOCTOU)
-    Exec->>DB: apply mock change + action_execution (unique idempotency_key) + audit, one transaction
-    Exec-->>API: executed / rejected with reason
-    API-->>UI: result (repeat request -> same result or 409, never a second effect)
+    UI->>API: POST /proposals/{id}/decision (approve, expected_version)
+    API->>Svc: decide(...)
+    Svc->>DB: lock proposal; check role, version, status, expiry, payload hash
+    Svc->>DB: approved -> executing + ticket event + audit (commit)
+    Svc->>Orders: apply(idempotency_key = proposal-{id})
+    Orders->>DB: key seen? return first result
+    Orders->>DB: lock order, re-check policy (TOCTOU), apply change + action_executions row
+    Svc->>DB: executed / failed + ticket event + audit (commit)
+    API-->>UI: proposal (a repeat request gets 409, never a second effect)
 ```
 
-- Pending approvals live in `action_proposals`, so they survive restarts. No graph state is involved after the run ends.
-- Expired proposals are never executed.
+- Proposals are created by the run-completion transaction (one per run, one open per ticket); a newer analysis supersedes older pending ones.
+- Approver roles: address changes by any staff role, refund requests by `admin` only (`app/domain/proposals.py`).
+- Startup recovery expires overdue proposals and finishes executions interrupted between the two steps.
+- `refund_requests` is a mock finance record; no money moves.
 
 ## 4. Status machines
 
@@ -136,7 +140,7 @@ sequenceDiagram
 
 Staff cannot fake an AI triage step, and the pipeline cannot resolve a ticket on its own. Invalid transitions return 409. Every change is appended to `ticket_events`.
 
-**Action proposal:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`.
+**Action proposal:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`. Every transition increments `version`.
 
 **Agent run:** `queued → running → succeeded | failed`.
 

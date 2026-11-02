@@ -1,13 +1,14 @@
 """Minimal builders for test data. Each test creates only what it needs."""
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
-from app.db.models import Customer, Order, Ticket, User
-from app.domain.enums import OrderStatus, TicketPriority, TicketStatus, UserRole
+from app.db.models import ActionProposal, Customer, Order, Ticket, User
+from app.domain.enums import ActionType, OrderStatus, TicketPriority, TicketStatus, UserRole
 
 TEST_PASSWORD = "correct-horse-battery"
 # Hashing is deliberately slow (Argon2); compute once for all test users.
@@ -84,3 +85,35 @@ def make_ticket(
     session.add(ticket)
     session.flush()
     return ticket
+
+
+def make_proposal(
+    session: Session,
+    ticket: Ticket,
+    order: Order,
+    *,
+    action_type: ActionType | None = None,
+    payload: dict | None = None,
+    policy_rule: str = "address_change_v1",
+    clock: Callable[[], datetime] | None = None,
+    ttl_hours: int = 48,
+) -> ActionProposal:
+    """A pending proposal as an analysis run would create it."""
+    from app.db.models import AgentRun
+    from app.domain.enums import AgentRunStatus
+    from app.services.proposals import ProposalDraft, ProposalService
+
+    run = AgentRun(ticket_id=ticket.id, status=AgentRunStatus.SUCCEEDED)
+    session.add(run)
+    session.flush()
+    draft = ProposalDraft(
+        action_type=action_type or ActionType.CHANGE_SHIPPING_ADDRESS,
+        order_id=order.id,
+        payload=payload or {"current_address": order.shipping_address, "new_address": "9 New Rd"},
+        reason="Order has not shipped yet.",
+        policy_rule=policy_rule,
+    )
+    service = ProposalService(session, ttl_hours=ttl_hours, **({"clock": clock} if clock else {}))
+    proposal = service.create_from_run(run, ticket, draft)
+    session.flush()
+    return proposal

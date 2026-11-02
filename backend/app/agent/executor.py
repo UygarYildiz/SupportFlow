@@ -22,10 +22,11 @@ from app.agent.graph import (
     mentioned_order_ids,
 )
 from app.agent.llm.base import LLMClient
-from app.agent.schemas import TicketSnapshot
+from app.agent.schemas import ProposedAction, TicketSnapshot
 from app.agent.tools import DatabaseTools
 from app.db.models import AgentRunStep, Customer, Ticket
 from app.services.analysis_runs import AnalysisRunService
+from app.services.proposals import ProposalDraft
 
 logger = logging.getLogger(__name__)
 
@@ -69,16 +70,18 @@ class AnalysisExecutor:
         *,
         max_tokens_per_run: int = 12_000,
         run_timeout_seconds: float = 120.0,
+        proposal_ttl_hours: int = 48,
     ) -> None:
         self.session_scope = session_scope
         self.llm = llm
         self.clock = clock
         self.max_tokens_per_run = max_tokens_per_run
         self.run_timeout_seconds = run_timeout_seconds
+        self.proposal_ttl_hours = proposal_ttl_hours
 
     def execute(self, run_id: int) -> None:
         with self.session_scope() as session:
-            runs = AnalysisRunService(session)
+            runs = AnalysisRunService(session, proposal_ttl_hours=self.proposal_ttl_hours)
             run = runs.start(run_id)
             if run is None:
                 logger.info("Run %s is no longer queued; skipping", run_id)
@@ -112,6 +115,7 @@ class AnalysisExecutor:
                 input_tokens=metrics.input_tokens,
                 output_tokens=metrics.output_tokens,
                 latency_ms=metrics.latency_ms,
+                proposal=_draft(result.proposed_action),
             )
             logger.info(
                 "Analysis run %s succeeded: ticket=%s outcome=%s action=%s",
@@ -146,3 +150,16 @@ class AnalysisExecutor:
             budget=TokenBudget(self.max_tokens_per_run),
             deadline=time.monotonic() + self.run_timeout_seconds,
         )
+
+
+def _draft(action: ProposedAction | None) -> ProposalDraft | None:
+    """Hand the verified suggestion to the service layer, which never imports agent types."""
+    if action is None:
+        return None
+    return ProposalDraft(
+        action_type=action.type,
+        order_id=action.order_id,
+        payload=action.payload,
+        reason=action.reason,
+        policy_rule=action.policy_rule,
+    )

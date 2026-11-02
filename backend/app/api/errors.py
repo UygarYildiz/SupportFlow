@@ -7,12 +7,14 @@ from app.domain.errors import (
     BusinessRuleViolationError,
     ConflictError,
     DomainError,
+    ForbiddenError,
     NotFoundError,
 )
 
 _STATUS_BY_ERROR: list[tuple[type[DomainError], int]] = [
     (NotFoundError, status.HTTP_404_NOT_FOUND),
     (ConflictError, status.HTTP_409_CONFLICT),
+    (ForbiddenError, status.HTTP_403_FORBIDDEN),
     (BusinessRuleViolationError, status.HTTP_422_UNPROCESSABLE_CONTENT),
 ]
 

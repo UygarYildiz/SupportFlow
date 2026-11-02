@@ -83,3 +83,15 @@ Tools are an explicit allowlist (`get_order`, `get_customer_orders`, `get_custom
 
 **Reason:** A model call can be wrong, fooled or unavailable. Keeping it to classification and wording makes every consequential decision testable without a model, explainable in the UI and identical across providers. Two focused calls are cheaper and easier to validate than one large prompt or free tool use.
 **Alternatives:** One prompt doing everything (Phase 3; harder to control and explain); a ReAct-style agent choosing its own tools (more flexible, but authorization and determinism become harder to guarantee; reconsider for V2 read-only research tasks).
+
+## ADR-012: Two-step approval with an idempotent executor
+
+**Decision:** An analysis that suggests an action stores a `pending` `ActionProposal` in the same transaction that completes the run. `POST /proposals/{id}/decision` then works in two committed steps:
+1. **Decision:** lock the proposal, check the approver's role, `expected_version`, status, expiry and payload fingerprint; record the decision (`approved`) and move to `executing`.
+2. **Execution:** the order system (mock) applies the action under idempotency key `proposal-{id}`. It locks the order and re-checks the policy first (TOCTOU), then writes the change and one `action_executions` row. The proposal ends `executed` or `failed`.
+
+If the process dies between the steps, startup recovery re-runs step 2; the idempotency key makes that safe. Pending proposals expire after 48 hours and never execute; a new analysis supersedes older pending proposals (one open proposal per ticket, enforced by a partial unique index). Every transition writes a ticket event and an audit entry (append-only via database trigger, PII redacted).
+
+**Reason:** Recording the decision before acting gives a durable trail even if execution fails, and separates "a human said yes" from "the system did it". Version checks and idempotency keys make double clicks, concurrent reviewers and retries harmless. Re-checking at execution time protects against the world changing after the proposal.
+**Alternatives:** A single transaction for decision and execution (simpler, but no record of approvals whose execution failed, and it does not carry over to real external systems); LangGraph `interrupt()` resuming the graph (ADR-006).
+**Revisit when:** A real external system is integrated: add an `unknown` outcome and reconcile through its idempotency API instead of assuming a rollback means "nothing happened".

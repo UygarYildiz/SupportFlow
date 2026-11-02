@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–4 are done: demo JWT auth, customers/orders/tickets with a state machine and NovaShop policy rules, an idempotent demo seed, and a LangGraph analysis graph (`app/agent/graph.py`, ADR-011) running as background `agent_runs` with per-node `agent_run_steps`. Two model calls (classify, draft); policy checks and action proposals are deterministic. Gemini via `LLM_MODE=live`, deterministic `FakeLLMClient` by default. Phase 5 (persisted proposals, human approval, idempotent executor) is next. `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
+Phases 0–5 are done (MVP backend): demo JWT auth, tickets/orders with state machines and NovaShop policies, a LangGraph analysis graph (ADR-011) producing pending `ActionProposal`s, and a two-step approval flow with an idempotent mock executor, TOCTOU re-check, expiry, append-only audit log (ADR-012, `docs/SECURITY.md`). Next: agree on screen wireframes with the owner, then Phase 6 (React dashboard). `ROADMAP.md` (Turkish) is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` (English) define scope, module boundaries and ADRs.
 
 SupportFlow AI is a portfolio project: a customer-support operations platform for a fictional e-commerce company (**NovaShop**). It classifies incoming tickets, looks up mock order/CRM data and company policies, drafts replies and action proposals, and routes any state-changing action through human approval. Use only synthetic data, never real customer data.
 
@@ -17,7 +17,7 @@ SupportFlow AI is a portfolio project: a customer-support operations platform fo
 - **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
 - Record architectural choices as short ADRs in `docs/DECISIONS.md`.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
-- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-011). Don't contradict them without writing a new ADR.
+- Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-012). Threats and the tests that prove each control are in `docs/SECURITY.md`; keep it in sync when adding controls. Don't contradict them without writing a new ADR.
 - Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
 
 ## Stack
@@ -82,12 +82,15 @@ Code conventions (backend):
 - Keep decisions out of the model: order scope (`_focus_order`), policy (`check_policy`), action proposals (`plan_action`) and evidence (`assemble_result`) are pure code with unit tests. New graph nodes return `(state_update, step_summary)`; the summary goes to `agent_run_steps`, so keep it small and free of customer text.
 - Agent tools must go through the allowlist in `app/agent/tools.py` and stay read-only and customer-scoped. Adding a tool means adding it to `ALLOWED_TOOLS`, `DatabaseTools` and `tests.fakes.InMemoryTools`.
 - Default model `gemini-3.5-flash-lite` (free-tier quota; `gemini-3.8-flash` hit 429 quickly, 2.5 models are 404 for new users). When calling the live API from scripts, space requests out (a few seconds apart) to stay within free-tier limits.
+- State changes to orders happen only in `app/integrations/mock_orders.py`, called only from `ProposalService._execute` after an approval. Never add another write path, and never let `app/agent/` import `app.integrations`, `ProposalService` or the executor (a test enforces this).
+- Every proposal transition goes through `ProposalService._move` (status check + `version += 1`) and writes a ticket event and an audit entry in the same transaction. Audit `details` pass through `redact()`; `audit_logs` is append-only at the database level.
 - Policy rules take the current time as a parameter (`PolicyService(clock=...)`). Don't call `datetime.now()` inside domain code.
 
 Testing conventions:
 - `app.main.create_app()` is the factory; tests override dependencies via `app.dependency_overrides`.
 - `tests/unit/` is pure (no DB). `tests/integration/` uses the `db_session` fixture: one transaction per test, rolled back at the end (service `commit()`s become savepoints). The session start migrates the test DB from base to head. Tests using the DB are auto-marked `db`.
 - Analysis tests: the `app` fixture runs background tasks synchronously against the test session and uses `llm_slot.client` (default `FakeLLMClient`). Swap it with `tests.fakes.ScriptedLLMClient(intent_output(...), draft_output(...))`; each analysis makes two calls in that order (unless it fails earlier). Graph unit tests use `InMemoryTools` and `ListRecorder` (no DB). Tests never call Gemini.
+- `make_proposal(session, ticket, order, ...)` creates a pending proposal as an analysis would. In tests that edit data and then hit an endpoint that may `rollback()` (409 paths), `db_session.commit()` the edit first; otherwise the rollback reverts it with the request's savepoint.
 - Build data with `tests/factories.py` (`make_user`, `make_customer`, `make_order`, `make_ticket`). Authenticate with the `admin`/`agent` fixtures plus `auth_headers(user)`.
 - DB tests point at `TEST_DATABASE_URL`. Never point tests at the dev database.
 - New ORM model modules must be imported in `alembic/env.py` for autogenerate to see them. `tests/test_migrations.py` checks that upgrade/downgrade round-trips.

@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # Per-run limits of the analysis graph (Phase 4).
     agent_max_tokens_per_run: int = 12_000
     agent_run_timeout_seconds: float = 120.0
+    # Pending action proposals expire if nobody decides in time; they never auto-execute.
+    proposal_ttl_hours: int = 48
 
     @model_validator(mode="after")
     def _require_real_secret_in_production(self) -> "Settings":
