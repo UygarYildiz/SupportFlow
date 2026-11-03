@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The owner's first design review is done (role-aware overview, see the review log in `docs/DESIGN.md`), and scenario evals exist (`evals/scenarios.jsonl`, `uv run poe eval`). Phase 11-A is in progress: CI and README are done; next are `docs/DEMO_SCRIPT.md`, the demo video (recorded by the owner), PR template / branch protection, then release v0.1.0. A Turkish localization pass (docs, UI, demo data, fake model) is in progress before continuing 11-A. `ROADMAP.md` is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` define scope, module boundaries and ADRs.
+Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, approvals with an idempotent executor, audit) and a React dashboard (`frontend/`, design in `docs/DESIGN.md`). The owner's first design review is done (role-aware overview, see the review log in `docs/DESIGN.md`), and scenario evals exist (`evals/scenarios.jsonl`, `uv run poe eval`). Phase 11-A is in progress: CI and README are done; the Turkish localization and the documentation system (docs map, API/development/operations guides, glossary, CHANGELOG, CONTRIBUTING, PR template, `poe docs` drift check) are done. Next are Turkish screenshots, `docs/DEMO_SCRIPT.md`, the demo video (recorded by the owner), branch protection, then release v0.1.0. `ROADMAP.md` is the plan and phase tracker; `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` define scope, module boundaries and ADRs.
 
 ## How work is organized
 
@@ -13,7 +13,8 @@ Phases 0–6 are done (MVP): backend (auth, tickets/orders, LangGraph analysis, 
 - **Language: Turkish-first for everything a reader or user sees.** The project is open source and presented to Turkish employers. In Turkish: `README.md`, `docs/`, UI copy, API error messages and policy reasons, NovaShop demo data (customers, ticket messages), model-written drafts/summaries, eval scenario texts, release notes and PR descriptions. In English: code identifiers, code comments, commit messages, enum values, log keys, and the `CLAUDE.md` files (they are instructions for Claude). Converse with the user in Turkish.
 - Take on one issue or one vertical slice at a time. Before coding, present a 5–10 step plan and the files that will change.
 - **Keep `ROADMAP.md` in sync with the work:** tick `[ ]` → `[x]` yourself as items are actually completed and verified, and add or adjust items when plans change. Don't tick anything that wasn't verified.
-- **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
+- **Keep the docs current as part of every task, not afterwards.** `docs/README.md` is the docs map: each fact has one home, and its "Ne değişince ne güncellenir" table says which documents a change touches (new endpoint → `docs/API.md`, new env var → `.env.example` + `docs/OPERATIONS.md`, new control → `docs/SECURITY.md`, new term → `docs/GLOSSARY.md`, user-visible change → `CHANGELOG.md` "Yayınlanmamış", etc.). Link instead of copying. `uv run poe docs` (also run by `poe check` via `tests/unit/test_docs.py`) fails on broken links/anchors, API drift against OpenAPI, unknown ADR numbers and unmapped docs; a new doc under `docs/` must be added to the map.
+- **End every task with a short summary report in Turkish:** what was done, changed files, actual test/command output, docs updated, roadmap items ticked, known risks or open points, how to verify manually, and the next step. The owner relies on these reports to keep the project context.
 - Each phase ends with a commit whose message is suggested in the roadmap (e.g. `feat: implement ticket and mock order domain`).
 - Architectural decisions live in `docs/DECISIONS.md` (ADR-001…ADR-013). Threats and the tests that prove each control are in `docs/SECURITY.md`; keep it in sync when adding controls. Don't contradict them without writing a new ADR.
 - Dev machine: Windows 11. uv, Node.js and git are installed; Python versions are managed by uv. Remote: `https://github.com/UygarYildiz/SupportFlow` (`main`).
@@ -61,6 +62,7 @@ uv run poe seed [--reset]            # idempotent NovaShop demo data (password: 
 uv run pytest -m "not db"            # unit tests only, no Docker needed
 uv run poe dev                       # uvicorn --reload on :8000
 uv run poe migrate                   # alembic upgrade head
+uv run poe docs                      # docs drift check (links, anchors, API.md vs OpenAPI, ADRs, docs map)
 uv run alembic revision --autogenerate -m "..."
 
 # frontend/

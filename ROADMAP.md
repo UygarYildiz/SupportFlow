@@ -886,13 +886,23 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 - [ ] Türkçe sette canlı eval: `uv run poe eval --live` (kota kullanır) ve sonucu `docs/TEST_PLAN.md`'ye yaz.
 - [ ] `docs/images/` ekran görüntülerini Türkçe arayüzle yeniden al.
 
+### Dokümantasyon sistemi (2026-11-03)
+
+Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince ne güncellenir" tablosu her görevde uygulanır.
+
+- [x] `docs/README.md`: okuyucuya göre giriş, doküman haritası, yazım kuralları, güncelleme tablosu.
+- [x] `docs/GLOSSARY.md`, `docs/DEVELOPMENT.md`, `docs/API.md` (19 uç nokta), `docs/OPERATIONS.md`.
+- [x] `CHANGELOG.md` (Keep a Changelog, "Yayınlanmamış" = v0.1.0 adayı), `CONTRIBUTING.md`, `.github/pull_request_template.md`.
+- [x] Otomatik kontrol: `uv run poe docs` (`scripts/check_docs.py`): linkler, anchor'lar, API.md ↔ OpenAPI, ADR numaraları, harita. `tests/unit/test_docs.py` ile `poe check`'te ve CI'da çalışıyor.
+- [x] `CLAUDE.md`'ye "dokümanları görevin parçası olarak güncelle" kuralı; görev raporuna "güncellenen dokümanlar" satırı.
+
 ### CI
 
 - [x] Backend: Ruff + typecheck + pytest (Faz 1'de kuruldu; frontend'i de ekle). (2026-11-03: `8a4707b` CI'da yeşil.)
 - [x] Frontend: ESLint/typecheck + build + kritik UI testleri. (oxlint + tsc + Vitest + build; `8a4707b` CI'da yeşil.)
 - [x] Docker image build doğrulaması. (`8a4707b` CI'da yeşil.)
 - [x] Secrets yalnız CI secrets olarak tutuluyor; CI'da `LLM_MODE=fake`. (CI hiç secret kullanmıyor; `LLM_MODE` varsayılanı `fake`, testler zaten fake/scripted LLM kullanıyor. Git geçmişi tarandı: `.env` ve anahtar yok.)
-- [ ] `main` branch koruması, temel PR şablonu.
+- [ ] `main` branch koruması, temel PR şablonu. (PR şablonu eklendi: `.github/pull_request_template.md`; branch koruması GitHub ayarlarından yapılacak.)
 
 ### Portföy dosyaları
 
@@ -901,7 +911,7 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 - [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.) Not: İngilizce arayüzden; Türkçe arayüzle yenilenecek (yukarıdaki Türkçeleştirme maddesi).
 - [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`).
 - [ ] `docs/DEMO_SCRIPT.md`: gösterim adımları.
-- [ ] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel.
+- [x] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel. (2026-11-03: Türkçeleştirmede baştan gözden geçirildi; `poe docs` kontrolünden geçiyor.)
 - [x] README'de gerçek üretim sistemi olduğu iddiası yerine **“production-oriented portfolio demo”** ifadesi kullan. → **Sahip kararı (2026-11-03):** "portfolio" ifadesi README'den kaldırıldı; yalnız sentetik veri notu kaldı. README üretim sistemi olduğunu iddia etmiyor (Known limitations bölümü).
 - [ ] Repo public yapılır; GitHub release `v0.1.0`.
 

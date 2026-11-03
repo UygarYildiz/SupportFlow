@@ -3,7 +3,7 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 155 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 160 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
 cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Library)
 ```
@@ -74,6 +74,13 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 | Demo verisi iki rolü de iş başında gösterir; gerçek analiz/onay akışından ve ücretli model olmadan | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
 
 Görsel kontroller 1440px ve 390px genişlikte ekran görüntüleriyle yapılır (giriş, destek uzmanı ve yönetici olarak genel bakış, talepler, her durumda talep detayı, onaylar, karardan sonraki mühür).
+
+## Dokümantasyon
+
+| Gereksinim | Doğrulayan |
+|---|---|
+| Linkler ve anchor'lar kırık değil, `API.md` uygulamanın uç noktalarıyla aynı, ADR numaraları tanımlı, her doküman haritada | `test_docs.py::test_repository_documentation_has_no_drift` (her CI çalıştırmasında; kurallar [docs/README.md](README.md#otomatik-kontroller)) |
+| Kontrol, bozuk link, eski anchor, eksik/fazla uç nokta, tanımsız ADR ve haritada olmayan dokümanı gerçekten yakalıyor | `test_docs.py` içindeki diğer testler |
 
 ## Bilinen eksikler
 

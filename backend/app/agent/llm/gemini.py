@@ -44,12 +44,12 @@ class GeminiClient:
         except errors.APIError as exc:
             raise _map_api_error(exc) from exc
         except httpx.TimeoutException as exc:
-            raise LLMTimeoutError("Gemini request timed out") from exc
+            raise LLMTimeoutError("Gemini isteği zaman aşımına uğradı") from exc
         except httpx.TransportError as exc:
-            raise LLMRetryableError("Could not reach Gemini") from exc
+            raise LLMRetryableError("Gemini'ye ulaşılamadı") from exc
 
         if not response.text:
-            raise LLMRequestError("Gemini returned no text (possibly blocked by safety filters)")
+            raise LLMRequestError("Gemini metin döndürmedi (güvenlik filtresine takılmış olabilir)")
         usage = response.usage_metadata
         return LLMResponse(
             text=response.text,
@@ -61,10 +61,10 @@ class GeminiClient:
 
 def _map_api_error(exc: errors.APIError) -> LLMError:
     if exc.code == 429:
-        return LLMRateLimitError("Gemini rate limit or quota exceeded")
+        return LLMRateLimitError("Gemini istek sınırı ya da kotası aşıldı")
     if exc.code in (408, 504):
-        return LLMTimeoutError(f"Gemini timed out ({exc.code})")
+        return LLMTimeoutError(f"Gemini zaman aşımı ({exc.code})")
     if isinstance(exc, errors.ServerError):
-        return LLMRetryableError(f"Gemini server error ({exc.code})")
+        return LLMRetryableError(f"Gemini sunucu hatası ({exc.code})")
     # Never include the provider message verbatim: it can echo request content.
-    return LLMRequestError(f"Gemini rejected the request ({exc.code})")
+    return LLMRequestError(f"Gemini isteği reddetti ({exc.code})")

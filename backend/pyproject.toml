@@ -70,5 +70,6 @@ typecheck = { cmd = "pyright", help = "Static type check" }
 test = { cmd = "pytest", help = "Run tests (extra args are passed through)" }
 migrate = { cmd = "alembic upgrade head", help = "Apply migrations" }
 seed = { cmd = "python -m scripts.seed_demo", help = "Insert demo data (add --reset to wipe first)" }
+docs = { cmd = "python -m scripts.check_docs", help = "Check docs for broken links, anchors and API drift" }
 eval = { cmd = "python -m evals", help = "Run scenario evals (fake model; --live for Gemini)" }
 check = { sequence = ["lint", "format-check", "typecheck", "test"], help = "Everything CI runs" }

@@ -71,7 +71,7 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 155 |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 160 |
 | Frontend bileşen testleri (Vitest, Testing Library) | 17 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. Canlı model: İngilizce önceki sette `gemini-3.5-flash-lite` ile 12/12 (2026-11-03); Türkçe set henüz canlı çalıştırılmadı |
 
@@ -147,25 +147,20 @@ Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 
 ## Dokümantasyon
 
+Tüm dokümanların haritası ve hangi değişiklikte hangisinin güncelleneceği: [docs/README.md](docs/README.md).
+
 - [Gereksinimler](docs/REQUIREMENTS.md): problem, roller, erişim modeli, senaryolar, kapsam
 - [Mimari](docs/ARCHITECTURE.md): bileşenler, katmanlar, temel akışlar, durum makineleri
 - [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-013
 - [Güvenlik](docs/SECURITY.md): tehditler, önlemler ve bunları kanıtlayan testler
 - [Test planı](docs/TEST_PLAN.md): senaryolar, test matrisi ve eval sonuçları
+- [API referansı](docs/API.md): uç noktalar, kimlik doğrulama, hata kodları
+- [Geliştirme kılavuzu](docs/DEVELOPMENT.md): kurulum, klasör yapısı, komutlar, sık yapılan işler
+- [Operasyon kılavuzu](docs/OPERATIONS.md): yapılandırma, prosedürler, sorun giderme
 - [Tasarım](docs/DESIGN.md): panelin görsel dili ve inceleme kaydı
+- [Sözlük](docs/GLOSSARY.md): kod terimleri ve Türkçe karşılıkları
+- [Değişiklik kaydı](CHANGELOG.md) · [Katkı kuralları](CONTRIBUTING.md)
 
 ## Geliştirme
 
-| Görev | Komut (backend: `backend/` içinde çalıştırın) |
-|---|---|
-| Tüm backend kontrolleri (CI'ın çalıştırdığı) | `uv run poe check` |
-| Testler | `uv run poe test` |
-| Tek bir test | `uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates` |
-| Docker olmadan testler (yalnızca birim) | `uv run pytest -m "not db"` |
-| Lint / format / tip kontrolü | `uv run poe lint` · `uv run poe format` · `uv run poe typecheck` |
-| Senaryo eval'leri | `uv run poe eval` (sahte model) · `uv run poe eval --live` (Gemini, kota kullanır) |
-| Yeni migration | `uv run alembic revision --autogenerate -m "describe change"` |
-| Frontend kontrolleri (`frontend/` içinde) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
-| API tiplerini yeniden üret (backend çalışırken) | `npm run gen:api` (`frontend/` içinde) |
-
-Veritabanına dokunan testler (otomatik olarak `db` ile işaretlenir), compose Postgres volume'u ilk oluşturulurken yaratılan ayrı bir `supportflow_test` veritabanını kullanır.
+Tüm kontroller tek komutla, CI'da çalıştığı gibi: `cd backend && uv run poe check` (lint, format, tip kontrolü, testler, doküman kontrolü). Frontend için `cd frontend && npm run lint && npm run typecheck && npm test`. Komutların tamamı, test yapısı ve sık yapılan işlerin tarifleri [Geliştirme kılavuzu](docs/DEVELOPMENT.md)'nda; katkı süreci [CONTRIBUTING](CONTRIBUTING.md)'te.

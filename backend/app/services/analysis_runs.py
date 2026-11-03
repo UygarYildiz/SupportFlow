@@ -140,7 +140,7 @@ class AnalysisRunService:
             self.fail(
                 run_id,
                 code=INTERRUPTED,
-                message="The service restarted before the analysis finished.",
+                message="Analiz bitmeden servis yeniden başladı.",
             )
         if run_ids:
             logger.warning("Marked %d interrupted analysis run(s) as failed", len(run_ids))
