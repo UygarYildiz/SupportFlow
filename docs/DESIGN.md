@@ -87,6 +87,6 @@ Bir önerinin hangi listeye düşeceği tarayıcıdaki bir rol kontrolünden de�
 - "Destek uzmanı ile yönetici arasında görünür bir fark yok": kural vardı (iadeler yönetici ister) ama demo verisinde bekleyen iade yoktu ve yöneticiye özel verinin bir ekranı yoktu. Yukarıdaki genel bakış sayfası, iade önerilerindeki "Yalnızca yönetici" işareti, selamlamanın altındaki rol satırı ve bekleyen iadeleri olan seed demo hareketleriyle düzeltildi.
 - Yeni: girişten sonra ana sayfa genel bakış sayfasıdır.
 
-**Türkçeleştirme (2026-11-03).** Proje Türk işverenlere Türkçe sunulacağı için arayüz metinleri, demo verisi ve dokümanlar Türkçeye çevrildi. Mühür metinleri Türkçe karakter içeriyor (İ, Ü); iki fontun da Fontsource paketi latin-ext alt kümesini (U+0100–02BA) yüklediği için bu karakterler kendi fontuyla çizilir. Ekran görüntüleri (`docs/images/`) Türkçe arayüzle yeniden alınmalı.
+**Türkçeleştirme (2026-11-03).** Proje Türk işverenlere Türkçe sunulacağı için arayüz metinleri, demo verisi ve dokümanlar Türkçeye çevrildi. Mühür metinleri Türkçe karakter içeriyor (İ, Ü); iki fontun da Fontsource paketi latin-ext alt kümesini (U+0100–02BA) yüklediği için bu karakterler kendi fontuyla çizilir. Türkçe mühür kelimeleri farklı uzunlukta (ONAYLANDI 9, SÜRESİ DOLDU 12 karakter) ve sabit boyutta kural metninin üstüne biniyordu; mührün yazı boyutu artık harf sayısıyla ölçekleniyor (`--stamp-chars`), böylece her mühür yaklaşık aynı genişlikte. Ekran görüntüleri Türkçe arayüzle yeniden alındı.
 
 Hâlâ açık: taslak düzenleyicinin özetin üstünde mi durması gerektiği.

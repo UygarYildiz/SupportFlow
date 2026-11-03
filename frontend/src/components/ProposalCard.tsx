@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { type CSSProperties, useId, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { useDecide } from '../api/queries'
@@ -61,7 +61,12 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
         </dl>
 
         {stamp ? (
-          <div className={`stamp stamp--${proposal.status}`} aria-hidden="true">
+          <div
+            className={`stamp stamp--${proposal.status}`}
+            // Longer words get smaller letters, so every stamp has about the same width.
+            style={{ '--stamp-chars': stamp.length } as CSSProperties}
+            aria-hidden="true"
+          >
             {stamp}
           </div>
         ) : null}

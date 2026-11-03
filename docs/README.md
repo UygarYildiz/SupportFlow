@@ -10,6 +10,7 @@ SupportFlow'un dokümanları tek bir kurala göre düzenlenir: **her bilginin te
 | Projede geliştirme yapacak kişi | [Geliştirme kılavuzu](DEVELOPMENT.md) → [Mimari](ARCHITECTURE.md) → [Sözlük](GLOSSARY.md) → [Katkı kuralları](../CONTRIBUTING.md) |
 | API'yi kullanacak kişi | [API referansı](API.md) → [Sözlük](GLOSSARY.md) |
 | Uygulamayı çalıştıran, sorun gideren kişi | [Operasyon kılavuzu](OPERATIONS.md) |
+| Projeyi gösterecek kişi (sunum, video) | [Demo senaryosu](DEMO_SCRIPT.md) → [Operasyon kılavuzu](OPERATIONS.md#demo-öncesi-hazırlık) |
 
 ## Doküman haritası
 
@@ -25,6 +26,7 @@ SupportFlow'un dokümanları tek bir kurala göre düzenlenir: **her bilginin te
 | [API](API.md) | Uç noktalar nasıl kullanılır? | Uç nokta listesi, kimlik doğrulama, hata kodları |
 | [DEVELOPMENT](DEVELOPMENT.md) | Nasıl geliştiririm? | Kurulum, klasör yapısı, komutlar, sık yapılan işlerin tarifleri |
 | [OPERATIONS](OPERATIONS.md) | Nasıl çalıştırır, nasıl düzeltirim? | Ortam değişkenleri, servisler, prosedürler, sorun giderme |
+| [DEMO_SCRIPT](DEMO_SCRIPT.md) | Nasıl gösteririm? | 3–5 dakikalık gösterim akışı, yedek planlar |
 | [GLOSSARY](GLOSSARY.md) | Bu terim ne demek? | Kod terimi ↔ arayüz metni ↔ anlam eşlemesi |
 | [CHANGELOG](../CHANGELOG.md) | Ne değişti? | Sürüm notları |
 | [CONTRIBUTING](../CONTRIBUTING.md) | Nasıl katkı yaparım? | Branch, commit, inceleme ve doküman kuralları |
@@ -62,7 +64,8 @@ Her değişiklikten sonra bu tabloya bakılır. Aynı değişiklik birden fazla 
 | Komut, araç ya da kurulum adımı değişti | [DEVELOPMENT](DEVELOPMENT.md), gerekiyorsa README hızlı başlangıç |
 | Yeni operasyonel prosedür ya da bilinen arıza | [OPERATIONS](OPERATIONS.md) |
 | Arayüz metni ya da yeni terim | [GLOSSARY](GLOSSARY.md), görsel değişiklikse [DESIGN](DESIGN.md) |
-| Ekranı görünür şekilde değiştiren iş | `docs/images/` ekran görüntüleri |
+| Ekranı görünür şekilde değiştiren iş | `docs/images/` ekran görüntüleri, [DEMO_SCRIPT](DEMO_SCRIPT.md) (ekranda görünenler) |
+| Seed verisi değişti | [DEMO_SCRIPT](DEMO_SCRIPT.md) (talep numaraları), [OPERATIONS](OPERATIONS.md#demo-öncesi-hazırlık) |
 | Kullanıcıya görünen her değişiklik | [CHANGELOG](../CHANGELOG.md) "Yayınlanmamış" bölümü |
 | Bilinen bir sınırlama kalktı ya da eklendi | README "Bilinen sınırlamalar" |
 

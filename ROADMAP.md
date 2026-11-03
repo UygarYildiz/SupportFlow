@@ -883,8 +883,8 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 - [x] Demo verisi Türkçe (müşteriler, ürünler, TL fiyat, adresler, talepler); demo kullanıcıları Selin Aydın, Mert Kaya, Ayşe Demir.
 - [x] Sahte model Türkçe anahtar kelime/adres/injection tanıyor; Türkçe taslak yazıyor (`test_fake_llm.py`). Prompt `graph-v3`: model Türkçe yazar.
 - [x] Eval senaryoları Türkçe + İngilizce injection senaryosu (`poe eval` 13/13; `poe check` 155 test).
-- [ ] Türkçe sette canlı eval: `uv run poe eval --live` (kota kullanır) ve sonucu `docs/TEST_PLAN.md`'ye yaz.
-- [ ] `docs/images/` ekran görüntülerini Türkçe arayüzle yeniden al.
+- [x] Türkçe sette canlı eval: `uv run poe eval --live` → `gemini-3.5-flash-lite`, `graph-v3`: 13/13 tamamen, 13/13 kritik (2026-11-03, 102.9 sn). `docs/TEST_PLAN.md`'ye yazıldı.
+- [x] `docs/images/` ekran görüntülerini Türkçe arayüzle yeniden al. (1440×900, Edge headless + playwright-core, seed --reset sonrası. Mühür boyutu kelime uzunluğuna göre ölçekleniyor; uzun Türkçe kelimeler kural metnine biniyordu.)
 
 ### Dokümantasyon sistemi (2026-11-03)
 
@@ -908,9 +908,9 @@ Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince n
 
 - [ ] README girişinde problem → çözüm → mimari → demo videosu → stack → yerel kurulum → bilinen sınırlamalar. (2026-11-03: yeniden yazıldı; yalnız demo videosu eksik, video çekilince eklenecek.)
 - [x] Bir tam mimari diyagram. (README'de mermaid sistem diyagramı.)
-- [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.) Not: İngilizce arayüzden; Türkçe arayüzle yenilenecek (yukarıdaki Türkçeleştirme maddesi).
+- [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.) 2026-11-03: Türkçe arayüzle yenilendi.
 - [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`).
-- [ ] `docs/DEMO_SCRIPT.md`: gösterim adımları.
+- [x] `docs/DEMO_SCRIPT.md`: gösterim adımları. (2026-11-03: zamanlı 3–5 dk akış — rol farkı, canlı analiz #1, onay #3 + isteğe bağlı çift onay 409, injection #14, yönetici iadesi #2 ve denetim kaydı; hazırlık ve yedek planlar.)
 - [x] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel. (2026-11-03: Türkçeleştirmede baştan gözden geçirildi; `poe docs` kontrolünden geçiyor.)
 - [x] README'de gerçek üretim sistemi olduğu iddiası yerine **“production-oriented portfolio demo”** ifadesi kullan. → **Sahip kararı (2026-11-03):** "portfolio" ifadesi README'den kaldırıldı; yalnız sentetik veri notu kaldı. README üretim sistemi olduğunu iddia etmiyor (Known limitations bölümü).
 - [ ] Repo public yapılır; GitHub release `v0.1.0`.

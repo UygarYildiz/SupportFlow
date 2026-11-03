@@ -73,7 +73,7 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 |---|---|
 | Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 160 |
 | Frontend bileşen testleri (Vitest, Testing Library) | 17 |
-| Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. Canlı model: İngilizce önceki sette `gemini-3.5-flash-lite` ile 12/12 (2026-11-03); Türkçe set henüz canlı çalıştırılmadı |
+| Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. `gemini-3.5-flash-lite` ile Türkçe sette 13/13 (tek canlı çalıştırma, 2026-11-03) |
 
 Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontrolleri (güvensiz öneri yok, başka müşterinin verisi yok, uydurma yok) **kalite** kontrollerinden (kategori, atıf yapılan kanıt) ayırır. Testler ve CI asla ücretli bir API çağırmaz; deterministik bir sahte model kullanır. [Test planı](docs/TEST_PLAN.md) her gereksinimi ve tehdidi onu kanıtlayan testlere eşler; [Güvenlik](docs/SECURITY.md) tehditleri ve önlemleri listeler.
 
@@ -158,6 +158,7 @@ Tüm dokümanların haritası ve hangi değişiklikte hangisinin güncelleneceğ
 - [Geliştirme kılavuzu](docs/DEVELOPMENT.md): kurulum, klasör yapısı, komutlar, sık yapılan işler
 - [Operasyon kılavuzu](docs/OPERATIONS.md): yapılandırma, prosedürler, sorun giderme
 - [Tasarım](docs/DESIGN.md): panelin görsel dili ve inceleme kaydı
+- [Demo senaryosu](docs/DEMO_SCRIPT.md): 3–5 dakikalık gösterim akışı
 - [Sözlük](docs/GLOSSARY.md): kod terimleri ve Türkçe karşılıkları
 - [Değişiklik kaydı](CHANGELOG.md) · [Katkı kuralları](CONTRIBUTING.md)
 

@@ -710,7 +710,8 @@
   outline-offset: 3px;
   font-family: var(--font-stamp);
   font-weight: 800;
-  font-size: 2.4rem;
+  /* About 20rem of lettering whatever the word: ONAYLANDI and SÜRESİ DOLDU look alike. */
+  font-size: min(2.3rem, calc(20rem / var(--stamp-chars, 9)));
   line-height: 1.1;
   letter-spacing: 0.04em;
   opacity: 0.82;

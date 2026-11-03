@@ -19,4 +19,5 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Değişti
 
+- Karar mührünün yazı boyutu kelime uzunluğuna göre ölçekleniyor; uzun Türkçe mühür kelimeleri (ENGELLENDİ, SÜRESİ DOLDU) kart metninin üstüne binmiyor.
 - Proje Türk işverenlere sunulacağı için tüm dokümanlar, arayüz, hata mesajları, demo verisi ve eval senaryoları Türkçeye çevrildi; sahte model Türkçe mesajları anlıyor.

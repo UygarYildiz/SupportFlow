@@ -33,7 +33,7 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 | Tarih | Model | Prompt sürümü | Tamamen geçen | Tüm kritik kontrolleri geçen |
 |---|---|---|---|---|
 | 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v2` (İngilizce set) | 12/12 | 12/12 |
-| — | `gemini-3.5-flash-lite` | `graph-v3` (Türkçe set) | henüz çalıştırılmadı | |
+| 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v3` (Türkçe set, 13 senaryo) | 13/13 | 13/13 |
 
 ## Test matrisi (ROADMAP §6)
 
