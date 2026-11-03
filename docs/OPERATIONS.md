@@ -61,7 +61,7 @@ cd backend
 uv run poe seed --reset     # tüm veriyi (denetim kaydı dahil) siler, NovaShop verisini yeniden kurar
 ```
 
-Sonuç: 3 kullanıcı, 20 müşteri, 50 sipariş, 30 talep. Yedi talep sahte modelle önceden analiz edilir, biri onaylanır: iki iade yönetici bekler, bir adres değişikliği herhangi bir personeli bekler. 1 numaralı talep ("Siparişim nerede?") canlı gösterim için `new` bırakılır. Kontrol: `GET /api/v1/tickets/summary` → `pending_proposals: 3`.
+Sonuç: 3 kullanıcı, 20 müşteri, 50 sipariş, 30 talep; politika bilgi tabanı sahte embedder'la indekslenir (canlı embedding için ayrıca `poe ingest`). Yedi talep sahte modelle önceden analiz edilir, biri onaylanır: iki iade yönetici bekler, bir adres değişikliği herhangi bir personeli bekler. 1 numaralı talep ("Siparişim nerede?") canlı gösterim için `new` bırakılır. Kontrol: `GET /api/v1/tickets/summary` → `pending_proposals: 3`.
 
 Seed idempotenttir: `--reset` olmadan tekrar çalıştırmak eksik kayıtları ekler, var olanlara dokunmaz.
 

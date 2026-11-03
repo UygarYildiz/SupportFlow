@@ -21,6 +21,7 @@ Kodda, arayüzde ve dokümanlarda aynı şeyi aynı kelimeyle anlatmak için. **
 | draft reply | Taslak yanıt | Yapay zekânın müşteri için yazdığı, personelin inceleyip kopyaladığı yanıt; asla kendiliğinden gönderilmez |
 | evidence | Kanıt (dayanak) | Taslağın dayandığı, backend tarafından doğrulanmış sipariş kimlikleri |
 | policy document | Politika dokümanı | `backend/knowledge/policies/` altındaki sürümlü NovaShop politikası (ör. İade Politikası v1) |
+| citation | Atıf (dayanak) | Taslağın dayandığı, getirilen maddelerle doğrulanmış politika maddesi (`cited_clause_ids`) |
 | clause | Madde | Politika dokümanının kimlikli bir bölümü (`IADE-2`); arama ve kaynak gösterme birimi |
 | `needs_human_review` | İnsan incelemesi gerekli | Talebin olağan dışı olduğu ya da bir kuralla çeliştiği işareti |
 
@@ -114,6 +115,7 @@ Durumlar (`AgentRunStatus`): `queued` (kuyrukta) → `running` (çalışıyor) �
 | `fetch_context` | Önceki taleplere baktı |
 | `check_policy` | Mağaza kuralını uyguladı |
 | `plan_action` | Aksiyon önerilip önerilmeyeceğine karar verdi |
+| `retrieve_policy` | Politika maddelerini aradı |
 | `draft` | Yanıtı yazdı (model çağrısı) |
 | `validate` | Sonucu doğruladı |
 

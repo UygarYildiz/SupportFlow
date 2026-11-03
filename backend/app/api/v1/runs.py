@@ -4,7 +4,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from app.agent.executor import AnalysisExecutor
-from app.agent.llm.factory import build_llm_client
+from app.agent.llm.factory import build_embedder, build_llm_client
 from app.api.deps import DbSession, StaffUser
 from app.core.config import get_settings
 from app.db.session import session_scope
@@ -25,6 +25,7 @@ def get_analysis_executor() -> AnalysisExecutor:
         max_tokens_per_run=settings.agent_max_tokens_per_run,
         run_timeout_seconds=settings.agent_run_timeout_seconds,
         proposal_ttl_hours=settings.proposal_ttl_hours,
+        embedder=build_embedder(settings),
     )
 
 

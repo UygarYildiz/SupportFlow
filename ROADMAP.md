@@ -714,10 +714,10 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 - [x] İndekslemeyi idempotent yap; aynı dokümanın tekrar yüklenmesi duplicate üretmesin. (İçerik hash'i; sürüm artırılmadan değişiklik reddediliyor.)
 - [x] Politika aramasında erişim/versiyon filtresi uygula; eski sürüme sessizce dayanma. (Yalnızca `is_current` sürüm ve aynı embedding modeli aranıyor; politika kimliğiyle daraltılabiliyor.)
 - [x] İlk olarak basit dense vector retrieval; gerekirse keyword + hybrid search ekle. (Dense; hibrit gerekirse 7.4 ölçümüne göre.)
-- [ ] Agent'a yalnız seçilmiş politika alıntılarını, kaynak ID'leri ve tarihlerini ver.
-- [ ] Kaynak yoksa “politika bulunamadı” de; cevap uydurma.
-- [ ] Politika belgeleri kurala dair *kanıt* sunar; iade yapma yetkisini tek başına vermez.
-- [ ] Test veri setindeki her senaryo için doğru policy clause referansı bekle.
+- [x] Agent'a yalnız seçilmiş politika alıntılarını, kaynak ID'leri ve tarihlerini ver. (2026-11-03: `retrieve_policy` düğümü, `search_policies` aracı; kurala göre politika filtresi, sorgu kural gerekçesinden; `graph-v4`.)
+- [x] Kaynak yoksa “politika bulunamadı” de; cevap uydurma. (Uyarı + atıf yok; getirilmeyen maddeye atıf atılıyor ve incelemeye işaretleniyor; arama hatası analizi düşürmüyor.)
+- [x] Politika belgeleri kurala dair *kanıt* sunar; iade yapma yetkisini tek başına vermez. (Alıntılar `plan_action`'dan sonra getiriliyor; TC-11 testi.)
+- [x] Test veri setindeki her senaryo için doğru policy clause referansı bekle. (Kural içeren 8 eval senaryosunda `cites_clause_in`; her senaryoda kritik kontrol: yalnızca getirilen maddelere atıf. Sahte model 13/13.)
 
 ### RAG kalite kontrolü
 
@@ -725,13 +725,13 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 - [ ] Retrieval hit@k / doğru belge bulma oranını ölç.
 - [ ] Yanıttaki kaynak ID gerçekten getirilen bölüm mü kontrol et.
 - [ ] Çelişkili/eskimiş politika durumunda insan eskalasyonu var.
-- [ ] Politika dosyasına gömülü “ignore previous instructions” metni agent yetkisini değiştirmiyor.
+- [x] Politika dosyasına gömülü “ignore previous instructions” metni agent yetkisini değiştirmiyor. (`test_instructions_inside_a_policy_document_change_nothing`; `<facts>` artık etkisizleştiriliyor.)
 
 **Çıkış kriterleri**
 
 - [ ] UI, önerinin hangi politika bölümüne dayandığını gösteriyor.
 - [ ] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor.
-- [ ] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor.
+- [x] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor. (Atıf doğrulaması; arama yalnızca güncel sürüm ve aynı model.)
 
 **Commit:** `feat: add versioned policy RAG with citations`
 

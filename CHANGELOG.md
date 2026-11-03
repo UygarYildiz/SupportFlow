@@ -6,6 +6,7 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Eklendi
 
+- **Kaynak gösteren taslaklar (Faz 7):** analiz, kural sonucunu açıklayan politika maddelerini getirir (`retrieve_policy`); taslak bu maddelere atıf yapar ("Dayanak: İade Politikası v1, IADE-2"), atıflar getirilen maddelerle doğrulanır, kaynak yoksa personele söylenir. Politika metni ve müşteri metni ayraçtan çıkamaz; dokümana gizlenmiş talimatlar hiçbir aksiyon üretmez.
 - **Politika bilgi tabanı (Faz 7, ilk dilim):** sürümlü Türkçe NovaShop politika dokümanları (teslimat, iade, hasarlı ürün, adres değişikliği, istisnalar); pgvector ile madde bazlı indeksleme (`poe ingest`), idempotent ve sürüm denetimli; yalnızca güncel sürümde arama. Canlıda Gemini embedding'leri, testlerde ücretsiz sahte embedder.
 
 ### Değişti

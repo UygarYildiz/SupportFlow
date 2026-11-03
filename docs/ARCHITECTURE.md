@@ -78,8 +78,9 @@ flowchart TD
     D -->|hayır| F[fetch_context]
     F --> G[check_policy]
     G --> H[plan_action - deterministik]
+    H --> R[retrieve_policy - politika maddeleri]
     E --> I[draft - LLM]
-    H --> I
+    R --> I
     I --> J[validate]
 ```
 
@@ -92,10 +93,11 @@ flowchart TD
 | `fetch_context` | Müşterinin önceki talepleri (takip talepleri, S6) | hayır |
 | `check_policy` | Kategorinin NovaShop kuralını kapsamdaki siparişe uygular | hayır |
 | `plan_action` | `change_shipping_address` / `create_refund_request` aksiyonunu yalnızca kural izin veriyorsa önerir | hayır |
+| `retrieve_policy` | Kural sonucunu açıklayan politika maddelerini arar (ADR-014). Hangi politikada aranacağına kural, arama metnine kuralın gerekçesi karar verir; müşteri metni kullanılmaz. Aksiyon planlandıktan sonra çalışır, kararı etkilemez. Arama başarısız olursa analiz uyarıyla sürer | hayır |
 | `draft` | Bilgilerden, kural sonuçlarından ve planlanan aksiyondan özet ve yanıt | evet |
 | `validate` | Doğrulanmamış kanıtları atar, `awaiting_review` mı `needs_info` mu olacağına karar verir, inceleme işaretini koyar | hayır |
 
-Araçlar (izin listesi, salt okunur, talebin müşterisine bağlı): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
+Araçlar (izin listesi, salt okunur): talebin müşterisine bağlı `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`; ortak politika bilgi tabanını okuyan `search_policies`. Arama sorgusu adım kayıtlarına yazılmaz.
 
 Destekleyici modüller: `prompts.py` (iki prompt; müşteri metni kapatamayacağı ayraç etiketleri içinde), `llm/` (sağlayıcı adaptörleri, sahte istemci, yeniden deneme), `tools.py`, `executor.py` (kuyruktaki bir çalıştırmayı yürütür; adımları `agent_run_steps` tablosuna kaydeder; başlamış bir çalıştırma her zaman `succeeded` ya da `failed` ile biter). Çalıştırma durum geçişleri, LLM'ler hakkında hiçbir şey bilmeyen `services/analysis_runs.py` içinde yaşar.
 
@@ -141,7 +143,7 @@ flowchart LR
 
 - Ayrıştırma `app/domain/policy_documents.py` (saf), indeksleme ve arama `app/services/policy_knowledge.py`. Embedder dışarıdan verilir: `app/agent/llm/factory.py` → `GeminiEmbedder` ya da `FakeEmbedder`.
 - Her indeksleme bir `ingestion_jobs` satırı yazar (durum, model, sayılar, hata).
-- Dokümanlar karar vermez; kararlar `domain/policies.py`'de kalır. Bilgi tabanının analiz grafına bağlanması Faz 7'nin ikinci dilimidir.
+- Dokümanlar karar vermez; kararlar `domain/policies.py`'de kalır. Graf, `retrieve_policy` düğümüyle bilgi tabanını okur; taslak yalnızca getirilen maddelere atıf yapabilir (`validate` diğerlerini atar ve uyarır).
 
 ## 4. Durum makineleri
 

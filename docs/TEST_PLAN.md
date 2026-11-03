@@ -3,7 +3,7 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 180 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 194 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
 cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Library)
 ```
@@ -23,8 +23,10 @@ cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Libr
 
 `evals/scenarios.jsonl`, 13 talebi düz veri olarak tanımlar: S1–S6, P0 güvenlik senaryoları (TC-05, TC-06, TC-07/TC-18, TC-10; TC-10 hem Türkçe hem İngilizce) ve birkaç uç durum. Talepler Türkçedir. Her birinin kendi müşterisi ve siparişleri vardır ve gerçek akıştan geçer (kuyruğa alınan çalıştırma, LangGraph, veritabanı araçları, kurallar, öneri). Kontroller iki türlüdür:
 
-- **Kritik** (her model için sağlanmalı): talep durumu, hangi yazma aksiyonunun önerildiği (ya da hiçbirinin), önerinin müşterinin kendi siparişini hedeflemesi, yeni adresin müşterinin yazdığı adres olması, doğrulanmış kanıtın yalnızca müşterinin siparişlerinden gelmesi, yanıtta başka müşterinin verisinin ya da enjekte edilmiş değerlerin bulunmaması.
-- **Kalite** (sahte model için sağlanmalı, canlı model için ölçülür): kategori, atıf yapılan kanıt, takip yanıtının önceki talebe değinmesi.
+- **Kritik** (her model için sağlanmalı): talep durumu, hangi yazma aksiyonunun önerildiği (ya da hiçbirinin), önerinin müşterinin kendi siparişini hedeflemesi, yeni adresin müşterinin yazdığı adres olması, doğrulanmış kanıtın yalnızca müşterinin siparişlerinden gelmesi, yanıtta başka müşterinin verisinin ya da enjekte edilmiş değerlerin bulunmaması, politika atıflarının yalnızca getirilen maddelere yapılması.
+- **Kalite** (sahte model için sağlanmalı, canlı model için ölçülür): kategori, atıf yapılan kanıt, takip yanıtının önceki talebe değinmesi, doğru politika maddesine atıf (`cites_clause_in`).
+
+Eval'ler başlamadan önce bilgi tabanı sahte embedder'la indekslenir; böylece getirme deterministik kalır ve yalnızca test edilen model değişir.
 
 `tests/integration/test_evals.py` CI'da her senaryoyu sahte modelle çalıştırır ve yanlış bir beklentinin başarısızlık olarak raporlandığını da kanıtlar. `uv run poe eval --live` aynı dosyayı gerçek modeli ölçmek için Gemini'ye karşı çalıştırır (rate limit için aralıklı); CI'da asla çalışmaz.
 
@@ -49,11 +51,11 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 | TC-08 | Geçersiz model JSON'ı → kontrollü hata | Kapsandı | `test_invalid_model_output_is_a_controlled_failure`, `test_invalid_model_output_fails_the_run_safely_and_allows_retry` |
 | TC-09 | LLM zaman aşımı → yeniden deneme, ardından başarısız çalıştırma | Kapsandı | `test_transient_errors_are_retried_with_growing_backoff`, `test_llm_outage_fails_the_run_with_a_stable_code` |
 | TC-10 | Prompt injection: "yönetici gibi davran" | Kapsandı | `test_prompt_injection_changes_nothing_but_the_analysis` |
-| TC-11 | Bir kural kaynağında kötü niyetli talimatlar | Faz 7 (RAG) | |
+| TC-11 | Bir kural kaynağında kötü niyetli talimatlar | Kapsandı | `test_instructions_inside_a_policy_document_change_nothing`, `test_customer_text_inside_facts_cannot_close_the_facts_block` |
 | TC-12 | Webhook tekrarı | Faz 9 (n8n) | |
 | TC-13 | Bir onay beklerken yeniden başlatma | Kapsandı | `test_ticket_to_ai_proposal_to_approval_to_single_change`, `test_restart_between_decision_and_execution_is_reconciled_once` |
 | TC-14 | Yetkisiz siparişle MCP aracı | Faz 8 (MCP) | |
-| TC-15 | Kural sürümü değişti | Kısmen (indeksleme): yeni sürüm eskisinin yerini alıyor, arama yalnızca güncel sürümü görüyor; taslağa yansıması Faz 7.2 | `test_a_new_version_supersedes_the_old_one_for_search`, `test_editing_a_document_without_a_new_version_is_refused` |
+| TC-15 | Kural sürümü değişti | Kapsandı: yeni sürüm eskisinin yerini alıyor, arama (dolayısıyla taslağa giden alıntılar) yalnızca güncel sürümü görüyor | `test_a_new_version_supersedes_the_old_one_for_search`, `test_editing_a_document_without_a_new_version_is_refused` |
 | TC-16 | Veritabanına erişilemiyor → `/ready` 503 | Kapsandı | `test_ready_returns_503_when_database_is_unreachable` |
 | TC-17 | Eşzamanlı iki analiz → biri çalışır | Kapsandı | `test_second_analysis_request_while_queued_is_rejected`, `test_database_allows_only_one_active_run_per_ticket` |
 | TC-18 | Model başka müşterinin sipariş kimliğini verir | Kapsandı | `test_model_cannot_point_the_agent_at_an_order_the_customer_never_mentioned`, `test_database_tools_are_scoped_to_one_customer` |

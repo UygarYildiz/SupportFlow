@@ -22,10 +22,13 @@ from app.agent.graph import (
     mentioned_order_ids,
 )
 from app.agent.llm.base import LLMClient
+from app.agent.llm.fake_embeddings import FakeEmbedder
 from app.agent.schemas import ProposedAction, TicketSnapshot
 from app.agent.tools import DatabaseTools
 from app.db.models import AgentRunStep, Customer, Ticket
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
 from app.services.analysis_runs import AnalysisRunService
+from app.services.policy_knowledge import Embedder
 from app.services.proposals import ProposalDraft
 
 logger = logging.getLogger(__name__)
@@ -71,9 +74,12 @@ class AnalysisExecutor:
         max_tokens_per_run: int = 12_000,
         run_timeout_seconds: float = 120.0,
         proposal_ttl_hours: int = 48,
+        embedder: Embedder | None = None,
     ) -> None:
         self.session_scope = session_scope
         self.llm = llm
+        # Policy search (ADR-014); the offline embedder unless the app configures another.
+        self.embedder = embedder or FakeEmbedder(EMBEDDING_DIMENSIONS)
         self.clock = clock
         self.max_tokens_per_run = max_tokens_per_run
         self.run_timeout_seconds = run_timeout_seconds
@@ -144,7 +150,9 @@ class AnalysisExecutor:
         return GraphDeps(
             llm=self.llm,
             load_ticket=load_ticket,
-            tools_for=lambda customer_id: DatabaseTools(session, customer_id, self.clock),
+            tools_for=lambda customer_id: DatabaseTools(
+                session, customer_id, self.clock, embedder=self.embedder
+            ),
             recorder=DatabaseStepRecorder(session, run_id),
             clock=self.clock,
             budget=TokenBudget(self.max_tokens_per_run),

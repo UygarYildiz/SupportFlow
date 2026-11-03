@@ -37,7 +37,7 @@ Asıl ilginç kısım bir LLM'in yanıt yazması değil, etrafına çizilen sın
 - **Model asla yazmaz.** Ajan yalnızca okuyabilir (izin listesindeki araçlarla) ve bekleyen bir öneri kaydedebilir. Siparişleri, yalnızca onay uç noktasından erişilebilen tek bir yürütücü değiştirir; bir test, ajan kodunun bu yürütücüyü import edemediğini garanti eder. ([ADR-002](docs/DECISIONS.md#adr-002-llm-yazma-işlemi-yapamaz))
 - **Kararı kod verir, model anlatır.** Hangi siparişin kapsamda olduğu, hangi kuralın uygulandığı ve bir aksiyonun önerilip önerilemeyeceği, birim testleri olan düz Python kodudur. Model, şemayla doğrulanan iki çağrıda talebi sınıflandırır ve metni yazar. ([ADR-011](docs/DECISIONS.md#adr-011-kararları-kodun-verdiği-modeli-iki-kez-çağıran-analiz-grafiği))
 - **Araçlar talebin müşterisiyle sınırlıdır.** Müşteri kimliği modelden değil, talepten gelir. Başka bir müşterinin siparişi, olmayan bir siparişle tamamen aynı görünür; böylece hiçbir şey sızmaz.
-- **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle karşılaştırılır; kanıt olarak yalnızca doğrulananlar gösterilir.
+- **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle, politika maddeleri de gerçekten getirilen maddelerle karşılaştırılır; kanıt ve kaynak olarak yalnızca doğrulananlar gösterilir.
 - **Değişiklikler tam olarak bir kez uygulanır.** Onay ajan grafiğinin dışındadır ve veritabanında saklanır; uygulama yeniden başlasa da kaybolmaz. İyimser kilitleme, benzersiz kısıtlı bir idempotency anahtarı, siparişin onay anında yeniden kontrolü (öneriden bu yana kargoya verilmiş olabilir) ve açılışta kurtarması olan iki adımlı bir commit kullanır. Çift tıklamalar ve eşzamanlı onaylar `409` alır. ([ADR-006](docs/DECISIONS.md#adr-006-onay-ve-yürütme-ajan-grafiğinin-dışında-gerçekleşir), [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay))
 - **Roller sunucuda zorunlu kılınır.** Onaylayıcı kuralları domain katmanında yaşar. Arayüz yalnızca bunları açıklar.
 
@@ -71,7 +71,7 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 180 |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 194 |
 | Frontend bileşen testleri (Vitest, Testing Library) | 17 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. `gemini-3.5-flash-lite` ile Türkçe sette 13/13 (tek canlı çalıştırma, 2026-11-03) |
 
@@ -141,7 +141,7 @@ Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 - **Demo kimlik doğrulaması.** Seed ile oluşturulan kullanıcılar ve kısa ömürlü JWT'ler. Gerçek bir kurulum bir kimlik sağlayıcı (OIDC/SSO) kullanırdı.
 - **Süreç içi worker.** Analiz çalıştırmaları, API süreci içindeki bir worker'ın yürüttüğü veritabanı satırlarıdır. Yeniden başlatmayla yarıda kalan çalıştırmalar başarısız olarak işaretlenir ve yeniden denenebilir. Yük altında bir sonraki adım ayrı bir kuyruk olurdu ([ADR-005](docs/DECISIONS.md#adr-005-analiz-çalıştırmaları-kalıcı-arka-plan-işleridir)).
 - **Mock sipariş sistemi.** Değişiklikler mock bir sipariş deposuna gider; iadeler yalnızca bir iade talebi oluşturur, para hareketi olmaz. Gerçek bir entegrasyon [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay) içinde anlatılan mutabakat akışını gerektirirdi.
-- **Kurallar koddur.** Mağaza kuralları, getirilen dokümanlar değil, sürümlenen Python kurallarıdır (kaynak gösteren doküman getirme sıradaki adım).
+- **Kararları kurallar verir, dokümanlar açıklar.** Mağaza kuralları sürümlenen Python kodudur; politika dokümanları yalnızca kaynak göstermek için getirilir ve karar vermez ([ADR-014](docs/DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)). Bilgi tabanı beş dokümanlık küçük bir set.
 - **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
 - **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
 

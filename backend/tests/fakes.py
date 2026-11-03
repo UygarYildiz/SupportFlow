@@ -78,6 +78,7 @@ class InMemoryTools:
     orders: dict[str, Any] = field(default_factory=dict)  # order_id -> OrderFact
     policies: dict[tuple[str, str], Any] = field(default_factory=dict)  # (policy, id) -> check
     tickets: list[Any] = field(default_factory=list)
+    excerpts: list[Any] = field(default_factory=list)  # PolicyExcerptFact, any policy
     calls: list[ToolCall] = field(default_factory=list)
 
     def call(self, name: str, **arguments: Any) -> Any:
@@ -88,6 +89,9 @@ class InMemoryTools:
             "get_customer_orders": lambda limit=10: list(self.orders.values())[:limit],
             "get_customer_tickets": lambda exclude_ticket_id, limit=5: self.tickets[:limit],
             "get_policy": lambda policy, order_id: self.policies.get((policy, order_id)),
+            "search_policies": lambda policy_ids, query, limit=2: [
+                e for e in self.excerpts if e.policy_id in policy_ids
+            ][:limit],
         }
         result = handlers[name](**arguments)
         self.calls.append(ToolCall(name, arguments, result is not None and result != []))

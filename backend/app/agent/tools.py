@@ -3,6 +3,8 @@
 Every tool is bound to one customer when the run starts (taken from the ticket
 in the database). Arguments produced by the model can narrow a lookup, never
 widen it: another customer's order is indistinguishable from a missing one.
+`search_policies` reads the shared policy knowledge base (ADR-014); its query is
+built by the graph from rule results, never from customer text.
 """
 
 from collections.abc import Callable
@@ -13,11 +15,18 @@ from typing import Any, Literal, Protocol
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.agent.schemas import OrderFact, PolicyCheck, PreviousTicketFact, order_fact_total
+from app.agent.schemas import (
+    OrderFact,
+    PolicyCheck,
+    PolicyExcerptFact,
+    PreviousTicketFact,
+    order_fact_total,
+)
 from app.db.models import Order, Ticket
 from app.domain.errors import NotFoundError
 from app.services.orders import OrderService
 from app.services.policy import PolicyService
+from app.services.policy_knowledge import Embedder, PolicySearchService
 
 PolicyName = Literal["address_change", "return", "damage", "delivery"]
 
@@ -25,8 +34,10 @@ PolicyName = Literal["address_change", "return", "damage", "delivery"]
 INFORMATIONAL_POLICIES = frozenset({"delivery"})
 
 ALLOWED_TOOLS = frozenset(
-    {"get_order", "get_customer_orders", "get_customer_tickets", "get_policy"}
+    {"get_order", "get_customer_orders", "get_customer_tickets", "get_policy", "search_policies"}
 )
+# Tool arguments that are not copied into the recorded run steps (kept small and text-free).
+UNRECORDED_ARGUMENTS = frozenset({"query"})
 
 
 class ToolNotAllowedError(Exception):
@@ -53,6 +64,7 @@ class DatabaseTools:
     session: Session
     customer_id: str
     clock: Callable[[], datetime]
+    embedder: Embedder | None = None  # None: no knowledge base, searches find nothing
     calls: list[ToolCall] = field(default_factory=list)
 
     def call(self, name: str, **arguments: Any) -> Any:
@@ -112,6 +124,27 @@ class DatabaseTools:
             reason=decision.reason,
             informational=policy in INFORMATIONAL_POLICIES,
         )
+
+    def _search_policies(
+        self, policy_ids: list[str], query: str, limit: int = 2
+    ) -> list[PolicyExcerptFact]:
+        if self.embedder is None or not policy_ids:
+            return []
+        excerpts = PolicySearchService(self.session, self.embedder).search(
+            query, policy_ids=policy_ids, limit=limit
+        )
+        return [
+            PolicyExcerptFact(
+                policy_id=e.policy_id,
+                title=e.title,
+                version=e.version,
+                effective_from=e.effective_from,
+                clause_id=e.clause_id,
+                heading=e.heading,
+                text=e.text,
+            )
+            for e in excerpts
+        ]
 
 
 def order_fact(order: Order) -> OrderFact:

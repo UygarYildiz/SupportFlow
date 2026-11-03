@@ -12,6 +12,7 @@ const STEP_LABEL: Record<string, string> = {
   fetch_context: 'Önceki taleplere baktı',
   check_policy: 'Mağaza kuralını uyguladı',
   plan_action: 'Aksiyon önerilip önerilmeyeceğine karar verdi',
+  retrieve_policy: 'Politika maddelerini aradı',
   draft: 'Yanıtı yazdı',
   validate: 'Sonucu doğruladı',
 }
