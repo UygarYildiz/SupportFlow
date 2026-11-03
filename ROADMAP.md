@@ -51,7 +51,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [x] Faz 4 — LangGraph agent akışı
 - [x] Faz 5 — İnsan onayı ve güvenli işlemler (**MVP çekirdeği**)
 - [x] Faz 6 — React operasyon paneli (**gösterilebilir MVP**) — sahip revizyonu 1 tamamlandı (2026-11-03); küçük açık nokta: taslak editörünün yeri
-- [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**)
+- [ ] Faz 11-A — Minimum yayın: CI, README, demo videosu (**v0.1.0**) — `v0.1.0` yayınlandı (2026-11-03); yalnız demo videosu ve README'deki linki kaldı (sahip kararıyla sonraya).
 
 **Blok B — V1 genişletmeleri**
 
@@ -902,18 +902,18 @@ Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince n
 - [x] Frontend: ESLint/typecheck + build + kritik UI testleri. (oxlint + tsc + Vitest + build; `8a4707b` CI'da yeşil.)
 - [x] Docker image build doğrulaması. (`8a4707b` CI'da yeşil.)
 - [x] Secrets yalnız CI secrets olarak tutuluyor; CI'da `LLM_MODE=fake`. (CI hiç secret kullanmıyor; `LLM_MODE` varsayılanı `fake`, testler zaten fake/scripted LLM kullanıyor. Git geçmişi tarandı: `.env` ve anahtar yok.)
-- [ ] `main` branch koruması, temel PR şablonu. (PR şablonu eklendi: `.github/pull_request_template.md`; branch koruması GitHub ayarlarından yapılacak.)
+- [x] `main` branch koruması, temel PR şablonu. (2026-11-03: PR şablonu `.github/pull_request_template.md`; koruma `gh api` ile: PR zorunlu (0 onay), 3 CI işi zorunlu, force push ve silme kapalı, `enforce_admins=false` → sahip gerekirse doğrudan push'layabilir.)
 
 ### Portföy dosyaları
 
 - [ ] README girişinde problem → çözüm → mimari → demo videosu → stack → yerel kurulum → bilinen sınırlamalar. (2026-11-03: yeniden yazıldı; yalnız demo videosu eksik, video çekilince eklenecek.)
 - [x] Bir tam mimari diyagram. (README'de mermaid sistem diyagramı.)
 - [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.) 2026-11-03: Türkçe arayüzle yenilendi.
-- [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`).
+- [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`). **Sahip kararı (2026-11-03): sonraya bırakıldı; önce uygulama geliştirmesine odaklanılacak.** Senaryo hazır: `docs/DEMO_SCRIPT.md`.
 - [x] `docs/DEMO_SCRIPT.md`: gösterim adımları. (2026-11-03: zamanlı 3–5 dk akış — rol farkı, canlı analiz #1, onay #3 + isteğe bağlı çift onay 409, injection #14, yönetici iadesi #2 ve denetim kaydı; hazırlık ve yedek planlar.)
 - [x] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel. (2026-11-03: Türkçeleştirmede baştan gözden geçirildi; `poe docs` kontrolünden geçiyor.)
 - [x] README'de gerçek üretim sistemi olduğu iddiası yerine **“production-oriented portfolio demo”** ifadesi kullan. → **Sahip kararı (2026-11-03):** "portfolio" ifadesi README'den kaldırıldı; yalnız sentetik veri notu kaldı. README üretim sistemi olduğunu iddia etmiyor (Known limitations bölümü).
-- [ ] Repo public yapılır; GitHub release `v0.1.0`.
+- [x] Repo public yapılır; GitHub release `v0.1.0`. (2026-11-03: repo zaten public; git geçmişi sır taraması temiz. `v0.1.0` videosuz yayınlandı; notlar CHANGELOG'dan.)
 
 ## Faz 11-B — Canlı demo deployment (opsiyonel ama önerilir)
 

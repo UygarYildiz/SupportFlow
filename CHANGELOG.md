@@ -4,7 +4,9 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ## [Yayınlanmamış]
 
-İlk sürüm (`v0.1.0`) olarak yayınlanacak MVP.
+## [0.1.0] - 2026-11-03
+
+İlk sürüm: insan onaylı yapay zekâ destek masasının MVP'si. Demo videosu sonraki bir sürümde README'ye eklenecek.
 
 ### Eklendi
 
@@ -21,3 +23,6 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 - Karar mührünün yazı boyutu kelime uzunluğuna göre ölçekleniyor; uzun Türkçe mühür kelimeleri (ENGELLENDİ, SÜRESİ DOLDU) kart metninin üstüne binmiyor.
 - Proje Türk işverenlere sunulacağı için tüm dokümanlar, arayüz, hata mesajları, demo verisi ve eval senaryoları Türkçeye çevrildi; sahte model Türkçe mesajları anlıyor.
+
+[Yayınlanmamış]: https://github.com/UygarYildiz/SupportFlow/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/UygarYildiz/SupportFlow/releases/tag/v0.1.0
