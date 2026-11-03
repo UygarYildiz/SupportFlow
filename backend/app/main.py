@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api import health
@@ -46,6 +47,15 @@ def create_app(*, recover_interrupted_runs: bool = True) -> FastAPI:
         description="Support operations API with AI-drafted proposals and human approval.",
         lifespan=lifespan,
     )
+    if settings.cors_origins:
+        # Bearer tokens, no cookies: credentials stay off, and only listed origins pass.
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_methods=["GET", "POST", "PATCH"],
+            allow_headers=["Authorization", "Content-Type"],
+            max_age=600,
+        )
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_router)

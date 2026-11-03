@@ -3,9 +3,9 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 232 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 235 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
-cd frontend && npm test               # 22 bileşen ve birim testi (Vitest + Testing Library)
+cd frontend && npm test               # 24 bileşen ve birim testi (Vitest + Testing Library)
 ```
 
 ## Senaryolar (docs/REQUIREMENTS.md bölüm 5)

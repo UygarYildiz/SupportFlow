@@ -6,6 +6,7 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Eklendi
 
+- **Canlı demo altyapısı (Faz 11-B):** frontend Cloudflare Pages'te, backend Render'da, veritabanı Supabase'de (ücretsiz katmanlar). Backend yalnızca tanımlı frontend kaynağına CORS izni veriyor (`CORS_ALLOW_ORIGINS`); frontend backend adresini `VITE_API_BASE_URL`'den alıyor; demo verisi her gece sıfırlanıyor.
 - **Salt okunur MCP araçları (Faz 8):** `get_order_status`, `get_customer_orders`, `get_ticket_history`; MCP Inspector ya da bir masaüstü asistanı stdio üzerinden personel token'ıyla bağlanabilir (`poe mcp`, `poe mcp-token`). Kimlik bağlantıdan gelir, müşteri talepten; başka müşterinin siparişi görünmez. Her çağrı `call_id` ile log'lanır, personel çağrıları denetim kaydına yazılır.
 - **Ajan MCP üzerinden okuyor:** analiz, sipariş ve talep geçmişini aynı MCP sunucusundan alır (`AGENT_TOOL_TRANSPORT=mcp`, geri dönüş `direct`); "Bu öneri nasıl hazırlandı" listesi MCP çağrılarını "· MCP" ile işaretler. Yeni analiz hata kodları: `tool_timeout`, `tool_error`.
 - **Kaynak gösteren taslaklar (Faz 7):** analiz, kural sonucunu açıklayan politika maddelerini getirir (`retrieve_policy`); taslak bu maddelere atıf yapar ("Dayanak: İade Politikası v1, IADE-2"), atıflar getirilen maddelerle doğrulanır, kaynak yoksa personele söylenir. Politika metni ve müşteri metni ayraçtan çıkamaz; dokümana gizlenmiş talimatlar hiçbir aksiyon üretmez.
@@ -15,6 +16,7 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Değişti
 
+- Backend imajı `PORT` ortam değişkenine uyuyor (varsayılan 8000). Denetim trigger fonksiyonunun `search_path`'i sabitlendi (yeni migration).
 - Veritabanı imajı `pgvector/pgvector:pg17` (yerel volume'un yeniden kurulması gerekir, bkz. Operasyon kılavuzu).
 
 ## [0.1.0] - 2026-11-03

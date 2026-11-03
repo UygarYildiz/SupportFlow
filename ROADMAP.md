@@ -919,9 +919,9 @@ Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince n
 
 - [ ] Frontend'i statik hosting'de yayınla (örn. Cloudflare Pages).
 - [ ] FastAPI backend'i container destekli uygun bir hostta çalıştır (ücretsiz katmanların uyku/soğuk başlatma sınırlarını kontrol et).
-- [ ] PostgreSQL için yönetilen DB veya küçük VM; migration planı, health/readiness checks.
+- [x] PostgreSQL için yönetilen DB veya küçük VM; migration planı, health/readiness checks. (2026-11-03: Supabase `supportflow`, Frankfurt; ayrı şema + süper yetkisiz rol, Data API'ye kapalı; migration'lar Render açılışında; güvenlik danışmanı temiz; ADR-016.)
 - [ ] **Public demo `LLM_MODE=fake` (veya kayıtlı yanıtlar) ile çalışır.** Gerçek LLM açılacaksa: sert bütçe sınırı, rate limit, yalnız giriş yapmış demo kullanıcıları.
-- [ ] Demo verisi periyodik reset (örn. günlük seed).
+- [ ] Demo verisi periyodik reset (örn. günlük seed). (`.github/workflows/demo-reset.yml` hazır; `DEMO_DATABASE_URL` secret'ı sahip tarafından eklenecek, ilk çalıştırma doğrulanacak.)
 - [ ] n8n yayınlanıyorsa admin panelini halka açık bırakma.
 
 ### İş görüşmesi için 5 dakikalık demo
