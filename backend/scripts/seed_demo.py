@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.agent.llm.fake_embeddings import FakeEmbedder
+from app.core.config import get_settings
 from app.db.models.knowledge import EMBEDDING_DIMENSIONS
 from app.db.session import get_engine
 from app.demo.activity import seed_demo_activity
@@ -35,6 +36,11 @@ def main() -> None:
         "--no-activity", action="store_true", help="skip the pre-analyzed demo tickets"
     )
     args = parser.parse_args()
+    if get_settings().deployment_mode == "self_hosted":
+        # A business's own installation must never receive (or be wiped by) demo data.
+        raise SystemExit(
+            "Refusing to seed: DEPLOYMENT_MODE=self_hosted. Demo data is for demo mode only."
+        )
 
     password = os.environ.get("DEMO_USER_PASSWORD", DEFAULT_DEMO_PASSWORD)
     with Session(get_engine()) as session:

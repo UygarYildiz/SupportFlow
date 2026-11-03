@@ -2,7 +2,7 @@
 
 **Yapay zekânın önerdiği, insanın karar verdiği bir müşteri destek masası.** SupportFlow, e-ticaret destek taleplerini bir LLM ile sınıflandırır; müşterinin gerçek siparişlerini ve mağaza kurallarını kontrol eder, bir yanıt taslağı hazırlar ve yetkili bir çalışanın onaylayacağı sipariş değişiklikleri önerir. Onaylanan değişiklik denetim kaydıyla birlikte yalnızca bir kez uygulanır.
 
-> Tüm veriler kurgusal bir mağaza olan **NovaShop**'a aittir; gerçek müşteri verisi kullanılmaz.
+> Demo ve testlerdeki tüm veriler kurgusal bir mağaza olan **NovaShop**'a aittir. Kendi işletmenizde kullanmak için SupportFlow'u kendi makinenize kurabilirsiniz: [Kendi kurulumu](docs/SELF_HOSTING.md) (veriler sizin makinenizde kalır).
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
@@ -74,8 +74,8 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 235 |
-| Frontend bileşen testleri (Vitest, Testing Library) | 24 |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 265 |
+| Frontend bileşen testleri (Vitest, Testing Library) | 33 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13; `gemini-3.5-flash-lite` ile 13/13 kritik, 12/13 tam (politika atıflarıyla, 2026-11-03) |
 | Politika getirme ([`evals/policy_retrieval.jsonl`](evals/policy_retrieval.jsonl): 20 soru) | `gemini-embedding-2`: hit@3 1.00, MRR 0.94; çevrimdışı embedder: hit@3 0.95 (CI'da taban) |
 
@@ -92,7 +92,18 @@ Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontro
 | Kalite | Ruff, Pyright, pytest, oxlint, Vitest, senaryo eval'leri |
 | Teslimat | Docker Compose, GitHub Actions (backend, frontend ve imaj derlemesi) |
 
-## Yerelde çalıştırma
+## Kendi işletmenizde kullanmak
+
+```bash
+git clone https://github.com/UygarYildiz/SupportFlow.git
+cd SupportFlow/deploy/selfhost
+./init.sh                      # Windows: .\init.ps1  (rastgele sırlar + kurulum kodu)
+docker compose up -d --build   # http://localhost:8080 kurulum sayfasını açar
+```
+
+İşletme adını ve ilk yöneticiyi oluşturun, ekibinizi "Ekip" sayfasından ekleyin. Ayrıntılar, ayarlar, yedek ve internete açma: [Kendi kurulumu](docs/SELF_HOSTING.md). E-posta kutusu bağlama ve CSV ile müşteri/sipariş yükleme sıradaki adımlardır.
+
+## Yerelde çalıştırma (geliştirme)
 
 Gereksinimler: [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/), Node.js 24+.
 
@@ -142,14 +153,15 @@ Postgres, makinedeki yerel bir Postgres ile çakışmasın diye **5433** portund
 
 Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 
-- **Demo kimlik doğrulaması.** Seed ile oluşturulan kullanıcılar ve kısa ömürlü JWT'ler. Gerçek bir kurulum bir kimlik sağlayıcı (OIDC/SSO) kullanırdı.
+- **Basit kimlik doğrulama.** Demoda seed kullanıcıları, kendi kurulumda yöneticinin eklediği hesaplar; ikisinde de kısa ömürlü JWT. Kimlik sağlayıcı (OIDC/SSO), MFA ve giriş deneme sınırı yok.
+- **Kendi kurulumu henüz kanal bağlamıyor.** E-posta kutusu, CSV yükleme ve mağaza bağlayıcıları yol haritasında (Blok D); şimdilik talepler panelden ya da API ile açılır. Mağaza kuralları (iade süresi vb.) NovaShop değerleridir. HTTPS'i işletmenin kendisi sağlar ([ADR-017](docs/DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır)).
 - **Süreç içi worker.** Analiz çalıştırmaları, API süreci içindeki bir worker'ın yürüttüğü veritabanı satırlarıdır. Yeniden başlatmayla yarıda kalan çalıştırmalar başarısız olarak işaretlenir ve yeniden denenebilir. Yük altında bir sonraki adım ayrı bir kuyruk olurdu ([ADR-005](docs/DECISIONS.md#adr-005-analiz-çalıştırmaları-kalıcı-arka-plan-işleridir)).
 - **Mock sipariş sistemi.** Değişiklikler mock bir sipariş deposuna gider; iadeler yalnızca bir iade talebi oluşturur, para hareketi olmaz. Gerçek bir entegrasyon [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay) içinde anlatılan mutabakat akışını gerektirirdi.
 - **Kararları kurallar verir, dokümanlar açıklar.** Mağaza kuralları sürümlenen Python kodudur; politika dokümanları yalnızca kaynak göstermek için getirilir ve karar vermez ([ADR-014](docs/DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)). Bilgi tabanı beş dokümanlık küçük bir set.
 - **MCP yalnızca yerel.** MCP sunucusu stdio ile yerel istemcilere açıktır; uzaktan erişim (HTTP + OAuth 2.1) yoktur ve araçlar yalnızca okur ([ADR-015](docs/DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)).
 - **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
 - **Ücretsiz katmanda canlı demo.** Backend 15 dakika boşta kalınca uyur; demo sahte modelle çalışır ve demo hesapları herkese açıktır ([ADR-016](docs/DECISIONS.md#adr-016-canlı-demo-cloudflare-pages--render--supabase-ücretsiz-katmanlar)).
-- **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
+- **Yanıtlar taslaktır.** SupportFlow henüz e-posta göndermez; çalışan yanıtı kopyalar (onaylı gönderim Blok D2'de).
 
 ## Dokümantasyon
 
@@ -157,12 +169,13 @@ Tüm dokümanların haritası ve hangi değişiklikte hangisinin güncelleneceğ
 
 - [Gereksinimler](docs/REQUIREMENTS.md): problem, roller, erişim modeli, senaryolar, kapsam
 - [Mimari](docs/ARCHITECTURE.md): bileşenler, katmanlar, temel akışlar, durum makineleri
-- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-014
+- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-017
 - [Güvenlik](docs/SECURITY.md): tehditler, önlemler ve bunları kanıtlayan testler
 - [Test planı](docs/TEST_PLAN.md): senaryolar, test matrisi ve eval sonuçları
 - [API referansı](docs/API.md): uç noktalar, kimlik doğrulama, hata kodları
 - [Geliştirme kılavuzu](docs/DEVELOPMENT.md): kurulum, klasör yapısı, komutlar, sık yapılan işler
 - [Operasyon kılavuzu](docs/OPERATIONS.md): yapılandırma, prosedürler, sorun giderme
+- [Kendi kurulumu](docs/SELF_HOSTING.md): kendi işletmende kurma, ayarlar, yedek, güncelleme
 - [Tasarım](docs/DESIGN.md): panelin görsel dili ve inceleme kaydı
 - [Demo senaryosu](docs/DEMO_SCRIPT.md): 3–5 dakikalık gösterim akışı
 - [Sözlük](docs/GLOSSARY.md): kod terimleri ve Türkçe karşılıkları

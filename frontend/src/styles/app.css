@@ -101,7 +101,13 @@
 }
 
 .rail__name {
+  color: var(--ink);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.rail__name:hover {
+  text-decoration: underline;
 }
 
 .rail__signout {
@@ -876,6 +882,36 @@
 .login__demo-buttons {
   display: grid;
   gap: var(--s2);
+}
+
+/* --- Setup, team, account ---------------------------------------------------------- */
+
+.setup__title {
+  margin-bottom: var(--s2);
+  font-size: var(--text-xl);
+}
+
+.team__form,
+.account__form {
+  display: grid;
+  gap: var(--s4);
+}
+
+.account__form {
+  max-width: 28rem;
+}
+
+.team__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--s3);
+}
+
+.team__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s1);
 }
 
 /* --- Login: product intro --------------------------------------------------------- */

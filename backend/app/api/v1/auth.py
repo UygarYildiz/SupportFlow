@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import AppSettings, CurrentUser, DbSession
 from app.core.security import create_access_token
-from app.schemas.auth import LoginRequest, TokenResponse, UserOut
+from app.schemas.auth import LoginRequest, PasswordChange, TokenResponse, UserOut
 from app.schemas.common import ErrorResponse
 from app.services.users import UserService
 
@@ -23,4 +23,16 @@ def login(body: LoginRequest, session: DbSession, settings: AppSettings) -> Toke
 
 @router.get("/me")
 def me(user: CurrentUser) -> UserOut:
+    return UserOut.model_validate(user)
+
+
+@router.post(
+    "/password",
+    responses={status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse}},
+)
+def change_password(body: PasswordChange, user: CurrentUser, session: DbSession) -> UserOut:
+    """Change your own password; the current one must be given."""
+    UserService(session).change_own_password(
+        user, current_password=body.current_password, new_password=body.new_password
+    )
     return UserOut.model_validate(user)

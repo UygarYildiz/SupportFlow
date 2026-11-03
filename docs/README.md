@@ -10,6 +10,7 @@ SupportFlow'un dokümanları tek bir kurala göre düzenlenir: **her bilginin te
 | Projede geliştirme yapacak kişi | [Geliştirme kılavuzu](DEVELOPMENT.md) → [Mimari](ARCHITECTURE.md) → [Sözlük](GLOSSARY.md) → [Katkı kuralları](../CONTRIBUTING.md) |
 | API'yi kullanacak kişi | [API referansı](API.md) → [Sözlük](GLOSSARY.md) |
 | Uygulamayı çalıştıran, sorun gideren kişi | [Operasyon kılavuzu](OPERATIONS.md) |
+| SupportFlow'u kendi işletmesinde kullanacak kişi | [Kendi kurulumu](SELF_HOSTING.md) |
 | Projeyi gösterecek kişi (sunum, video) | [Demo senaryosu](DEMO_SCRIPT.md) → [Operasyon kılavuzu](OPERATIONS.md#demo-öncesi-hazırlık) |
 
 ## Doküman haritası
@@ -26,6 +27,7 @@ SupportFlow'un dokümanları tek bir kurala göre düzenlenir: **her bilginin te
 | [API](API.md) | Uç noktalar nasıl kullanılır? | Uç nokta listesi, kimlik doğrulama, hata kodları |
 | [DEVELOPMENT](DEVELOPMENT.md) | Nasıl geliştiririm? | Kurulum, klasör yapısı, komutlar, sık yapılan işlerin tarifleri |
 | [OPERATIONS](OPERATIONS.md) | Nasıl çalıştırır, nasıl düzeltirim? | Ortam değişkenleri, servisler, prosedürler, sorun giderme |
+| [SELF_HOSTING](SELF_HOSTING.md) | Kendi işletmemde nasıl kurarım? | Kendi kurulumu: kurulum adımları, ayarlar, yedek, güncelleme, internete açma |
 | [DEMO_SCRIPT](DEMO_SCRIPT.md) | Nasıl gösteririm? | 3–5 dakikalık gösterim akışı, yedek planlar |
 | [GLOSSARY](GLOSSARY.md) | Bu terim ne demek? | Kod terimi ↔ arayüz metni ↔ anlam eşlemesi |
 | [CHANGELOG](../CHANGELOG.md) | Ne değişti? | Sürüm notları |
@@ -60,7 +62,7 @@ Her değişiklikten sonra bu tabloya bakılır. Aynı değişiklik birden fazla 
 | Yeni güvenlik önlemi ya da tehdit | [SECURITY](SECURITY.md) (önlemi kanıtlayan test adıyla) |
 | Test, eval senaryosu eklendi ya da sayısı değişti | [TEST_PLAN](TEST_PLAN.md), README test tablosu |
 | Prompt değişti (`PROMPT_VERSION`) | [TEST_PLAN](TEST_PLAN.md) canlı sonuç tablosu (yeni sürüm satırı) |
-| Ortam değişkeni eklendi ya da varsayılanı değişti | `.env.example`, [OPERATIONS](OPERATIONS.md) yapılandırma tablosu |
+| Ortam değişkeni eklendi ya da varsayılanı değişti | `.env.example`, [OPERATIONS](OPERATIONS.md) yapılandırma tablosu; kendi kurulumu etkiliyorsa `deploy/selfhost/` (`compose.yaml`, `.env.example`) ve [SELF_HOSTING](SELF_HOSTING.md) |
 | Komut, araç ya da kurulum adımı değişti | [DEVELOPMENT](DEVELOPMENT.md), gerekiyorsa README hızlı başlangıç |
 | Yeni operasyonel prosedür ya da bilinen arıza | [OPERATIONS](OPERATIONS.md) |
 | Arayüz metni ya da yeni terim | [GLOSSARY](GLOSSARY.md), görsel değişiklikse [DESIGN](DESIGN.md) |

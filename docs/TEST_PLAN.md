@@ -3,9 +3,9 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 235 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 265 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
-cd frontend && npm test               # 24 bileşen ve birim testi (Vitest + Testing Library)
+cd frontend && npm test               # 33 bileşen ve birim testi (Vitest + Testing Library)
 ```
 
 ## Senaryolar (docs/REQUIREMENTS.md bölüm 5)
@@ -108,6 +108,21 @@ Görsel kontroller 1440px ve 390px genişlikte ekran görüntüleriyle yapılır
 | stdio giriş noktası gerçekten MCP konuşuyor; token olmadan başlamıyor | `test_stdio_server_lists_its_tools_and_refuses_a_bad_token`, `test_stdio_server_does_not_start_without_a_token` |
 
 Elle doğrulama (2026-11-03): stdio sunucusu, geliştirme veritabanı ve gerçek bir personel token'ıyla SDK'nın stdio istemcisinden çağrıldı: üç araç listelendi, talebin kendi siparişi döndü, başka müşterinin siparişi `not_found`, `limit=99` şema hatası verdi, her çağrı `call_id` ile log'landı. MCP Inspector ile kontrol [OPERATIONS](OPERATIONS.md#mcp-sunucusunu-bir-istemciye-bağlamak)'taki komutla yapılır.
+
+## Kendi kurulumu ve ekip yönetimi (Blok D1, [ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır))
+
+| Gereksinim | Doğrulayan |
+|---|---|
+| Kurulum yalnız boş bir `self_hosted` kurulumda ve bir kez yapılır; demo modunda hiç açılmaz | `test_setup.py`: `test_setup_works_exactly_once`, `test_a_demo_installation_never_offers_setup`, `test_a_database_with_accounts_is_never_offered_setup` |
+| Kurulum kodu olmadan kurulum yapılamaz; üretimde kod zorunlu | `test_setup_needs_the_setup_code`, `test_accounts.py::test_self_hosted_production_requires_a_setup_token` |
+| Geçersiz kurulum hiçbir kayıt bırakmaz; veritabanı tek kurulum satırına izin verir | `test_an_invalid_setup_creates_nothing`, `test_the_database_allows_a_single_installation_record` |
+| Kendi kuruluma demo verisi yüklenemez | `test_accounts.py::test_demo_data_is_never_seeded_into_a_self_hosted_installation` |
+| Yalnız yönetici hesap yönetir; yeni hesap en düşük rolle açılır; e-posta tekil | `test_user_management.py`: `test_only_admins_manage_accounts`, `test_admin_adds_a_staff_member_who_can_sign_in`, `test_an_address_can_belong_to_one_account_only` |
+| Parola kuralı; kendi parolasını değiştirme; yöneticinin sıfırlaması | `test_accounts.py::test_weak_passwords_are_refused`, `test_staff_change_their_own_password`, `test_admin_resets_a_forgotten_password` |
+| Kurulum yöneticisiz kalamaz (kendini kilitleme ve yarışan düşürme dahil) | `test_admins_cannot_lock_themselves_out`, `test_two_admins_demoting_each_other_leave_one_admin` |
+| Panel: boş kurulum kurulum sayfasına gider, kendi kurulumda demo hesabı görünmez; kurulum formu, ekip sayfası | `LoginPage.test.tsx`, `SetupPage.test.tsx`, `TeamPage.test.tsx` |
+
+Elle uçtan uca kontrol (2026-11-03, Windows 11): `deploy/selfhost/init.ps1` + `docker compose up -d --build`; tarayıcıdan kurulum, genel bakış, ekip sayfası; API ile ekip üyesi ekleme ve yeni üyenin girişi.
 
 ## Dokümantasyon
 

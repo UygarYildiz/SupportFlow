@@ -57,6 +57,10 @@ export const AUDIT_LABEL: Record<string, string> = {
   'proposal.integrity_failed': 'değiştirilmiş bir öneriyle karşılaştı',
   'action.executed': 'siparişe değişikliği uyguladı',
   'action.failed': 'değişikliği uygularken engellendi',
+  'setup.completed': 'kurulumu tamamladı',
+  'user.created': 'bir ekip üyesi ekledi',
+  'user.updated': 'bir ekip üyesinin hesabını değiştirdi',
+  'user.password_changed': 'parolasını değiştirdi',
 }
 
 /** Word printed by the decision stamp. Rubber-stamp lettering is uppercase by nature. */

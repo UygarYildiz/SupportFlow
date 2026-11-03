@@ -5,6 +5,8 @@ export interface AuthState {
   user: User | undefined
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
+  /** Start a session with a token the API already issued (first-run setup). */
+  acceptToken: (token: string) => void
   signOut: () => void
 }
 

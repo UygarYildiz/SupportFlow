@@ -197,6 +197,18 @@ Personel bir yapay zekâ ön değerlendirme adımını taklit edemez, analiz ak�
 
 **Ajan çalıştırması:** `queued → running → succeeded | failed`.
 
+### 3.6 Kurulum modları ve ilk açılış ([ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır))
+
+`DEPLOYMENT_MODE` iki çalışma biçimini ayırır; kod aynıdır:
+
+| | `demo` | `self_hosted` |
+|---|---|---|
+| Veri | Sentetik NovaShop (`poe seed`) | İşletmenin kendi verisi; seed reddeder |
+| Hesaplar | Seed kullanıcıları, demo giriş butonları | İlk açılış kurulumunun yöneticisi + yöneticinin eklediği ekip |
+| Paketleme | `compose.yaml` (geliştirme), canlı demo (ADR-016) | `deploy/selfhost/`: Postgres (port açmaz), backend, paneli sunan ve `/api`'yi ileten nginx |
+
+İlk açılış: panel `GET /api/v1/setup/status` ile kurulumun gerekip gerekmediğini öğrenir; `POST /api/v1/setup` (`services/setup.py`) kurulum kodunu doğrular, `UserService.add_user` ile ilk yöneticiyi ve tek satırlık `installation` kaydını aynı transaction'da yazar. Satırın birincil anahtarı 1'e sabittir; yarışan ikinci kurulum veritabanında reddedilir. Hesap kuralları (parola, e-posta biçimi, "en az bir yönetici") `domain/accounts.py`'de saf fonksiyonlardır.
+
 ## 5. Güven sınırları
 
 - LLM çıktısı güvenilmez bir öneridir. Bir Pydantic şemasıyla doğrulanır ve atıf yaptığı sipariş kimlikleri araçların gerçekten döndürdüğü verilerle karşılaştırılır.
@@ -208,4 +220,4 @@ Personel bir yapay zekâ ön değerlendirme adımını taklit edemez, analiz ak�
 
 ## 6. Frontend
 
-React + TypeScript + Vite + React Router + TanStack Query; tasarım token'ları üzerine düz CSS ile stillendirilmiştir (ADR-013, `docs/DESIGN.md`). Sayfalar: genel bakış (role göre: sizin ya da bir yöneticinin kararını bekleyenler, yöneticiler için denetim kaydı), talepler, talep detayı (mesaj, yapay zekâ taslağı, graf adımlarıyla "bu öneri nasıl hazırlandı", öneri, sipariş, kural, geçmiş), onay kuyruğu. Tek bir API istemci katmanı; tipler backend OpenAPI şemasından üretilir. Yapay zekâ çıktısı her zaman taslak olarak etiketlenir.
+React + TypeScript + Vite + React Router + TanStack Query; tasarım token'ları üzerine düz CSS ile stillendirilmiştir (ADR-013, `docs/DESIGN.md`). Sayfalar: kurulum (yalnız boş kendi kurulumda), ekip (yönetici) ve hesabım; genel bakış (role göre: sizin ya da bir yöneticinin kararını bekleyenler, yöneticiler için denetim kaydı), talepler, talep detayı (mesaj, yapay zekâ taslağı, graf adımlarıyla "bu öneri nasıl hazırlandı", öneri, sipariş, kural, geçmiş), onay kuyruğu. Tek bir API istemci katmanı; tipler backend OpenAPI şemasından üretilir. Yapay zekâ çıktısı her zaman taslak olarak etiketlenir.

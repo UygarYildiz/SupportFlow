@@ -2,6 +2,8 @@
 
 SupportFlow'u çalıştıran, demosunu hazırlayan ya da bir sorunu gideren kişi için: yapılandırma, servisler, rutin prosedürler ve arıza durumunda ne yapılacağı. Kurulum adımları [DEVELOPMENT](DEVELOPMENT.md#1-kurulum)'da.
 
+> Bir işletmenin kendi kurulumu (`deploy/selfhost/`) için ayrı kılavuz: [SELF_HOSTING](SELF_HOSTING.md). Bu doküman geliştirme ortamını ve canlı demoyu anlatır.
+>
 > Bu bir demo kurulumudur. Üretim için eksik olanlar [SECURITY](SECURITY.md#bilinen-eksikler-üretim-için-gerekenler)'de ve README'deki "Bilinen sınırlamalar"da listelenir.
 
 ## Servisler
@@ -32,6 +34,8 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
 | `APP_ENV` | `development` | `development`, `test`, `production`. `production` geliştirme JWT sırrıyla açılmayı reddeder |
+| `DEPLOYMENT_MODE` | `demo` | `demo`: sentetik NovaShop verisi ve demo hesapları (geliştirme, canlı demo). `self_hosted`: işletmenin kendi kurulumu; demo verisi yüklenemez, ilk açılışta kurulum sayfası ([ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır)) |
+| `SETUP_TOKEN` | yok | İlk açılış kurulumunun istediği tek seferlik kod. `self_hosted` + `production` iken en az 16 karakter zorunlu; kurulumdan sonra işe yaramaz |
 | `LOG_LEVEL` | `INFO` | Python log seviyesi |
 | `POSTGRES_HOST_PORT` | `5433` | Compose'un Postgres'i yayınladığı host portu |
 | `DATABASE_URL` | `postgresql+psycopg://supportflow:supportflow@localhost:5433/supportflow` | Uygulama veritabanı |
@@ -163,6 +167,10 @@ ALTER ROLE supportflow_app SET statement_timeout = '30s';
 ```
 
 Ardından yerelden `DATABASE_URL=<adres> uv run alembic upgrade head` ve `uv run python -m scripts.seed_demo` çalıştırın. Supabase'in güvenlik danışmanı (Advisors → Security) temiz olmalıdır.
+
+### Yerelde kendi kurulum modunu denemek
+
+Geliştirme veritabanını bozmadan: `deploy/selfhost/` yığını ayrı bir Compose projesi (`supportflow-selfhost`) ve ayrı bir veri birimiyle çalışır; adımlar [SELF_HOSTING](SELF_HOSTING.md#kurulum-5-dakika)'te. Kurulumu yeniden denemek için `docker compose down -v` veriyi siler. Geliştirme backend'ini `DEPLOYMENT_MODE=self_hosted` ile çalıştırırsanız, kullanıcısı olan geliştirme veritabanı kurulum sayfasını göstermez (kurulum yalnız boş bir veritabanında açılır).
 
 ### JWT sırrını değiştirmek
 

@@ -1,9 +1,11 @@
 import { type FormEvent, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
+import { useSetupStatus } from '../api/queries'
 import { useAuth } from '../auth/useAuth'
 
-// Seeded demo accounts (scripts/seed_demo.py). Shown only in development or demo mode.
+// Seeded demo accounts (scripts/seed_demo.py). Shown only in development or demo builds,
+// and never by a self-hosted installation (ADR-017), which has no demo data.
 const DEMO_PASSWORD = 'supportflow-demo'
 const DEMO_ACCOUNTS = [
   { email: 'selin@novashop.example', label: 'Selin (destek uzmanı)' },
@@ -13,6 +15,7 @@ const SHOW_DEMO = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'tru
 
 export function LoginPage() {
   const { user, signIn } = useAuth()
+  const setup = useSetupStatus()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -22,6 +25,10 @@ export function LoginPage() {
   const next = (location.state as { from?: string } | null)?.from ?? '/'
 
   if (user) return <Navigate to={next} replace />
+  if (setup.data?.setup_required) return <Navigate to="/setup" replace />
+
+  const selfHosted = setup.data?.mode === 'self_hosted'
+  const showDemo = SHOW_DEMO && setup.data?.mode === 'demo'
 
   async function submit(emailValue: string, passwordValue: string) {
     setBusy(true)
@@ -46,7 +53,9 @@ export function LoginPage() {
       <div className="login__panel">
         <div className="wordmark wordmark--large">SupportFlow</div>
         <p className="login__intro">
-          NovaShop müşterileri için yapay zekânın hazırladığı yanıtları inceleyin ve sipariş değişikliklerini onaylayın.
+          {selfHosted
+            ? `${setup.data?.organization_name ?? 'İşletmeniz'} için yapay zekânın hazırladığı yanıtları inceleyin ve değişiklikleri onaylayın.`
+            : 'NovaShop müşterileri için yapay zekânın hazırladığı yanıtları inceleyin ve sipariş değişikliklerini onaylayın.'}
         </p>
         <form className="login__form" onSubmit={onSubmit}>
           <div className="field">
@@ -82,7 +91,7 @@ export function LoginPage() {
             {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
           </button>
         </form>
-        {SHOW_DEMO ? (
+        {showDemo ? (
           <section className="login__demo" aria-labelledby="demo-title">
             <h2 id="demo-title" className="login__demo-title">
               Demo hesapları

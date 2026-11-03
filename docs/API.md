@@ -7,7 +7,7 @@ SupportFlow backend'inin REST API'si: kimlik doğrulama, uç noktalar, hata kodl
 ## Genel kurallar
 
 - **Taban yol:** `/api/v1`. Sağlık kontrolleri (`/health`, `/ready`) kökte ve herkese açıktır.
-- **Kimlik doğrulama:** `/health`, `/ready` ve `/api/v1/auth/login` dışındaki her uç nokta `Authorization: Bearer <token>` ister. Token kısa ömürlüdür (`ACCESS_TOKEN_EXPIRE_MINUTES`, varsayılan 30 dk). Kullanıcının rolü her istekte veritabanından yeniden okunur; pasifleştirilen kullanıcı anında erişimini kaybeder.
+- **Kimlik doğrulama:** `/health`, `/ready`, `/api/v1/auth/login` ve ilk açılış kurulumu (`/api/v1/setup`, `/api/v1/setup/status`) dışındaki her uç nokta `Authorization: Bearer <token>` ister. Token kısa ömürlüdür (`ACCESS_TOKEN_EXPIRE_MINUTES`, varsayılan 30 dk). Kullanıcının rolü her istekte veritabanından yeniden okunur; pasifleştirilen kullanıcı anında erişimini kaybeder.
 - **Roller:** "Personel" = `agent_user` ya da `admin`. Bazı uç noktalar yalnızca `admin` içindir. Rol yetmezse 403 döner. Rol kuralları sunucudadır; arayüzdeki `can_decide` alanı yalnızca bilgilendirmedir.
 - **Biçim:** İstek ve yanıtlar JSON. Zaman damgaları saat dilimli UTC (ISO 8601). Para tutarları ondalık metin (`"749.50"`) ve ayrı bir `currency` alanı (`"TRY"`).
 - **Kimlikler:** Talepler, kullanıcılar, çalıştırmalar ve öneriler tamsayı; müşteriler ve siparişler dış sistemin metin kimlikleri (`CUS-0001`, `ORD-1001`) ([ADR-010](DECISIONS.md#adr-010-kalıcılık-kuralları)).
@@ -31,6 +31,7 @@ Her hata şu biçimde döner; `detail` personele gösterilebilecek Türkçe bir 
 |---|---|---|
 | 401 | Token yok, geçersiz ya da süresi dolmuş; kullanıcı pasif | `Oturum açılmamış` |
 | 401 | Girişte yanlış e-posta/parola (bilinmeyen kullanıcı ve pasif hesap da aynı yanıtı alır) | `E-posta ya da parola hatalı` |
+| 403 | Kurulum kodu hatalı (yalnız `POST /api/v1/setup`) | `Kurulum kodu hatalı` |
 | 403 | Rol bu işlemi yapamaz | `Bu işlem için yetkiniz yok`, `'agent_user' rolü 'create_refund_request' önerileri hakkında karar veremez` |
 | 404 | Kayıt yok | `Sipariş bulunamadı: ORD-9999` |
 | 409 | İstek güncel durumla çelişiyor: geçersiz durum geçişi, devam eden analiz, eski sürümle karar, zaten verilmiş karar, süresi dolmuş ya da içeriği değiştirilmiş öneri | `#3 numaralı talebin devam eden bir analizi var` |
@@ -70,6 +71,31 @@ Canlılık: süreç ayakta mı? Bağımlılıklara dokunmaz. Yanıt: `{"status":
 
 Hazırlık: veritabanı yanıt veriyor mu? Başarılıysa 200 `{"status": "ready", "database": "ok"}`, değilse 503 `{"status": "not_ready", "database": "unavailable"}`. Sürücü ayrıntısı istemciye dönmez, loglanır.
 
+## İlk açılış kurulumu
+
+Yalnızca kendi kurulumda (`DEPLOYMENT_MODE=self_hosted`) anlamlıdır ([ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır), [SELF_HOSTING](SELF_HOSTING.md)). İkisi de herkese açıktır: kurulumdan önce giriş yapılacak bir hesap yoktur.
+
+### `GET /api/v1/setup/status`
+
+Kurulumun modu ve ilk yöneticiye hâlâ ihtiyaç olup olmadığı. Panel, giriş ekranı yerine kurulum sayfasını göstermeye ve demo hesaplarını gizlemeye bununla karar verir.
+
+```json
+{ "mode": "self_hosted", "setup_required": true, "setup_token_required": true, "organization_name": null }
+```
+
+`demo` modunda `setup_required` her zaman `false`'tur. Kullanıcısı olan bir veritabanında da kurulum açılmaz.
+
+### `POST /api/v1/setup`
+
+İşletme kaydını ve ilk yöneticiyi tek transaction'da oluşturur, yöneticiye token döner (201, `POST /auth/login` ile aynı yanıt). İstek:
+
+```json
+{ "organization_name": "Kuzey Kırtasiye", "full_name": "Deniz Kaya", "email": "deniz@kuzey.example",
+  "password": "en az on iki karakter", "setup_token": "<SETUP_TOKEN>" }
+```
+
+Yalnızca bir kez başarılı olur. Kurulum tamamlanmışsa (ya da `demo` modundaysa) 409 `Kurulum zaten tamamlanmış. Giriş yapın.`; bu durumda kod hiç kontrol edilmez. `SETUP_TOKEN` yapılandırılmışsa ve kod uyuşmuyorsa 403. Zayıf parola, geçersiz e-posta ya da boş işletme adı 422 alır ve hiçbir kayıt oluşmaz. Yarışan iki istekten yalnız biri kazanır.
+
 ## Kimlik doğrulama ve kullanıcılar
 
 ### `POST /api/v1/auth/login`
@@ -86,9 +112,23 @@ Bilinmeyen kullanıcı, yanlış parola ve pasif hesap aynı 401 yanıtını al�
 
 Oturumdaki kullanıcı: `{"id", "email", "full_name", "role", "is_active"}`.
 
+### `POST /api/v1/auth/password`
+
+Oturumdaki kullanıcı kendi parolasını değiştirir: `{"current_password": "...", "new_password": "..."}`. Mevcut parola yanlışsa ya da yeni parola kurala uymuyorsa 422. Yanıt: kullanıcı (`GET /auth/me` ile aynı). Denetim kaydına `user.password_changed` yazılır.
+
+**Parola kuralı** (hesap ekleme, sıfırlama ve değiştirmede): 12–128 karakter, boşlukla başlayıp bitemez, e-posta adresini içeremez. Aykırılık 422 ve Türkçe gerekçe döner.
+
 ### `GET /api/v1/users`
 
-Yalnızca `admin`. Tüm personel hesapları (denetim kaydındaki `actor_id`'leri isme çevirmek için).
+Yalnızca `admin`. Tüm personel hesapları (ekip sayfası ve denetim kaydındaki `actor_id`'leri isme çevirmek için).
+
+### `POST /api/v1/users`
+
+Yalnızca `admin`. Geçici parolayla yeni hesap ekler (201): `{"email", "full_name", "password", "role"}`; `role` verilmezse `agent_user`. E-posta küçük harfe çevrilip saklanır; aynı adres (büyük/küçük harf farkı gözetmeksizin) varsa 409 `Bu e-posta adresiyle bir hesap zaten var`. Denetim: `user.created`.
+
+### `PATCH /api/v1/users/{user_id}`
+
+Yalnızca `admin`. Yalnız gönderilen alanlar değişir: `full_name`, `role`, `is_active`, `password` (sıfırlama). Rol ve etkinlik değişikliği bir sonraki istekte geçerli olur (rol her istekte yeniden okunur). Yönetici kendi rolünü değiştiremez ve kendini pasifleştiremez; hiçbir değişiklik kurulumu etkin yöneticisiz bırakamaz (422 `En az bir etkin yönetici kalmalı`). Bilinmeyen hesap 404. Denetim: `user.updated` (parola değil, yalnızca sıfırlandığı yazılır).
 
 ## Talepler
 

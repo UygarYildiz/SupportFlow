@@ -4,6 +4,11 @@ import type { components } from './schema'
 type S = components['schemas']
 
 export type User = S['UserOut']
+export type UserRole = S['UserRole']
+export type UserCreate = S['UserCreate']
+export type UserUpdate = S['UserUpdate']
+export type SetupStatus = S['SetupStatusOut']
+export type SetupRequest = S['SetupRequest']
 export type Ticket = S['TicketOut']
 export type TicketDetail = S['TicketDetail']
 export type TicketEvent = S['TicketEventOut']
