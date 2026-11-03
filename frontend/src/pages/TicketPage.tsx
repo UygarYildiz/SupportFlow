@@ -43,7 +43,8 @@ export function TicketPage() {
 
   const data = ticket.data
   const latestRun = runs.data?.[0]
-  const checks = latestRun?.status === 'succeeded' ? (latestRun.result?.policy_checks ?? []) : []
+  const result = latestRun?.status === 'succeeded' ? latestRun.result : null
+  const checks = result?.policy_checks ?? []
   const ticketProposals = proposals.data?.items ?? []
   // Newest first: the open proposal (if any) leads.
   const ordered = [...ticketProposals].sort((a, b) => b.id - a.id)
@@ -101,7 +102,11 @@ export function TicketPage() {
               Müşteri kendi siparişlerinden birine atıf yapmadı.
             </div>
           )}
-          <PolicyChecks checks={checks} />
+          <PolicyChecks
+            checks={checks}
+            excerpts={result?.policy_excerpts ?? []}
+            citedClauseIds={result?.cited_clause_ids ?? []}
+          />
           <p className="meta">Geliş: {formatDateTime(data.created_at)}</p>
         </aside>
       </div>

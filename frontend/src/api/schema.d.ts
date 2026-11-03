@@ -358,6 +358,12 @@ export interface components {
             prompt_version: string;
             /** Policy Checks */
             policy_checks?: components["schemas"]["PolicyCheck"][];
+            /** Policy Excerpts */
+            policy_excerpts?: components["schemas"]["PolicyExcerptFact"][];
+            /** Cited Clause Ids */
+            cited_clause_ids?: string[];
+            /** Unverified Clause Ids */
+            unverified_clause_ids?: string[];
             proposed_action?: components["schemas"]["ProposedAction"] | null;
         };
         /** AuditLogOut */
@@ -510,6 +516,30 @@ export interface components {
              * @default false
              */
             informational: boolean;
+        };
+        /**
+         * PolicyExcerptFact
+         * @description A clause retrieved from the policy knowledge base (ADR-014). Reference text only:
+         *     it explains a rule decision, it never decides or instructs.
+         */
+        PolicyExcerptFact: {
+            /** Policy Id */
+            policy_id: string;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Clause Id */
+            clause_id: string;
+            /** Heading */
+            heading: string;
+            /** Text */
+            text: string;
         };
         /** ProposalOut */
         ProposalOut: {

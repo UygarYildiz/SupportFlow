@@ -729,7 +729,7 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 
 **Çıkış kriterleri**
 
-- [ ] UI, önerinin hangi politika bölümüne dayandığını gösteriyor.
+- [x] UI, önerinin hangi politika bölümüne dayandığını gösteriyor. (2026-11-03: "Mağaza kuralı" kutusunda "Dayanağı"; `TicketParts.test.tsx`; görsel kontrol #7, #3, #14.)
 - [ ] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor.
 - [x] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor. (Atıf doğrulaması; arama yalnızca güncel sürüm ve aynı model.)
 

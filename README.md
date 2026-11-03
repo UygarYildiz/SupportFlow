@@ -72,7 +72,7 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 | Ne | Sonuç |
 |---|---|
 | Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 194 |
-| Frontend bileşen testleri (Vitest, Testing Library) | 17 |
+| Frontend bileşen testleri (Vitest, Testing Library) | 20 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. `gemini-3.5-flash-lite` ile Türkçe sette 13/13 (tek canlı çalıştırma, 2026-11-03) |
 
 Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontrolleri (güvensiz öneri yok, başka müşterinin verisi yok, uydurma yok) **kalite** kontrollerinden (kategori, atıf yapılan kanıt) ayırır. Testler ve CI asla ücretli bir API çağırmaz; deterministik bir sahte model kullanır. [Test planı](docs/TEST_PLAN.md) her gereksinimi ve tehdidi onu kanıtlayan testlere eşler; [Güvenlik](docs/SECURITY.md) tehditleri ve önlemleri listeler.

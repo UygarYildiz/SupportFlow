@@ -5,7 +5,7 @@ Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL
 ```bash
 cd backend && uv run poe check        # lint, format, tip kontrolü, 194 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
-cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Library)
+cd frontend && npm test               # 20 bileşen testi (Vitest + Testing Library)
 ```
 
 ## Senaryolar (docs/REQUIREMENTS.md bölüm 5)
@@ -71,6 +71,7 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 | Çift gönderim engellenir; gösterilen sürüm gönderilir | `ProposalCard.test.tsx`: uygulanırken ikinci tıklamayı engeller |
 | Yetkisiz roller karar butonu görmez (API de reddeder: TC-19) | `ProposalCard.test.tsx`: karar butonu yok |
 | Yanlış giriş bilgileri açıklanır | `LoginPage.test.tsx` |
+| Kural sonucunun dayandığı politika maddesi kaynağıyla gösterilir; yalnızca atıf yapılan maddeler "Dayanağı" olarak sunulur | `TicketParts.test.tsx` |
 | Genel bakış sayıları filtrelenmiş listeye bağlanır | `DashboardPage.test.tsx`: her durum sayısını bağlar |
 | Rol farkı görünür: destek uzmanları iadeleri "yönetici bekliyor" olarak görür, yöneticiler karar verir ve denetim kaydını görür | `DashboardPage.test.tsx`: destek uzmanı denetim kaydını asla istemez, yönetici her kararı alır; `ProposalCard.test.tsx`: "Yalnızca yönetici" işareti |
 | Demo verisi iki rolü de iş başında gösterir; gerçek analiz/onay akışından ve ücretli model olmadan | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
