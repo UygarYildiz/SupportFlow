@@ -11,8 +11,11 @@ import type {
   TicketDetail,
   TicketPriority,
   TicketStatus,
+  SetupStatus,
   TicketSummary,
   User,
+  UserCreate,
+  UserUpdate,
 } from './types'
 
 export const keys = {
@@ -27,6 +30,7 @@ export const keys = {
   recentTickets: (limit: number) => ['tickets', 'recent', limit] as const,
   recentAudit: (limit: number) => ['audit', 'recent', limit] as const,
   users: ['users'] as const,
+  setup: ['setup'] as const,
 }
 
 export interface TicketFilters {
@@ -187,5 +191,38 @@ export function useUsers(enabled: boolean) {
     queryFn: () => request<User[]>('GET', '/users'),
     enabled,
     staleTime: 5 * 60_000,
+  })
+}
+
+/** Public: the installation's mode and whether it still needs its first admin (ADR-017). */
+export function useSetupStatus() {
+  return useQuery({
+    queryKey: keys.setup,
+    queryFn: () => request<SetupStatus>('GET', '/setup/status'),
+    staleTime: 60_000,
+  })
+}
+
+export function useCreateUser() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: UserCreate) => request<User>('POST', '/users', { body }),
+    onSettled: () => client.invalidateQueries({ queryKey: keys.users }),
+  })
+}
+
+export function useUpdateUser() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: UserUpdate & { id: number }) =>
+      request<User>('PATCH', `/users/${id}`, { body }),
+    onSettled: () => client.invalidateQueries({ queryKey: keys.users }),
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (body: { current_password: string; new_password: string }) =>
+      request<User>('POST', '/auth/password', { body }),
   })
 }

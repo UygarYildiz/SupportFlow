@@ -69,3 +69,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: docker build --tag supportflow-backend:ci backend
+
+  frontend-image:
+    name: Frontend Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build --tag supportflow-frontend:ci frontend

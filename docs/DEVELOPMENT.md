@@ -52,6 +52,7 @@ SupportFlow/
 │   ├── knowledge/policies/ # sürümlü NovaShop politika dokümanları (RAG kaynağı)
 │   ├── scripts/            # seed_demo.py, ingest_policies.py, mcp_token.py, check_docs.py
 │   └── tests/              # unit/ (DB'siz) ve integration/ (gerçek Postgres)
+├── frontend/               # Dockerfile + nginx.conf: kendi kurulum için üretim imajı
 ├── frontend/src/
 │   ├── api/                # client.ts (tüm HTTP), queries.ts (hook'lar), üretilmiş tipler
 │   ├── pages/  components/ # ekranlar ve parçaları
@@ -59,7 +60,8 @@ SupportFlow/
 │   └── styles/             # token'lar ve bileşen stilleri
 ├── evals/scenarios.jsonl   # senaryo eval'leri (veri)
 ├── docs/                   # bu dokümanlar
-└── compose.yaml
+├── deploy/selfhost/        # kendi kurulumu: compose.yaml, init.sh / init.ps1 (SELF_HOSTING.md)
+└── compose.yaml            # geliştirme yığını
 ```
 
 Katmanlar arası bağımlılık kuralları (ör. `domain/` hiçbir şeyi import etmez, `agent/` yürütücüyü import edemez) [ARCHITECTURE §2](ARCHITECTURE.md#2-backend-modülleri-ve-bağımlılık-kuralları)'de; bazıları testlerle zorunludur.

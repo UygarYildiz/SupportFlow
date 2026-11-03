@@ -20,7 +20,7 @@ SupportFlow AI bu adımları denetlenebilir tek bir iş akışında birleştirir
 | Aktör | Okuma | Yazma |
 |---|---|---|
 | `agent_user` | Tüm talepler, müşteriler ve siparişler (tek bir destek ekibi tek bir şirkete hizmet verir) | İzin verilen talep alanları ve durumları; rolünün onaylayabildiği öneriler hakkında kararlar |
-| `admin` | Denetim kaydı dahil her şey | Kullanıcı rolleri, kurallar, tüm öneriler hakkında kararlar |
+| `admin` | Denetim kaydı dahil her şey | Hesaplar (ekleme, rol, pasifleştirme, parola sıfırlama; kendi rolü ve etkinliği hariç), kurallar, tüm öneriler hakkında kararlar |
 | Yapay zekâ ajanı | Yalnızca talebin `customer_id`'sine ait veriler | Yok. Yalnızca `ActionProposal` kaydı oluşturur |
 | Talep alma webhook'u (Faz 9) | Yok | Yalnızca talep oluşturma; paylaşılan sır / imza ile doğrulanır |
 
@@ -34,7 +34,8 @@ Kurallar:
 | `change_shipping_address` | Siparişin teslimat adresini günceller | `agent_user` ya da `admin` |
 | `create_refund_request` | Bir iade talebi kaydı oluşturur (para hareketi yok) | Yalnızca `admin` |
 
-- `/health` ve `/ready` dışındaki tüm uç noktalar kimlik doğrulama ister.
+- `/health`, `/ready`, giriş ve ilk açılış kurulumu dışındaki tüm uç noktalar kimlik doğrulama ister. Kurulum yalnız kullanıcısı olmayan bir kendi kurulumda bir kez yapılabilir ([ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır)).
+- Her kurulumda en az bir etkin `admin` kalır; her çalışan kendi parolasını değiştirebilir.
 
 ## 4. Demo alanı: NovaShop
 
@@ -113,6 +114,8 @@ Tüm veriler kurgusaldır. Müşteri mesajları Türkçedir.
 - Model fine-tuning
 
 **MVP'den sonra:** kaynak gösteren kural RAG'i, salt okunur MCP araçları, canlı yayın. Opsiyonel: n8n ile talep alma ve bildirimler.
+
+**Gerçek kullanım (Blok D, [ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır)):** tek işletmelik kendi kurulumu (ilk açılış kurulumu ve ekip yönetimi hazır); sırada e-posta kanalı, CSV ile veri yükleme, işletmeye özgü kurallar, model seçimi ve mağaza bağlayıcıları. Gerçek veri yalnız kendi kurulumda işlenir; demo ve testler sentetik kalır.
 
 ## 9. Başarı kriterleri
 

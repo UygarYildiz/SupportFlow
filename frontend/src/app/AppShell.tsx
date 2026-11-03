@@ -44,10 +44,19 @@ export function AppShell() {
               ) : null}
             </NavLink>
           </li>
+          {user?.role === 'admin' ? (
+            <li>
+              <NavLink to="/team" className="rail__link">
+                Ekip
+              </NavLink>
+            </li>
+          ) : null}
         </ul>
         {user ? (
           <div className="rail__user">
-            <span className="rail__name">{user.full_name}</span>
+            <NavLink to="/account" className="rail__name">
+              {user.full_name}
+            </NavLink>
             <span className="meta">{user.role === 'admin' ? 'Yönetici' : 'Destek uzmanı'}</span>
             <button type="button" className="button button--quiet rail__signout" onClick={signOut}>
               Çıkış yap

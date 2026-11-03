@@ -35,7 +35,7 @@ export const agent: User = {
 
 export function renderWithProviders(ui: ReactNode, { user = agent, route = '/' } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const auth = { user, isLoading: false, signIn: vi.fn(), signOut: vi.fn() }
+  const auth = { user, isLoading: false, signIn: vi.fn(), acceptToken: vi.fn(), signOut: vi.fn() }
   return render(
     <QueryClientProvider client={client}>
       <AuthContext.Provider value={auth}>

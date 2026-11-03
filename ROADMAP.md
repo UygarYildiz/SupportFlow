@@ -65,11 +65,23 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 - [ ] Faz 10 — İleri güvenlik, eval ve gözlemlenebilirlik
 - [ ] Faz 12 — V2: Gelişmiş agent yetenekleri
 
+**Blok D — Gerçek kullanım (kendi kurulumu, ADR-017)**
+
+- [ ] D1 — Kendi kurulumu temeli: ilk açılış kurulumu, ekip yönetimi, tek komutla kurulum (2026-11-03, `feat/self-hosting`: çekirdek tamam; hazır imajlar ve yedekleme kaldı)
+- [ ] D2 — E-posta kanalı (IMAP/SMTP): gelen kutusundan talep, onaylı yanıtı gönderme
+- [ ] D3 — Kaynak yok modu + CSV ile müşteri/sipariş yükleme; işletmenin kendi kuralları ve politikaları
+- [ ] D4 — Model seçimi: kendi Gemini anahtarı ya da Ollama ile yerel model
+- [ ] D5 — Webhook ve gömülebilir web formu
+- [ ] D6 — Shopify / WooCommerce salt okuma bağlayıcıları
+- [ ] D7 — Türk e-ticaret platformları (önce İkas) + genel REST bağlayıcı
+- [ ] D8 — Gmail/Outlook OAuth, WhatsApp Business
+
 **Yaklaşık efor:** Tek geliştirici ve AI destekli çalışma ile *planlama varsayımıdır*, garanti değildir:
 
 - Blok A (MVP): 5–7 hafta / 70–110 saat
 - Blok B: +2–3 hafta / 25–40 saat
 - Blok C: ihtiyaca göre
+- Blok D: D1–D4 (`v0.2.0`, ilk gerçek kullanım) +3–4 hafta; D5–D8 kanal/kaynak başına 1–2 hafta
 
 Fazlar gün değil, tamamlanma kriteriyle ilerler.
 
@@ -143,7 +155,8 @@ Kimin neye erişebildiği baştan net olmalı; aksi halde yetki testleri anlams�
 - Karmaşık LLM fine-tuning
 
 **MVP sonrası (Blok B):** RAG, MCP, canlı deployment.  
-**Opsiyonel (Blok C):** n8n, ileri eval/observability, V2 özellikleri.
+**Opsiyonel (Blok C):** n8n, ileri eval/observability, V2 özellikleri.  
+**Gerçek kullanım (Blok D, ADR-017):** Yukarıdaki "YOK" listesindeki gerçek e-posta ve mağaza bağlantıları, işletmenin kendi sunucusunda çalışan tek işletmelik kurulum için Blok D'de ele alınır. Herkese açık demo, testler ve eval'ler sentetik kalır; çok kiracılı SaaS hâlâ kapsam dışıdır.
 
 ### 1.7 Başarı ölçütleri
 
@@ -957,6 +970,57 @@ Bu fazı **MVP tamamlanmadan başlatma**. Her birini ayrı bir GitHub milestone 
 - [ ] RAG reranking, hybrid retrieval ve daha iyi retrieval eval.
 - [ ] Denetçi ekranı, export ve audit retention.
 - [ ] İş kuralı ve prompt versiyonlama; A/B değerlendirmesi.
+
+---
+
+# Blok D — Gerçek kullanım: kendi kurulumu (ADR-017)
+
+**Amaç:** Küçük bir işletme SupportFlow'u kendi bilgisayarında ya da sunucusunda tek komutla kurar, kendi e-postasını ve veri kaynaklarını bağlar ve gerçek taleplerle kullanır. Mimari değişmez: e-posta ve dış kaynaklar da güvenilmeyen veridir; müşteriye yanıt göndermek de iade gibi onaylı bir eylemdir ve yürütücüden geçer.
+
+**Kurallar:** Bir kurulum = bir işletme (çok kiracılı değil). Gerçek veri yalnız `DEPLOYMENT_MODE=self_hosted` kurulumlarda işlenir; canlı demo, testler ve eval'ler sentetik NovaShop verisiyle kalır. Her adım tek başına kullanılabilir bir sürüm çıkarır; D1–D4 bitince `v0.2.0`.
+
+## D1 — Kendi kurulumu temeli
+
+- [x] ADR-017: kendi kurulumu modeli, gerçek veri sınırı, demo/kendi kurulum modları.
+- [x] `DEPLOYMENT_MODE=demo|self_hosted`; kendi kurulumda demo verisi yüklenemez (`seed` reddeder), giriş ekranında demo hesapları görünmez.
+- [x] İlk açılış kurulumu: işletme adı + ilk yönetici; tek satırlık `installation` tablosu (yarışan iki kurulumdan biri kazanır), `SETUP_TOKEN` kurulum kodu (üretimde zorunlu), kurulum bitince kalıcı olarak kapanır.
+- [x] Ekip yönetimi: yöneticinin hesap eklemesi, rol değiştirmesi, pasifleştirmesi, parola sıfırlaması; çalışanın kendi parolasını değiştirmesi; parola kuralı (en az 12 karakter); son yöneticiyi kaybetmeye karşı koruma; hepsi denetim kaydında.
+- [x] Arayüz: kurulum sayfası, "Ekip" (yönetici) ve "Hesabım" sayfaları.
+- [x] Tek komutla kurulum: `deploy/selfhost/` (Compose: veritabanı + backend + nginx'li panel), `init.sh` / `init.ps1` rastgele sırları üretir; veritabanı dışarı açılmaz, panel varsayılan olarak yalnız bu bilgisayardan erişilir. (2026-11-03: Windows'ta `init.ps1` + `docker compose up -d --build` ile kuruldu; kurulum, ekip ekleme ve giriş tarayıcıdan uçtan uca denendi.)
+- [x] Dokümanlar: `docs/SELF_HOSTING.md`, API, güvenlik (T21, T22), operasyon, sözlük.
+- [ ] Hazır imajlar: GitHub Container Registry'ye backend ve panel imajlarını yayınlayan sürüm iş akışı (kurulum derlemesiz olsun).
+- [ ] Yedekleme ve güncelleme: tek komutla veritabanı yedeği/geri yükleme, sürüm yükseltme notları.
+
+## D2 — E-posta kanalı (IMAP/SMTP)
+
+- [ ] Bağlantı ayarları arayüzden; parolalar veritabanında şifreli (`SECRETS_ENCRYPTION_KEY`), loglanmaz.
+- [ ] Gelen kutusu periyodik okunur; `Message-ID` benzersiz kısıtıyla tekrar engellenir; aynı yazışma (`In-Reply-To`/`References`) aynı talebe bağlanır.
+- [ ] Gönderenden müşteri kaydı bulunur ya da açılır; e-posta gövdesi güvenilmeyen veri olarak ele alınır (HTML temizleme, ek boyut sınırı).
+- [ ] `send_reply` eylemi: onaylanan taslak SMTP ile gider; idempotency anahtarı, bilinmeyen sonuçta mutabakat (ADR-012 ile aynı kurallar).
+- [ ] Test: sahte IMAP/SMTP sunucusuyla entegrasyon testleri; tekrar gelen e-posta tek talep, çift onay tek gönderim.
+
+## D3 — Kaynak yok modu, CSV ve işletmenin kuralları
+
+- [ ] Sipariş sistemi olmayan işletme: ajan sipariş adımlarını atlar, genel yanıt taslağı üretir.
+- [ ] CSV ile müşteri ve sipariş yükleme (doğrulama raporu, tekrar yüklemede güncelleme).
+- [ ] İşletmenin kendi iade/adres kuralları (süreler, sınırlar) yapılandırılabilir; NovaShop değerleri yalnız demo varsayılanı.
+- [ ] İşletmenin kendi politika dokümanlarını yükleyip indekslemesi (ADR-014 kuralları korunarak).
+
+## D4 — Model seçimi
+
+- [ ] Arayüzden Gemini anahtarı (şifreli) ya da Ollama adresi; `fake` modda açık uyarı.
+- [ ] Ollama adaptörü (`LLMClient`), Türkçe eval setinde ölçüm ve önerilen model.
+
+## D5–D8 — Ek kanallar ve kaynaklar
+
+- [ ] D5: İmzalı webhook ve gömülebilir web formu (n8n'siz; `event_id` ile tekrar engelleme).
+- [ ] D6: Shopify ve WooCommerce salt okuma sipariş bağlayıcıları (`OrderSource` arayüzü).
+- [ ] D7: İkas (GraphQL) ve diğer Türk platformları; yapılandırılabilir genel REST bağlayıcı.
+- [ ] D8: Gmail/Outlook OAuth ile posta bağlantısı; WhatsApp Business (Meta Cloud API).
+
+**Çıkış kriteri (Blok D):** Gerçek bir işletme kurulumu kendisi yapıp en az birkaç hafta gerçek taleplerle kullanabiliyor; geri bildirimler ROADMAP'e işleniyor.
+
+**Commit'ler:** `feat: add self-hosted setup and staff management` (D1), sonrakiler adım başına.
 
 ---
 

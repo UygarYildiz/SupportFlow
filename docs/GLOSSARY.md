@@ -24,13 +24,19 @@ Kodda, arayüzde ve dokümanlarda aynı şeyi aynı kelimeyle anlatmak için. **
 | citation | Atıf (dayanak) | Taslağın dayandığı, getirilen maddelerle doğrulanmış politika maddesi (`cited_clause_ids`) |
 | clause | Madde | Politika dokümanının kimlikli bir bölümü (`IADE-2`); arama ve kaynak gösterme birimi |
 | `needs_human_review` | İnsan incelemesi gerekli | Talebin olağan dışı olduğu ya da bir kuralla çeliştiği işareti |
+| `DEPLOYMENT_MODE=self_hosted` | Kendi kurulumu | Bir işletmenin SupportFlow'u kendi makinesinde, kendi verisiyle çalıştırması; bir kurulum = bir işletme ([ADR-017](DECISIONS.md#adr-017-gerçek-kullanım-için-tek-işletmelik-kendi-kurulumu-demo-sentetik-kalır)) |
+| `DEPLOYMENT_MODE=demo` | Demo modu | Sentetik NovaShop verisi ve herkese açık demo hesaplarıyla çalışma (geliştirme, canlı demo) |
+| `installation` | Kurulum kaydı | Kendi kurulumun işletme adı ve kurulumu yapan yönetici; en fazla bir satır |
+| setup | İlk açılış kurulumu | Boş bir kendi kurulumda işletme adının ve ilk yöneticinin oluşturulması; bir kez yapılır |
+| `SETUP_TOKEN` | Kurulum kodu | Kurulum sayfasının istediği tek seferlik kod; kurulumu başkasının sahiplenmesini önler |
+| team | Ekip | Kurulumdaki çalışan hesapları; yönetici "Ekip" sayfasından yönetir |
 
 ## Roller
 
 | Kod | Arayüz | Yetkisi |
 |---|---|---|
 | `agent_user` | Destek uzmanı | Talepleri ve siparişleri görür, analiz başlatır, adres değişikliklerini onaylar |
-| `admin` | Yönetici | Destek uzmanının yaptığı her şey; ayrıca iadeleri onaylar, denetim kaydını ve kullanıcıları görür |
+| `admin` | Yönetici | Destek uzmanının yaptığı her şey; ayrıca iadeleri onaylar, denetim kaydını görür ve ekibi yönetir |
 | AI agent | Yapay zekâ ajanı | Kullanıcı değil; yalnızca salt okunur araçlar kullanır ve öneri oluşturur |
 
 Ayrıntı: [REQUIREMENTS §3 Erişim modeli](REQUIREMENTS.md#3-erişim-modeli).

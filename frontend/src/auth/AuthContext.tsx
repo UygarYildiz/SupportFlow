@@ -28,23 +28,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   setUnauthorizedHandler(signOut)
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const result = await request<{ access_token: string }>('POST', '/auth/login', {
-      body: { email, password },
-    })
-    sessionStorage.setItem(STORAGE_KEY, result.access_token)
-    setAccessToken(result.access_token)
-    setToken(result.access_token)
+  const acceptToken = useCallback((accessToken: string) => {
+    sessionStorage.setItem(STORAGE_KEY, accessToken)
+    setAccessToken(accessToken)
+    setToken(accessToken)
   }, [])
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const result = await request<{ access_token: string }>('POST', '/auth/login', {
+        body: { email, password },
+      })
+      acceptToken(result.access_token)
+    },
+    [acceptToken],
+  )
 
   const value = useMemo<AuthState>(
     () => ({
       user: token ? me.data : undefined,
       isLoading: token !== null && me.isPending,
       signIn,
+      acceptToken,
       signOut,
     }),
-    [token, me.data, me.isPending, signIn, signOut],
+    [token, me.data, me.isPending, signIn, acceptToken, signOut],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

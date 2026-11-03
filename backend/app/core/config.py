@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Development-only fallback. Production refuses to start with it (see validator).
 DEV_JWT_SECRET = "dev-only-insecure-secret-change-me-0123456789"  # noqa: S105
+MIN_SETUP_TOKEN_LENGTH = 16
 
 
 class Settings(BaseSettings):
@@ -21,6 +22,12 @@ class Settings(BaseSettings):
     )
 
     app_env: Literal["development", "test", "production"] = "development"
+    # ADR-017. `demo`: synthetic NovaShop data and public demo logins (local dev, live demo).
+    # `self_hosted`: one business's own installation; no demo data, first-run setup instead.
+    deployment_mode: Literal["demo", "self_hosted"] = "demo"
+    # One-time code the first-run setup asks for, so whoever reaches a fresh installation
+    # first cannot claim it. Required for self_hosted production; useless after setup.
+    setup_token: SecretStr | None = None
     log_level: str = "INFO"
     database_url: str = "postgresql+psycopg://supportflow:supportflow@localhost:5433/supportflow"
     # Seconds to wait when opening a DB connection; keeps /ready fast when the DB is down.
@@ -68,6 +75,13 @@ class Settings(BaseSettings):
         secret = self.jwt_secret_key.get_secret_value()
         if self.app_env == "production" and (secret == DEV_JWT_SECRET or len(secret) < 32):
             raise ValueError("JWT_SECRET_KEY must be set to a random value of 32+ characters")
+        if self.deployment_mode == "self_hosted" and self.app_env == "production":
+            token = self.setup_token.get_secret_value() if self.setup_token else ""
+            if len(token) < MIN_SETUP_TOKEN_LENGTH:
+                raise ValueError(
+                    f"SETUP_TOKEN must be set to a random value of {MIN_SETUP_TOKEN_LENGTH}+ "
+                    "characters when DEPLOYMENT_MODE=self_hosted"
+                )
         if self.llm_mode == "live" and not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY is required when LLM_MODE=live")
         if self.embedding_mode == "live" and not self.gemini_api_key:
