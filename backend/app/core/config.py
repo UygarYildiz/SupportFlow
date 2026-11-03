@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     mcp_tool_timeout_seconds: float = 10.0
     # Staff access token the stdio MCP server acts with (`poe mcp-token`).
     mcp_access_token: SecretStr | None = None
+    # Comma-separated browser origins allowed to call the API (live demo: the Cloudflare
+    # Pages URL). Empty: no CORS headers; in development Vite proxies the API instead.
+    cors_allow_origins: str = ""
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip().rstrip("/") for o in self.cors_allow_origins.split(",") if o.strip()]
 
     @model_validator(mode="after")
     def _require_real_secret_in_production(self) -> "Settings":

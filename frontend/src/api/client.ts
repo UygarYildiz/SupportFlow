@@ -9,6 +9,19 @@ export class ApiError extends Error {
   }
 }
 
+// Empty in development (Vite proxies /api). The live demo sets the backend's origin,
+// e.g. https://supportflow-api.onrender.com, at build time.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+
+/** The URL to fetch: a same-origin path, or an absolute URL when the API lives elsewhere. */
+export function apiUrl(path: string, query: Record<string, string | number | undefined> = {}): string {
+  const url = new URL(`${API_BASE}/api/v1${path}`, window.location.origin)
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
+  }
+  return API_BASE ? url.href : url.pathname + url.search
+}
+
 let accessToken: string | null = null
 let onUnauthorized: () => void = () => {}
 
@@ -27,17 +40,13 @@ export async function request<T>(
   path: string,
   options: { body?: unknown; query?: Record<string, string | number | undefined> } = {},
 ): Promise<T> {
-  const url = new URL(`/api/v1${path}`, window.location.origin)
-  for (const [key, value] of Object.entries(options.query ?? {})) {
-    if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
-  }
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
 
   let response: Response
   try {
-    response = await fetch(url.pathname + url.search, {
+    response = await fetch(apiUrl(path, options.query), {
       method,
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),

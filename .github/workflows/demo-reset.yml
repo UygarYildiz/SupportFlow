@@ -1,0 +1,38 @@
+name: Demo reset
+
+# Restores the live demo's synthetic NovaShop data every night, so visitors always
+# find the same starting point. The run also keeps the free Supabase project active.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC (06:00 Türkiye)
+  workflow_dispatch:
+
+concurrency:
+  group: demo-reset
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    name: Reset live demo data
+    runs-on: ubuntu-latest
+    if: github.repository == 'UygarYildiz/SupportFlow'
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+      DEMO_USER_PASSWORD: supportflow-demo # public on purpose: the demo login buttons use it
+      LLM_MODE: fake
+      EMBEDDING_MODE: fake
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --no-dev
+      - name: Check the secret is configured
+        run: test -n "$DATABASE_URL" || { echo "DEMO_DATABASE_URL secret is missing"; exit 1; }
+      - run: uv run python -m scripts.seed_demo --reset

@@ -54,6 +54,8 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | `MCP_TOOL_TIMEOUT_SECONDS` | `10` | Bir MCP araç çağrısının süre sınırı; aşılırsa analiz `tool_timeout` ile biter |
 | `MCP_ACCESS_TOKEN` | yok | stdio MCP sunucusunun adına çalıştığı personel token'ı (`poe mcp-token`); boşsa `poe mcp` başlamaz |
 | `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları görünür (geliştirmede hep görünür) |
+| `VITE_API_BASE_URL` (frontend) | yok | Backend'in adresi (ör. `https://supportflow-api.onrender.com`); boşsa istekler aynı kaynağa gider (geliştirmede Vite proxy'si). Derleme sırasında okunur |
+| `CORS_ALLOW_ORIGINS` | yok | API'yi tarayıcıdan çağırabilecek kaynaklar, virgülle (canlıda Pages adresi). Boşsa CORS başlığı eklenmez |
 
 ## Rutin prosedürler
 
@@ -127,6 +129,39 @@ uv run alembic current                     # şu anki sürüm
 uv run alembic downgrade -1                # bir geri al (yerel veride dikkat)
 ```
 
+### Canlı demo
+
+Barındırma kararı ve gerekçesi [ADR-016](DECISIONS.md#adr-016-canlı-demo-cloudflare-pages--render--supabase-ücretsiz-katmanlar)'da.
+
+| Parça | Nerede | Ayarlar |
+|---|---|---|
+| Frontend | Cloudflare Pages, `supportflow` projesi | Kök dizin `frontend`, derleme `npm run build`, çıktı `dist`; ortam: `VITE_API_BASE_URL`, `VITE_DEMO_MODE=true`, `NODE_VERSION=24`. Güvenlik başlıkları `frontend/public/_headers`'ta |
+| Backend | Render, `supportflow-api` (free, Frankfurt, Docker) | Dockerfile `backend/Dockerfile`, bağlam `backend`; ortam: `APP_ENV=production`, `DATABASE_URL`, `JWT_SECRET_KEY`, `LLM_MODE=fake`, `EMBEDDING_MODE=fake`, `CORS_ALLOW_ORIGINS` |
+| Veritabanı | Supabase, `supportflow` projesi (Frankfurt) | Şema `supportflow`, rol `supportflow_app`; bağlantı session pooler: `postgresql+psycopg://supportflow_app.<proje-ref>:<parola>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require` |
+| Günlük sıfırlama | GitHub Actions `Demo reset` (03:00 UTC, elle de çalıştırılabilir) | Secret: `DEMO_DATABASE_URL` (yukarıdaki bağlantı adresi) |
+
+**Yayın:** `main`'e birleşen her değişiklik Render ve Pages'te kendiliğinden yayınlanır. Render açılışta migration'ları uygular; yeni bir migration geri alınamaz durumdaysa önce yerelde `upgrade`/`downgrade` turunu (`test_migrations.py`) doğrulayın.
+
+**Geri alma:** Render panelinde servis → Events → önceki başarılı deploy → "Rollback". Pages'te Deployments → önceki sürüm → "Rollback". Migration içeren bir sürümü geri alırken veritabanı yeni şemada kalır; gerekiyorsa `DATABASE_URL` ile yerelden `uv run alembic downgrade -1` çalıştırın.
+
+**Veriyi elle sıfırlamak:** GitHub → Actions → Demo reset → "Run workflow", ya da yerelden `DATABASE_URL=<canlı adres> uv run python -m scripts.seed_demo --reset`.
+
+**Soğuk başlatma:** Render ücretsiz servisi 15 dakika istek almazsa uyur. Gösterimden önce `https://supportflow-api.onrender.com/ready` adresini açıp `ready` yanıtını bekleyin.
+
+**Uygulama rolünü kurmak** (yeni bir Supabase projesinde bir kez, SQL editöründe):
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+CREATE ROLE supportflow_app LOGIN PASSWORD '<güçlü parola>' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+GRANT supportflow_app TO postgres;            -- şemayı bu role verebilmek için
+CREATE SCHEMA supportflow AUTHORIZATION supportflow_app;
+GRANT USAGE ON SCHEMA extensions TO supportflow_app;
+ALTER ROLE supportflow_app SET search_path = supportflow, extensions;
+ALTER ROLE supportflow_app SET statement_timeout = '30s';
+```
+
+Ardından yerelden `DATABASE_URL=<adres> uv run alembic upgrade head` ve `uv run python -m scripts.seed_demo` çalıştırın. Supabase'in güvenlik danışmanı (Advisors → Security) temiz olmalıdır.
+
 ### JWT sırrını değiştirmek
 
 `JWT_SECRET_KEY`'i değiştirip backend'i yeniden başlatın. Verilmiş tüm token'lar geçersizleşir; kullanıcılar yeniden giriş yapar.
@@ -144,6 +179,10 @@ Postgres eski `postgres:17-alpine` imajıyla çalışıyor. `compose.yaml` artı
 ### Analiz `tool_timeout` ya da `tool_error` ile bitiyor
 
 Ajanın MCP üzerinden yaptığı sipariş sorgusu süre sınırını aştı ya da sunucu bir hata döndürdü. Ayrıntı backend log'undaki `MCP tool call … outcome=…` satırındadır (`internal_error` ise hemen öncesinde `crashed` satırı ve hata izi vardır). Veritabanının ayakta olduğunu (`/ready`) kontrol edip talebi yeniden açın ve tekrar deneyin. Sorun MCP katmanındaysa `AGENT_TOOL_TRANSPORT=direct` ile geçici olarak doğrudan servis çağrısına dönülebilir.
+
+### Canlı demoda "Sunucuya ulaşılamıyor"
+
+Önce `https://supportflow-api.onrender.com/ready`'yi açın: Render servisi uyuyorsa 30–60 saniye içinde uyanır. Sürekli hata varsa Render → Logs'a bakın. Tarayıcı konsolunda CORS hatası görünüyorsa Render'daki `CORS_ALLOW_ORIGINS` değeri Pages adresiyle (sonunda `/` olmadan) birebir aynı olmalıdır. `/ready` 503 dönüyorsa Supabase projesinin duraklatılmadığını (Supabase panelinde "Restore") ve `DATABASE_URL`'nin session pooler adresi olduğunu kontrol edin.
 
 ### `/ready` 503 dönüyor
 
