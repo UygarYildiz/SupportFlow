@@ -135,3 +135,4 @@ Durumlar (`AgentRunStatus`): `queued` (kuyrukta) → `running` (çalışıyor) �
 | Embedding | Metnin anlamını temsil eden sayı vektörü; benzer metinlerin vektörleri birbirine yakındır |
 | İndeksleme (`ingest`) | Politika dokümanlarını maddelere ayırıp embedding'leriyle veritabanına yazma (`uv run poe ingest`) |
 | pgvector | PostgreSQL'in vektör saklama ve benzerlik araması eklentisi |
+| hit@k, MRR | Getirme kalitesi ölçüleri: doğru maddenin ilk k sonuç içinde olma oranı; doğru maddenin sırasının tersinin ortalaması ([TEST_PLAN](TEST_PLAN.md#politika-getirme-kalitesi)) |

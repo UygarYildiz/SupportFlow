@@ -55,7 +55,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 
 **Blok B — V1 genişletmeleri**
 
-- [ ] Faz 7 — RAG ile şirket politikaları
+- [x] Faz 7 — RAG ile şirket politikaları (2026-11-03; `feat/policy-rag`, ADR-014)
 - [ ] Faz 8 — MCP ile araç entegrasyonları
 - [ ] Faz 11-B — Canlı demo deployment
 
@@ -721,16 +721,16 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 
 ### RAG kalite kontrolü
 
-- [ ] 20 örnek soruluk golden dataset hazırla.
-- [ ] Retrieval hit@k / doğru belge bulma oranını ölç.
-- [ ] Yanıttaki kaynak ID gerçekten getirilen bölüm mü kontrol et.
-- [ ] Çelişkili/eskimiş politika durumunda insan eskalasyonu var.
+- [x] 20 örnek soruluk golden dataset hazırla. (`evals/policy_retrieval.jsonl`.)
+- [x] Retrieval hit@k / doğru belge bulma oranını ölç. (`poe eval-rag`; 2026-11-03 Gemini hit@1 0.90 / hit@3 1.00 / MRR 0.94, çevrimdışı 0.80 / 0.95 / 0.86; çevrimdışı taban CI testinde.)
+- [x] Yanıttaki kaynak ID gerçekten getirilen bölüm mü kontrol et. (`assemble_result`; eval'de kritik kontrol.)
+- [x] Çelişkili/eskimiş politika durumunda insan eskalasyonu var. (Eski sürüm aranmıyor; sürümsüz değişiklik indekslenmiyor; yürürlüğe girmemiş sürüm → uyarı + inceleme; doküman-kod sayı çelişkisi testle engelleniyor.)
 - [x] Politika dosyasına gömülü “ignore previous instructions” metni agent yetkisini değiştirmiyor. (`test_instructions_inside_a_policy_document_change_nothing`; `<facts>` artık etkisizleştiriliyor.)
 
 **Çıkış kriterleri**
 
 - [x] UI, önerinin hangi politika bölümüne dayandığını gösteriyor. (2026-11-03: "Mağaza kuralı" kutusunda "Dayanağı"; `TicketParts.test.tsx`; görsel kontrol #7, #3, #14.)
-- [ ] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor.
+- [x] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor. (`test_a_new_version_supersedes_the_old_one_for_search`: yeni sürümün metni geliyor, eskisi gelmiyor.)
 - [x] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor. (Atıf doğrulaması; arama yalnızca güncel sürüm ve aynı model.)
 
 **Commit:** `feat: add versioned policy RAG with citations`

@@ -72,6 +72,7 @@ test = { cmd = "pytest", help = "Run tests (extra args are passed through)" }
 migrate = { cmd = "alembic upgrade head", help = "Apply migrations" }
 seed = { cmd = "python -m scripts.seed_demo", help = "Insert demo data (add --reset to wipe first)" }
 ingest = { cmd = "python -m scripts.ingest_policies", help = "Index policy documents for retrieval (--fake: offline embedder)" }
+eval-rag = { cmd = "python -m evals.retrieval", help = "Policy retrieval quality: hit@k, MRR (--live: Gemini embeddings)" }
 docs = { cmd = "python -m scripts.check_docs", help = "Check docs for broken links, anchors and API drift" }
 eval = { cmd = "python -m evals", help = "Run scenario evals (fake model; --live for Gemini)" }
 check = { sequence = ["lint", "format-check", "typecheck", "test"], help = "Everything CI runs" }

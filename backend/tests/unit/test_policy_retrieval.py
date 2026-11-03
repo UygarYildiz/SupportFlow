@@ -184,3 +184,19 @@ def test_customer_text_inside_facts_cannot_close_the_facts_block() -> None:
     run_graph(llm, tools)[2]()
 
     assert llm.prompts[1].count("</facts>") == 1
+
+
+def test_a_policy_version_not_yet_in_effect_goes_to_a_person() -> None:
+    upcoming = excerpt("returns", "IADE-2").model_copy(update={"effective_from": date(2027, 1, 1)})
+    result, _ = run_graph(refund_llm(), refund_tools(upcoming, allowed=True))[2]()
+
+    assert result.analysis.needs_human_review is True
+    assert any("2027-01-01 tarihinde yürürlüğe girecek" in w for w in result.warnings)
+
+
+def test_policies_already_in_effect_do_not_raise_a_review_by_themselves() -> None:
+    llm = refund_llm(cited_clause_ids=["IADE-2"])
+    result, _ = run_graph(llm, refund_tools(excerpt("returns", "IADE-2"), allowed=True))[2]()
+
+    assert result.analysis.needs_human_review is False
+    assert not any("yürürlüğe girecek" in w for w in result.warnings)

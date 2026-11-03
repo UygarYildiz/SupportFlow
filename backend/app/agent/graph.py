@@ -119,6 +119,7 @@ class AnalysisState(TypedDict, total=False):
     policy_checks: list[PolicyCheck]
     proposed_action: ProposedAction | None
     policy_excerpts: list[PolicyExcerptFact]
+    policy_needs_review: bool
     missing_information: list[str]
     warnings: list[str]
     draft: DraftReply
@@ -323,8 +324,23 @@ class AnalysisGraph:
                     "Bu kural için politika maddesi bulunamadı; yanıt yalnızca mağaza kuralına "
                     "dayanıyor."
                 )
+        # A version indexed before it takes effect is the current text but not yet the
+        # rule customers were told about: a person decides which applies.
+        today = self.deps.clock().date()
+        upcoming = [e for e in excerpts if e.effective_from > today]
+        for title, version, starts in dict.fromkeys(
+            (e.title, e.version, e.effective_from) for e in upcoming
+        ):
+            warnings.append(
+                f"{title} v{version} {starts.isoformat()} tarihinde yürürlüğe girecek; "
+                "hangi sürümün geçerli olduğuna bir çalışan karar vermeli."
+            )
         return (
-            {"policy_excerpts": excerpts, "warnings": warnings},
+            {
+                "policy_excerpts": excerpts,
+                "warnings": warnings,
+                "policy_needs_review": bool(upcoming),
+            },
             {"policies": policy_ids, "clauses": [e.clause_id for e in excerpts]},
         )
 
@@ -520,6 +536,7 @@ def assemble_result(state: AnalysisState) -> AnalysisResult:
         or intent.instructions_aimed_at_system
         or bool(unverified)
         or bool(unverified_clauses)
+        or state.get("policy_needs_review", False)
         or any(not c.allowed for c in checks if not c.informational)
     )
     if unverified:

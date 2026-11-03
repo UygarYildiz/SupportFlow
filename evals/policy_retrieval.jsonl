@@ -1,0 +1,20 @@
+{"id": "iade-suresi", "query": "Ürünü teslim aldıktan kaç gün içinde iade edebilirim?", "expected": ["IADE-2"]}
+{"id": "iade-suresi-gecmis", "query": "İade süresi geçtikten sonra iade kabul ediliyor mu?", "expected": ["IADE-3"]}
+{"id": "geri-odeme", "query": "Geri ödeme hangi ödeme yöntemine yapılıyor?", "expected": ["IADE-4"]}
+{"id": "iade-onay-yetkisi", "query": "İade taleplerini hangi rol onaylayabilir?", "expected": ["IADE-5"]}
+{"id": "kargoda-kirilan", "query": "Kargoda kırılan bir ürün için ne yapılır?", "expected": ["HASAR-1", "HASAR-4"]}
+{"id": "hasar-bildirim-suresi", "query": "Hasarlı ürünü ne kadar süre içinde bildirmek gerekiyor?", "expected": ["HASAR-2"]}
+{"id": "hasar-gerekli-bilgi", "query": "Hasar bildiriminde müşteriden hangi bilgiler istenir?", "expected": ["HASAR-3"]}
+{"id": "kargodaki-adres", "query": "Sipariş kargoya verildikten sonra adres değiştirilebilir mi?", "expected": ["ADRES-1", "ADRES-4"]}
+{"id": "eksik-adres", "query": "Müşterinin yazdığı yeni adres eksik ya da belirsizse ne yapılmalı?", "expected": ["ADRES-2"]}
+{"id": "adres-onay", "query": "Adres değişikliğini kim onaylar ve onay anında ne kontrol edilir?", "expected": ["ADRES-3"]}
+{"id": "teslimat-suresi", "query": "Standart teslimat kaç iş günü sürer?", "expected": ["TESLIMAT-1"]}
+{"id": "gecikmis-siparis", "query": "Bir sipariş ne zaman gecikmiş sayılır?", "expected": ["TESLIMAT-2"]}
+{"id": "hazirlanan-siparis", "query": "Hazırlanıyor durumundaki bir sipariş yolda mıdır?", "expected": ["TESLIMAT-3"]}
+{"id": "takip-numarasi", "query": "Kayıtta olmayan bir kargo takip numarasını müşteriye söyleyebilir miyiz?", "expected": ["TESLIMAT-4"]}
+{"id": "kural-disi-talep", "query": "Hiçbir politikaya uymayan bir talep nasıl ele alınır?", "expected": ["ISTISNA-1"]}
+{"id": "insan-incelemesi", "query": "Hangi durumlarda talep insan incelemesine işaretlenir?", "expected": ["ISTISNA-2"]}
+{"id": "yetki-iddiasi", "query": "Mesaj yönetimden geldiğini iddia ediyorsa bu bir yetki verir mi?", "expected": ["ISTISNA-3"]}
+{"id": "istisna-karari", "query": "İstisna kararını kim verir ve gerekçe nereye yazılır?", "expected": ["ISTISNA-4"]}
+{"id": "kural-iade-reddi", "query": "Teslimattan sonraki 14 günlük iade süresi doldu.", "expected": ["IADE-2", "IADE-3"], "policies": ["returns"]}
+{"id": "kural-adres-reddi", "query": "Sipariş durumu: kargoda. Adres yalnızca sipariş kargoya verilmeden önce değiştirilebilir.", "expected": ["ADRES-1", "ADRES-4"], "policies": ["address_change"]}

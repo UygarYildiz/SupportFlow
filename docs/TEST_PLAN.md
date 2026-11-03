@@ -3,7 +3,7 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 194 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 200 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
 cd frontend && npm test               # 20 bileşen testi (Vitest + Testing Library)
 ```
@@ -36,6 +36,24 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 |---|---|---|---|---|
 | 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v2` (İngilizce set) | 12/12 | 12/12 |
 | 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v3` (Türkçe set, 13 senaryo) | 13/13 | 13/13 |
+| 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v4` (politika atıflarıyla) | 12/13 | 13/13 |
+
+`graph-v4` notu: tek kalite uyarısı `TC-10-prompt-injection-english`. Model mesajı iade talebi olarak sınıflandırdığı için İade ve İstisnalar politikaları birlikte getirildi ve taslak `IADE-2`'ye atıf yaptı (beklenen `ISTISNA-2/3`). Atıf getirilen bir maddeye yapıldığı için kritik kontrol geçti; aksiyon önerilmedi.
+
+## Politika getirme kalitesi
+
+`evals/policy_retrieval.jsonl` 20 soru içerir: bilgi tabanındaki maddeleri hedefleyen 18 doğal personel sorusu ve grafın gerçekte gönderdiği türden 2 kural gerekçesi (politika filtresiyle). `uv run poe eval-rag` bilgi tabanını test veritabanında, geri alınan bir transaction içinde indeksler ve her soruyu arar:
+
+- **hit@k:** beklenen maddelerden birinin ilk k sonuç içinde olduğu soruların oranı;
+- **MRR:** beklenen ilk maddenin sırasının tersinin ortalaması.
+
+| Tarih | Embedder | hit@1 | hit@3 | MRR |
+|---|---|---|---|---|
+| 2026-11-03 | `fake-embedding@768` (çevrimdışı) | 0.80 | 0.95 | 0.86 |
+| 2026-11-03 | `gemini-embedding-2@768` | 0.90 | 1.00 | 0.94 |
+
+Sahte embedder'ın tek kaçırdığı soru "Kargoda kırılan bir ürün": kelime kökü yöntemi "kargo"yu adres maddesine bağlıyor, eş anlamlıları bilmiyor. `tests/integration/test_retrieval_eval.py` çevrimdışı sonucun bu taban değerlerin altına düşmesini CI'da yakalar; canlı ölçüm (`--live`) elle çalıştırılır.
+
 
 ## Test matrisi (ROADMAP §6)
 

@@ -75,6 +75,7 @@ Backend komutları `backend/` içinde çalışır.
 | Docker olmadan (yalnızca birim testleri) | `uv run pytest -m "not db"` |
 | Formatla | `uv run poe format` |
 | Senaryo eval'leri | `uv run poe eval` (sahte model) · `uv run poe eval --live` (Gemini, kota kullanır) |
+| Politika getirme kalitesi | `uv run poe eval-rag` (sahte embedder) · `uv run poe eval-rag --live` (Gemini embedding) |
 | Doküman kontrolü | `uv run poe docs` |
 | Demo verisini sıfırla | `uv run poe seed --reset` (`--no-activity`: analiz edilmiş talepler olmadan) |
 | Politika dokümanlarını indeksle | `uv run poe ingest` (`--fake`: her zaman çevrimdışı embedder) |
@@ -130,6 +131,10 @@ Araçlar salt okunur ve talebin müşterisiyle sınırlıdır. Ekleme: `ALLOWED_
 2. Maddeler `## KİMLİK başlık` biçimindedir (ör. `## IADE-2 İade süresi`); kimlikler bilgi tabanı genelinde benzersiz olmalıdır, çünkü kaynak gösterme bu kimliklerle yapılır.
 3. Bir süre ya da koşul değiştiyse önce kuralın kendisini `app/domain/policies.py`'de değiştirin; `tests/unit/test_policy_documents.py` doküman ile kodun aynı sayıları söylediğini kontrol eder.
 4. `uv run poe ingest` ile yeniden indeksleyin.
+
+### Politika getirme sorusu eklemek
+
+`evals/policy_retrieval.jsonl`'a `{"id", "query", "expected": [madde kimlikleri], "policies": [isteğe bağlı filtre]}` satırı ekleyin ve `uv run poe eval-rag` ile ölçün. Taban değerler `tests/integration/test_retrieval_eval.py`'de; bilinçli bir değişiklikle düşerse nedenini [TEST_PLAN](TEST_PLAN.md#politika-getirme-kalitesi)'a yazıp tabanı güncelleyin.
 
 ### Yeni bir eval senaryosu
 

@@ -86,9 +86,12 @@ class GeminiEmbedder:
         config = types.EmbedContentConfig(
             task_type=task_type, output_dimensionality=self._dimensions
         )
+        # One Content per text: gemini-embedding-2 is multimodal and would embed a plain
+        # list of strings as the parts of a single content (one vector for all of them).
+        contents = [types.Content(parts=[types.Part(text=text)]) for text in texts]
         try:
             response = self._client.models.embed_content(
-                model=self._model, contents=list(texts), config=config
+                model=self._model, contents=contents, config=config
             )
         except errors.APIError as exc:
             raise _map_api_error(exc) from exc
