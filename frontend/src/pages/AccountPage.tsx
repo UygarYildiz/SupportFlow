@@ -4,29 +4,32 @@ import { useChangePassword } from '../api/queries'
 import { useAuth } from '../auth/useAuth'
 
 const MIN_PASSWORD = 12
+// Field names match the API body, so the request is built without re-mapping values.
+const EMPTY = { current_password: '', new_password: '', repeated: '' }
 
 /** The signed-in user's own account: details and password change. */
 export function AccountPage() {
   const { user } = useAuth()
   const change = useChangePassword()
-  const [form, setForm] = useState({ current: '', next: '', again: '' })
+  const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
   function onSubmit(event: FormEvent) {
     event.preventDefault()
     setDone(false)
-    if (form.next !== form.again) {
+    if (form.new_password !== form.repeated) {
       setError('Yeni parolalar birbirini tutmuyor.')
       return
     }
     setError(null)
+    const { current_password, new_password } = form
     change.mutate(
-      { current_password: form.current, new_password: form.next },
+      { current_password, new_password },
       {
         onSuccess: () => {
           setDone(true)
-          setForm({ current: '', next: '', again: '' })
+          setForm(EMPTY)
         },
         onError: (err) => setError(err instanceof ApiError ? err.message : 'Parola değiştirilemedi.'),
       },
@@ -56,8 +59,8 @@ export function AccountPage() {
             type="password"
             required
             autoComplete="current-password"
-            value={form.current}
-            onChange={(e) => setForm({ ...form, current: e.target.value })}
+            value={form.current_password}
+            onChange={(e) => setForm({ ...form, current_password: e.target.value })}
           />
         </div>
         <div className="field">
@@ -69,8 +72,8 @@ export function AccountPage() {
             required
             minLength={MIN_PASSWORD}
             autoComplete="new-password"
-            value={form.next}
-            onChange={(e) => setForm({ ...form, next: e.target.value })}
+            value={form.new_password}
+            onChange={(e) => setForm({ ...form, new_password: e.target.value })}
           />
           <span className="meta">En az {MIN_PASSWORD} karakter.</span>
         </div>
@@ -82,8 +85,8 @@ export function AccountPage() {
             type="password"
             required
             autoComplete="new-password"
-            value={form.again}
-            onChange={(e) => setForm({ ...form, again: e.target.value })}
+            value={form.repeated}
+            onChange={(e) => setForm({ ...form, repeated: e.target.value })}
           />
         </div>
         {error ? (

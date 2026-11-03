@@ -29,7 +29,9 @@ services:
     environment:
       APP_ENV: production
       DEPLOYMENT_MODE: self_hosted
-      DATABASE_URL: postgresql+psycopg://supportflow:${POSTGRES_PASSWORD}@db:5432/supportflow
+      # The password stays out of the URL: libpq (psycopg) reads it from PGPASSWORD.
+      DATABASE_URL: postgresql+psycopg://supportflow@db:5432/supportflow
+      PGPASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?run init.sh / init.ps1 first}
       SETUP_TOKEN: ${SETUP_TOKEN:?run init.sh / init.ps1 first}
       LLM_MODE: ${LLM_MODE:-fake}
