@@ -47,7 +47,7 @@ def test_analysis_records_every_graph_step(
     run = _analyze(client, shipped_ticket.id, auth_headers(agent))
 
     assert run["status"] == "succeeded"
-    assert run["prompt_version"] == "graph-v2"
+    assert run["prompt_version"] == "graph-v3"
     assert [step["node"] for step in run["steps"]] == [
         "load_ticket", "resolve_orders", "classify", "fetch_context",
         "check_policy", "plan_action", "draft", "validate",
@@ -119,7 +119,7 @@ def test_refund_outside_the_return_window_gets_no_proposal(
 
     assert result["analysis"]["category"] == "refund_request"
     assert result["proposed_action"] is None
-    assert "window of 14 days" in result["policy_checks"][0]["reason"]
+    assert "14 günlük iade süresi doldu" in result["policy_checks"][0]["reason"]
 
 
 def test_unknown_and_foreign_orders_lead_to_needs_info(
@@ -252,7 +252,7 @@ def test_only_new_tickets_can_be_analyzed(
     ticket = make_ticket(db_session, make_customer(db_session), status=TicketStatus.RESOLVED)
     response = client.post(f"/api/v1/tickets/{ticket.id}/analyze", headers=auth_headers(agent))
     assert response.status_code == 409
-    assert "only 'new' tickets can be analyzed" in response.json()["detail"]
+    assert "yalnızca 'new' durumundaki talepler analiz edilebilir" in response.json()["detail"]
 
 
 def test_second_analysis_request_while_queued_is_rejected(

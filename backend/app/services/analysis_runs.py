@@ -45,7 +45,8 @@ class AnalysisRunService:
             ensure_system_transition(ticket.status, TicketStatus.TRIAGING)
         except InvalidStateTransitionError as exc:
             raise ConflictError(
-                f"Ticket {ticket_id} is '{ticket.status.value}'; only 'new' tickets can be analyzed"
+                f"#{ticket_id} numaralı talep '{ticket.status.value}' durumunda; yalnızca 'new' "
+                "durumundaki talepler analiz edilebilir"
             ) from exc
 
         run = AgentRun(ticket_id=ticket.id, requested_by=actor.id, status=AgentRunStatus.QUEUED)
@@ -54,7 +55,9 @@ class AnalysisRunService:
             self.session.flush()
         except IntegrityError as exc:  # partial unique index: an active run already exists
             self.session.rollback()
-            raise ConflictError(f"Ticket {ticket_id} already has an analysis in progress") from exc
+            raise ConflictError(
+                f"#{ticket_id} numaralı talebin devam eden bir analizi var"
+            ) from exc
 
         self._event(ticket, TicketEventType.ANALYSIS_REQUESTED, ActorType.USER, actor.id,
                     {"run_id": run.id})  # fmt: skip

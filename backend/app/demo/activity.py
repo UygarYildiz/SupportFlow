@@ -26,7 +26,7 @@ from app.services.analysis_runs import AnalysisRunService
 from app.services.proposals import ProposalService
 from app.services.tickets import TicketService
 
-DEMO_ANALYST = "sam@novashop.example"
+DEMO_ANALYST = "selin@novashop.example"
 
 # Ticket id -> what the analysis produces with the fake model.
 PRE_ANALYZED_TICKETS = (
@@ -36,7 +36,7 @@ PRE_ANALYZED_TICKETS = (
     7,  # S5 refund outside the return window: human review, no action
     8,  # return inside the window: refund request, waits for an admin
     14,  # prompt injection: human review, no action
-    15,  # address change: Sam approves it below and resolves the ticket
+    15,  # address change: Selin approves it below and resolves the ticket
 )
 APPROVED_BY_ANALYST = (15,)
 
@@ -83,7 +83,7 @@ def seed_demo_activity(session: Session, clock: Callable[[], datetime]) -> Activ
             pending.id,
             decision=Decision.APPROVE,
             expected_version=pending.version,
-            note="Customer confirmed the new address by phone.",
+            note="Müşteri yeni adresi telefonda teyit etti.",
             actor=analyst,
         )
         # Applying a change does not close the ticket; staff resolve it, as in the UI.

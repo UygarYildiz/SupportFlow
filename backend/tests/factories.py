@@ -54,7 +54,7 @@ def make_order(
         customer_id=customer.id,
         status=status,
         total_amount=Decimal("19.90"),
-        currency="USD",
+        currency="TRY",
         shipping_address="1 Test St, Testville",
         items=[{"sku": "T-1", "name": "Test item", "quantity": 1, "unit_price": "19.90"}],
         created_at=datetime(2026, 10, 1, tzinfo=UTC),

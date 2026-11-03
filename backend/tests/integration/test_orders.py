@@ -20,7 +20,7 @@ def test_missing_order_returns_404_and_never_invents_data(
 ) -> None:
     response = client.get("/api/v1/orders/ORD-9999", headers=auth_headers(agent))
     assert response.status_code == 404
-    assert response.json() == {"detail": "Order ORD-9999 not found"}
+    assert response.json() == {"detail": "Sipariş bulunamadı: ORD-9999"}
 
 
 def test_customer_orders_lists_only_that_customers_orders(

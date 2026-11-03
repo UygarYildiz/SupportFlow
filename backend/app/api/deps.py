@@ -21,7 +21,7 @@ _bearer = HTTPBearer(auto_error=False, description="Access token from POST /api/
 
 _UNAUTHORIZED = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Not authenticated",
+    detail="Oturum açılmamış",
     headers={"WWW-Authenticate": "Bearer"},
 )
 
@@ -53,7 +53,7 @@ def require_role(*roles: UserRole) -> Callable[[User], User]:
 
     def dependency(user: CurrentUser) -> User:
         if user.role not in allowed:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Bu işlem için yetkiniz yok")
         return user
 
     return dependency

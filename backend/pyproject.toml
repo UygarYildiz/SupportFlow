@@ -36,6 +36,8 @@ extend-exclude = ["alembic/versions"]
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "S", "PT"]
 ignore = []
+# Turkish user-facing text uses the dotless i on purpose.
+allowed-confusables = ["ı"]
 
 [tool.ruff.lint.isort]
 # The local `alembic/` migrations folder must not shadow the alembic package.

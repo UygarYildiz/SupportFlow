@@ -24,9 +24,9 @@ Bu dosya bir teknoloji okuma listesi değil, **uygulanabilir geliştirme planıd
 
 ### Dil kuralı
 
-- **Repo İngilizce:** README, `docs/`, kod, yorumlar, commit mesajları, PR/issue başlıkları, API alanları ve UI metinleri İngilizce yazılır. İşe alım ve teknik değerlendirme yapan kişiler bunu bekler.
+- ~~**Repo İngilizce**~~ → **Sahip kararı (2026-11-03): Türkçe öncelikli.** Proje açık kaynak olacak ve Türk işverenlere Türkçe sunulacak (yurtdışı pazarı hedeflenmiyor). Türkçe: README, `docs/`, UI metinleri, API hata mesajları, kural gerekçeleri, demo verisi, eval senaryoları, release notları, PR açıklamaları. İngilizce kalır: kod tanımlayıcıları, kod yorumları, commit mesajları, enum değerleri, `CLAUDE.md` dosyaları.
 - **Bu ROADMAP Türkçe kalabilir:** Kişisel çalışma planıdır. Public repoya koymak istemezsen `.gitignore`'a ekle veya repo dışında tut.
-- NovaShop demo verileri (müşteri mesajları) İngilizce olsun; Türkçe destek ekleyeceksen bunu ayrı bir eval senaryosu olarak test et.
+- NovaShop demo verileri (müşteri mesajları) Türkçe; sahte model Türkçe ve İngilizce mesajları anlar. İngilizce prompt injection ayrı bir eval senaryosu olarak korunur (`TC-10-prompt-injection-english`).
 
 ### Kapsam önceliği — bitmiş küçük proje > yarım büyük proje
 
@@ -874,6 +874,18 @@ Bu faz iki parçadır: **11-A** MVP'nin hemen ardından (Blok A), **11-B** canl�
 
 Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir canlı demodan daha değerlidir.
 
+### Türkçeleştirme (2026-11-03, sahip kararı)
+
+- [x] Dil kuralı güncellendi (`CLAUDE.md`, bu dosya, hafıza).
+- [x] README ve `docs/` (REQUIREMENTS, ARCHITECTURE, DECISIONS, SECURITY, TEST_PLAN, DESIGN) Türkçe.
+- [x] Arayüz metinleri Türkçe, `lang="tr"`, tarih/saat `tr` locale; frontend testleri güncel (`npm test` 17/17).
+- [x] API hata mesajları, kural gerekçeleri, graf uyarıları Türkçe.
+- [x] Demo verisi Türkçe (müşteriler, ürünler, TL fiyat, adresler, talepler); demo kullanıcıları Selin Aydın, Mert Kaya, Ayşe Demir.
+- [x] Sahte model Türkçe anahtar kelime/adres/injection tanıyor; Türkçe taslak yazıyor (`test_fake_llm.py`). Prompt `graph-v3`: model Türkçe yazar.
+- [x] Eval senaryoları Türkçe + İngilizce injection senaryosu (`poe eval` 13/13; `poe check` 155 test).
+- [ ] Türkçe sette canlı eval: `uv run poe eval --live` (kota kullanır) ve sonucu `docs/TEST_PLAN.md`'ye yaz.
+- [ ] `docs/images/` ekran görüntülerini Türkçe arayüzle yeniden al.
+
 ### CI
 
 - [x] Backend: Ruff + typecheck + pytest (Faz 1'de kuruldu; frontend'i de ekle). (2026-11-03: `8a4707b` CI'da yeşil.)
@@ -886,7 +898,7 @@ Canlı link şart değildir; iyi bir README + video + yeşil CI, kırık bir can
 
 - [ ] README girişinde problem → çözüm → mimari → demo videosu → stack → yerel kurulum → bilinen sınırlamalar. (2026-11-03: yeniden yazıldı; yalnız demo videosu eksik, video çekilince eklenecek.)
 - [x] Bir tam mimari diyagram. (README'de mermaid sistem diyagramı.)
-- [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.)
+- [x] 3–5 screenshot/GIF. (`docs/images/`: overview, ticket detayı, onaylanmış değişiklik; seed verisiyle alındı.) Not: İngilizce arayüzden; Türkçe arayüzle yenilenecek (yukarıdaki Türkçeleştirme maddesi).
 - [ ] 3–5 dakikalık demo videosu (gerçek LLM ile, `LLM_MODE=live`).
 - [ ] `docs/DEMO_SCRIPT.md`: gösterim adımları.
 - [ ] `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TEST_PLAN.md` güncel.

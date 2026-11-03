@@ -37,7 +37,9 @@ def can_decide(role: UserRole, action_type: ActionType) -> bool:
 
 def ensure_can_decide(role: UserRole, action_type: ActionType) -> None:
     if not can_decide(role, action_type):
-        raise ForbiddenError(f"Role '{role.value}' cannot decide on '{action_type.value}'")
+        raise ForbiddenError(
+            f"'{role.value}' rolü '{action_type.value}' önerileri hakkında karar veremez"
+        )
 
 
 def payload_fingerprint(action_type: ActionType, order_id: str, payload: dict[str, Any]) -> str:

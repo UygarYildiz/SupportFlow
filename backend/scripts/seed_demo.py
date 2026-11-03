@@ -45,7 +45,7 @@ def main() -> None:
     )
     if activity is not None:
         print(f"Demo activity: {activity.analyzed} tickets analyzed, {activity.approved} approved")
-    print("Demo logins: admin@novashop.example (admin), sam@novashop.example (agent_user)")
+    print("Demo logins: admin@novashop.example (admin), selin@novashop.example (agent_user)")
 
 
 if __name__ == "__main__":

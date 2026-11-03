@@ -33,8 +33,8 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
       </header>
       {proposal.type === 'create_refund_request' ? (
         <p className="label__strip">
-          <span className="tag tag--admin">Admin only</span>
-          <span className="meta">Refund requests need an admin's approval.</span>
+          <span className="tag tag--admin">Yalnızca yönetici</span>
+          <span className="meta">İade talepleri yönetici onayı gerektirir.</span>
         </p>
       ) : null}
 
@@ -43,18 +43,18 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
 
         <dl className="label__facts">
           <div>
-            <dt>Why it is allowed</dt>
+            <dt>Neden izin veriliyor</dt>
             <dd>{proposal.reason}</dd>
           </div>
           <div>
-            <dt>Rule</dt>
+            <dt>Kural</dt>
             <dd>{proposal.policy_rule}</dd>
           </div>
           {showTicketLink ? (
             <div>
-              <dt>Ticket</dt>
+              <dt>Talep</dt>
               <dd>
-                <Link to={`/tickets/${proposal.ticket_id}`}>Open ticket #{proposal.ticket_id}</Link>
+                <Link to={`/tickets/${proposal.ticket_id}`}>#{proposal.ticket_id} numaralı talebi aç</Link>
               </dd>
             </div>
           ) : null}
@@ -72,7 +72,7 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
           <strong>{PROPOSAL_STATUS_LABEL[proposal.status]}</strong>
           <span className="meta">
             {pending
-              ? ` Decide by ${formatDateTime(proposal.expires_at)}`
+              ? ` Son karar tarihi: ${formatDateTime(proposal.expires_at)}`
               : proposal.decided_at
                 ? ` ${timeAgo(proposal.decided_at)}`
                 : null}
@@ -82,14 +82,14 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
           <p className="notice notice--warning">{proposal.failure_reason}</p>
         ) : null}
         {proposal.decision_note ? (
-          <p className="meta">Note: {proposal.decision_note}</p>
+          <p className="meta">Not: {proposal.decision_note}</p>
         ) : null}
 
         {pending ? (
           proposal.can_decide ? (
             <div className="proposal__decide">
               <div className="field">
-                <label htmlFor={noteId}>Note for the audit log (optional)</label>
+                <label htmlFor={noteId}>Denetim kaydı için not (isteğe bağlı)</label>
                 <input
                   id={noteId}
                   className="input"
@@ -107,8 +107,8 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
                   onClick={() => submit('approve')}
                 >
                   {decide.isPending && decide.variables?.decision === 'approve'
-                    ? 'Applying…'
-                    : 'Approve and apply'}
+                    ? 'Uygulanıyor…'
+                    : 'Onayla ve uygula'}
                 </button>
                 <button
                   type="button"
@@ -116,16 +116,16 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
                   disabled={decide.isPending}
                   onClick={() => submit('reject')}
                 >
-                  Reject
+                  Reddet
                 </button>
               </div>
-              <p className="meta">Approving changes the order right away. It cannot be undone here.</p>
+              <p className="meta">Onay, siparişi hemen değiştirir. Bu işlem buradan geri alınamaz.</p>
             </div>
           ) : (
             <p className="notice">
               {proposal.type === 'create_refund_request'
-                ? 'Only an admin can decide refund requests.'
-                : 'Your role cannot decide this request.'}
+                ? 'İade talepleri hakkında yalnızca yönetici karar verebilir.'
+                : 'Rolünüz bu talep hakkında karar veremez.'}
             </p>
           )
         ) : null}
@@ -133,7 +133,7 @@ export function ProposalCard({ proposal, showTicketLink = false }: Props) {
         {decide.isError ? (
           <p className="notice notice--error" role="alert">
             {decide.error instanceof ApiError && decide.error.status === 409
-              ? `${decide.error.message}. The latest state is shown above.`
+              ? `${decide.error.message}. Güncel durum yukarıda gösteriliyor.`
               : decide.error.message}
           </p>
         ) : null}
@@ -148,11 +148,11 @@ function ProposalChange({ proposal }: { proposal: Proposal }) {
     return (
       <dl className="change">
         <div className="change__row change__row--from">
-          <dt>Current address</dt>
-          <dd>{payload.current_address ?? 'Not recorded'}</dd>
+          <dt>Mevcut adres</dt>
+          <dd>{payload.current_address ?? 'Kayıtlı değil'}</dd>
         </div>
         <div className="change__row change__row--to">
-          <dt>New address</dt>
+          <dt>Yeni adres</dt>
           <dd>{payload.new_address}</dd>
         </div>
       </dl>
@@ -161,14 +161,14 @@ function ProposalChange({ proposal }: { proposal: Proposal }) {
   return (
     <dl className="change">
       <div className="change__row change__row--to">
-        <dt>Refund amount</dt>
-        <dd>{payload.order_total ?? 'Order total'}</dd>
+        <dt>İade tutarı</dt>
+        <dd>{payload.order_total ?? 'Sipariş toplamı'}</dd>
       </div>
       <div className="change__row">
-        <dt>Reason</dt>
-        <dd>{payload.refund_reason === 'damaged_item' ? 'Item arrived damaged' : 'Return within the return window'}</dd>
+        <dt>Gerekçe</dt>
+        <dd>{payload.refund_reason === 'damaged_item' ? 'Ürün hasarlı geldi' : 'İade süresi içinde iade'}</dd>
       </div>
-      <p className="meta change__hint">Creates a refund request for finance. No money moves in this demo.</p>
+      <p className="meta change__hint">Finans ekibi için bir iade talebi oluşturur. Bu demoda para hareketi olmaz.</p>
     </dl>
   )
 }

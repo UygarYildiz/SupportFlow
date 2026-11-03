@@ -153,16 +153,18 @@ class ProposalService:
         if proposal.version != expected_version:
             self.session.rollback()
             raise ConflictError(
-                f"Proposal {proposal_id} changed (now version {proposal.version}, "
-                f"status '{proposal.status.value}'); reload before deciding"
+                f"#{proposal_id} numaralı öneri değişti (şu anki sürüm {proposal.version}, "
+                f"durum '{proposal.status.value}'); karar vermeden önce sayfayı yenileyin"
             )
         if proposal.status != P.PENDING:
             self.session.rollback()
-            raise ConflictError(f"Proposal {proposal_id} is already '{proposal.status.value}'")
+            raise ConflictError(
+                f"#{proposal_id} numaralı öneri zaten '{proposal.status.value}' durumunda"
+            )
         if self.clock() > proposal.expires_at:
-            self._expire(proposal, reason="Not decided before the deadline")
+            self._expire(proposal, reason="Son karar tarihine kadar karar verilmedi")
             self.session.commit()
-            raise ConflictError(f"Proposal {proposal_id} has expired")
+            raise ConflictError(f"#{proposal_id} numaralı önerinin süresi doldu")
 
         if decision == Decision.REJECT:
             self._decided(proposal, P.REJECTED, actor, note)
@@ -176,8 +178,8 @@ class ProposalService:
             self._audit(proposal, "proposal.integrity_failed", actor.id, {})
             self.session.commit()
             raise ConflictError(
-                f"Proposal {proposal_id} payload changed after it was proposed; "
-                "a new proposal is required"
+                f"#{proposal_id} numaralı önerinin içeriği önerildikten sonra değiştirildi; "
+                "yeni bir öneri gerekiyor"
             )
 
         # Step 1: record the decision durably before touching the order.
@@ -202,7 +204,7 @@ class ProposalService:
             )
         )
         for proposal in overdue:
-            self._expire(proposal, reason="Not decided before the deadline")
+            self._expire(proposal, reason="Son karar tarihine kadar karar verilmedi")
         self.session.commit()
 
         executing = list(
@@ -255,7 +257,7 @@ class ProposalService:
                 proposal, P.EXECUTED, None, actor_id, {"external_ref": result.external_ref}
             )
         else:
-            reason = str(result.detail.get("reason", "Rejected by the order system"))
+            reason = str(result.detail.get("reason", "Sipariş sistemi tarafından reddedildi"))
             self._finish(proposal, P.FAILED, reason, actor_id, result.detail)
         self.session.commit()
         return proposal

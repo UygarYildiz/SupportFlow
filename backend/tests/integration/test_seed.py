@@ -59,8 +59,8 @@ def test_new_tickets_after_seeding_do_not_collide_with_seeded_ids(db_session: Se
 
 def test_scenario_orders_contain_the_products_their_tickets_mention(db_session: Session) -> None:
     seed_demo_data(db_session, NOW, "demo-pass")
-    expected = {"ORD-1001": "Headphones", "ORD-1002": "Kettle", "ORD-1005": "Yoga Mat",
-                "ORD-1006": "Speaker", "ORD-1007": "Pan", "ORD-1009": "Mug Set"}  # fmt: skip
+    expected = {"ORD-1001": "Kulaklık", "ORD-1002": "Su Isıtıcısı", "ORD-1005": "Yoga Matı",
+                "ORD-1006": "Hoparlör", "ORD-1007": "Tava", "ORD-1009": "Kupa Seti"}  # fmt: skip
     for order_id, product in expected.items():
         order = db_session.get(Order, order_id)
         assert order is not None
@@ -90,6 +90,6 @@ def test_demo_activity_shows_both_approval_roles_and_is_idempotent(db_session: S
     assert statuses[15] == TicketStatus.RESOLVED
     order_1010 = db_session.get(Order, "ORD-1010")
     assert order_1010 is not None
-    assert order_1010.shipping_address == "15 Station Rd, Brookfield"
+    assert order_1010.shipping_address == "Atatürk Bulvarı No:15, Çankaya/Ankara"
     models = set(db_session.scalars(select(AgentRun.model)))
     assert models == {"fake-llm"}  # seeding never calls a paid model

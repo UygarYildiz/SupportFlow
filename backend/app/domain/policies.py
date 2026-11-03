@@ -17,6 +17,15 @@ DAMAGE_REPORT_WINDOW_DAYS = 30
 DELIVERY_DELAY_BUSINESS_DAYS = 7
 ADDRESS_CHANGEABLE_STATUSES = frozenset({OrderStatus.PENDING, OrderStatus.PROCESSING})
 
+# Reasons end up in customer-facing drafts, so statuses are written as words.
+ORDER_STATUS_LABEL = {
+    OrderStatus.PENDING: "beklemede",
+    OrderStatus.PROCESSING: "hazırlanıyor",
+    OrderStatus.SHIPPED: "kargoda",
+    OrderStatus.DELIVERED: "teslim edildi",
+    OrderStatus.CANCELLED: "iptal edildi",
+}
+
 
 @dataclass(frozen=True)
 class PolicyDecision:
@@ -28,22 +37,28 @@ class PolicyDecision:
 def check_address_change(order_status: OrderStatus) -> PolicyDecision:
     allowed = order_status in ADDRESS_CHANGEABLE_STATUSES
     reason = (
-        "Order has not shipped yet; the shipping address can be changed."
+        "Sipariş henüz kargoya verilmedi; teslimat adresi değiştirilebilir."
         if allowed
-        else f"Order is '{order_status.value}'; the address can only change before shipping."
+        else f"Sipariş durumu: {ORDER_STATUS_LABEL[order_status]}. Adres yalnızca sipariş kargoya "
+        "verilmeden önce değiştirilebilir."
     )
     return PolicyDecision(allowed, f"address_change_{POLICY_VERSION}", reason)
 
 
 def check_return_request(delivered_at: datetime | None, now: datetime) -> PolicyDecision:
     return _within_window_after_delivery(
-        delivered_at, now, RETURN_WINDOW_DAYS, f"returns_{POLICY_VERSION}", "Return"
+        delivered_at, now, RETURN_WINDOW_DAYS, f"returns_{POLICY_VERSION}", "İade talebi", "iade"
     )
 
 
 def check_damage_report(delivered_at: datetime | None, now: datetime) -> PolicyDecision:
     return _within_window_after_delivery(
-        delivered_at, now, DAMAGE_REPORT_WINDOW_DAYS, f"damaged_goods_{POLICY_VERSION}", "Damage"
+        delivered_at,
+        now,
+        DAMAGE_REPORT_WINDOW_DAYS,
+        f"damaged_goods_{POLICY_VERSION}",
+        "Hasar bildirimi",
+        "hasar bildirimi",
     )
 
 
@@ -62,11 +77,15 @@ def check_delivery(
     """Informational: `allowed` is True when the order counts as delayed."""
     rule = f"delivery_{POLICY_VERSION}"
     if order_status != OrderStatus.SHIPPED or shipped_at is None:
-        return PolicyDecision(False, rule, f"Order is '{order_status.value}', not in transit.")
+        return PolicyDecision(
+            False, rule, f"Sipariş durumu: {ORDER_STATUS_LABEL[order_status]}. Şu anda yolda değil."
+        )
     days = business_days_between(shipped_at.date(), now.date())
     delayed = days > DELIVERY_DELAY_BUSINESS_DAYS
-    reason = f"Shipped {days} business day(s) ago; standard delivery is 3-5 business days" + (
-        f" and orders count as delayed after {DELIVERY_DELAY_BUSINESS_DAYS}." if delayed else "."
+    reason = f"Sipariş {days} iş günü önce kargoya verildi; standart teslimat 3-5 iş günü sürer" + (
+        f" ve {DELIVERY_DELAY_BUSINESS_DAYS} iş gününden sonra gecikmiş sayılır."
+        if delayed
+        else "."
     )
     return PolicyDecision(delayed, rule, reason)
 
@@ -83,15 +102,20 @@ def business_days_between(start: date, end: date) -> int:
 
 
 def _within_window_after_delivery(
-    delivered_at: datetime | None, now: datetime, window_days: int, rule: str, label: str
+    delivered_at: datetime | None,
+    now: datetime,
+    window_days: int,
+    rule: str,
+    label: str,
+    noun: str,
 ) -> PolicyDecision:
     if delivered_at is None:
-        return PolicyDecision(False, rule, "Order has not been delivered yet.")
+        return PolicyDecision(False, rule, "Sipariş henüz teslim edilmedi.")
     deadline = delivered_at + timedelta(days=window_days)
     if now <= deadline:
         return PolicyDecision(
-            True, rule, f"{label} requested within {window_days} days of delivery."
+            True, rule, f"{label} teslimattan sonraki {window_days} gün içinde yapıldı."
         )
     return PolicyDecision(
-        False, rule, f"{label} window of {window_days} days after delivery has passed."
+        False, rule, f"Teslimattan sonraki {window_days} günlük {noun} süresi doldu."
     )

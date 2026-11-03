@@ -42,7 +42,7 @@ from app.domain.enums import (
 from app.services.analysis_runs import AnalysisRunService
 
 SCENARIO_FILE = Path(__file__).resolve().parents[2] / "evals" / "scenarios.jsonl"
-DEFAULT_ADDRESS = "1 Eval St, Testville"
+DEFAULT_ADDRESS = "Deneme Sokak No:1, Merkez/Ankara"
 
 
 class _Strict(BaseModel):
@@ -164,8 +164,8 @@ def _run_one(
     clock: Callable[[], datetime],
 ) -> ScenarioResult:
     now = clock()
-    customer = _customer(session, f"CUS-E{index:03d}", "Jamie Eval")
-    other = _customer(session, f"CUS-X{index:03d}", "Other Customer")
+    customer = _customer(session, f"CUS-E{index:03d}", "Deniz Deneme")
+    other = _customer(session, f"CUS-X{index:03d}", "Başka Müşteri")
     for spec in scenario.orders:
         _order(session, spec, customer if spec.owner == "customer" else other, now)
     for past in scenario.history:
@@ -310,9 +310,9 @@ def _order(session: Session, spec: OrderSpec, owner: Customer, now: datetime) ->
             customer_id=owner.id,
             status=spec.status,
             total_amount=Decimal("49.90"),
-            currency="USD",
+            currency="TRY",
             shipping_address=spec.shipping_address,
-            items=[{"sku": "EV-1", "name": "Eval item", "quantity": 1, "unit_price": "49.90"}],
+            items=[{"sku": "EV-1", "name": "Deneme ürünü", "quantity": 1, "unit_price": "49.90"}],
             created_at=now - timedelta(days=spec.created_days_ago),
             shipped_at=ago(spec.shipped_days_ago),
             delivered_at=ago(spec.delivered_days_ago),

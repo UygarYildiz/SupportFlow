@@ -24,8 +24,8 @@ const RECENT = 6
 
 const ROLE_LINE: Record<User['role'], string> = {
   agent_user:
-    'Support agent. You can approve address changes; refund requests go to an admin.',
-  admin: 'Admin. You can decide every proposal and see the audit trail.',
+    'Destek uzmanı. Adres değişikliklerini onaylayabilirsiniz; iade talepleri yöneticiye gider.',
+  admin: 'Yönetici. Tüm öneriler hakkında karar verebilir ve denetim kaydını görebilirsiniz.',
 }
 
 export function DashboardPage() {
@@ -41,17 +41,17 @@ export function DashboardPage() {
   return (
     <div className="page">
       <header className="page__head">
-        <h1>{user ? `Hello, ${user.full_name.split(' ')[0]}` : 'Overview'}</h1>
+        <h1>{user ? `Merhaba, ${user.full_name.split(' ')[0]}` : 'Genel bakış'}</h1>
         {user ? <p className="muted page__lede">{ROLE_LINE[user.role]}</p> : null}
       </header>
 
       <section aria-labelledby="counts-title">
         <h2 id="counts-title" className="visually-hidden">
-          Tickets by status
+          Duruma göre talepler
         </h2>
         {summary.isError ? (
           <p className="notice notice--error" role="alert">
-            Could not load ticket counts. {summary.error.message}
+            Talep sayıları yüklenemedi. {summary.error.message}
           </p>
         ) : (
           <ul className="counters">
@@ -71,25 +71,25 @@ export function DashboardPage() {
 
       {proposals.isError ? (
         <p className="notice notice--error" role="alert">
-          Could not load proposals. {proposals.error.message}
+          Öneriler yüklenemedi. {proposals.error.message}
         </p>
       ) : (
         <div className="dash-grid">
           <DecisionList
             id="mine"
-            title="Waiting for your decision"
+            title="Kararınızı bekleyenler"
             items={mine}
             loading={proposals.isPending}
-            empty="Nothing needs your decision right now."
+            empty="Şu anda kararınızı bekleyen bir şey yok."
           />
           {isAdmin ? null : (
             <DecisionList
               id="others"
-              title="Waiting for an admin"
-              hint="Refund requests need an admin. You can open them, but not decide."
+              title="Yönetici bekleyenler"
+              hint="İade talepleri yönetici onayı ister. Açıp inceleyebilirsiniz ama karar veremezsiniz."
               items={others}
               loading={proposals.isPending}
-              empty="No requests are waiting for an admin."
+              empty="Yönetici bekleyen talep yok."
             />
           )}
           {isAdmin ? <RecentActivity /> : null}
@@ -101,11 +101,11 @@ export function DashboardPage() {
         {isAdmin ? null : (
           <section className="sheet" aria-labelledby="audit-locked-title">
             <h2 id="audit-locked-title" className="sheet__title">
-              Audit trail
+              Denetim kaydı
             </h2>
             <p className="muted">
-              Only admins can see who proposed, approved or rejected each change. Every
-              decision you make is recorded there.
+              Her değişikliği kimin önerdiğini, onayladığını ya da reddettiğini yalnızca yöneticiler
+              görebilir. Verdiğiniz her karar orada kayıt altına alınır.
             </p>
           </section>
         )}
@@ -130,7 +130,7 @@ function DecisionList(props: {
         {title} {loading ? null : <span className="tab__count">{items.length}</span>}
       </h2>
       {hint ? <p className="meta dash-hint">{hint}</p> : null}
-      {loading ? <p className="meta">Loading…</p> : null}
+      {loading ? <p className="meta">Yükleniyor…</p> : null}
       {!loading && items.length === 0 ? <p className="muted">{empty}</p> : null}
       {items.length > 0 ? (
         <ul className="dash-list">
@@ -141,10 +141,10 @@ function DecisionList(props: {
               </Link>
               <span className="dash-list__ref">{p.order_id}</span>
               {p.type === 'create_refund_request' ? (
-                <span className="tag tag--admin">Admin only</span>
+                <span className="tag tag--admin">Yalnızca yönetici</span>
               ) : null}
               <span className="meta dash-list__meta">
-                Ticket #{p.ticket_id}, decide by {formatDateTime(p.expires_at)}
+                Talep #{p.ticket_id}, son karar tarihi {formatDateTime(p.expires_at)}
               </span>
             </li>
           ))}
@@ -159,16 +159,16 @@ function RecentTickets() {
   return (
     <section className="sheet" aria-labelledby="recent-title">
       <h2 id="recent-title" className="sheet__title">
-        Recently updated tickets
+        Son güncellenen talepler
       </h2>
-      {tickets.isPending ? <p className="meta">Loading…</p> : null}
+      {tickets.isPending ? <p className="meta">Yükleniyor…</p> : null}
       {tickets.isError ? (
         <p className="notice notice--error" role="alert">
-          Could not load tickets. {tickets.error.message}
+          Talepler yüklenemedi. {tickets.error.message}
         </p>
       ) : null}
       {tickets.data && tickets.data.items.length === 0 ? (
-        <p className="muted">No tickets yet.</p>
+        <p className="muted">Henüz talep yok.</p>
       ) : null}
       {tickets.data && tickets.data.items.length > 0 ? (
         <ul className="dash-list">
@@ -179,14 +179,14 @@ function RecentTickets() {
               </Link>
               <StatusBadge status={t.status} />
               <span className="meta dash-list__meta">
-                #{t.id} from {t.customer_name}, updated {timeAgo(t.updated_at)}
+                #{t.id}, {t.customer_name}, güncellendi: {timeAgo(t.updated_at)}
               </span>
             </li>
           ))}
         </ul>
       ) : null}
       <Link to="/tickets" className="dash-more">
-        All tickets
+        Tüm talepler
       </Link>
     </section>
   )
@@ -199,23 +199,23 @@ function RecentActivity() {
 
   function actor(entry: AuditEntry): string {
     // Proposals are written by an analysis run; other actor-less entries are system jobs.
-    if (entry.actor_id === null) return entry.action === 'proposal.created' ? 'AI analysis' : 'System'
-    return names.get(entry.actor_id) ?? `User #${entry.actor_id}`
+    if (entry.actor_id === null) return entry.action === 'proposal.created' ? 'Yapay zekâ analizi' : 'Sistem'
+    return names.get(entry.actor_id) ?? `Kullanıcı #${entry.actor_id}`
   }
 
   return (
     <section className="sheet" aria-labelledby="activity-title">
       <h2 id="activity-title" className="sheet__title">
-        Audit trail <span className="tag tag--admin">Admin</span>
+        Denetim kaydı <span className="tag tag--admin">Yönetici</span>
       </h2>
-      {audit.isPending ? <p className="meta">Loading…</p> : null}
+      {audit.isPending ? <p className="meta">Yükleniyor…</p> : null}
       {audit.isError ? (
         <p className="notice notice--error" role="alert">
-          Could not load the audit trail. {audit.error.message}
+          Denetim kaydı yüklenemedi. {audit.error.message}
         </p>
       ) : null}
       {audit.data && audit.data.length === 0 ? (
-        <p className="muted">Nothing recorded yet.</p>
+        <p className="muted">Henüz kayıt yok.</p>
       ) : null}
       {audit.data && audit.data.length > 0 ? (
         <ol className="dash-list">
@@ -229,7 +229,7 @@ function RecentActivity() {
                 {orderId ? <span className="dash-list__ref">{orderId}</span> : null}
                 <span className="meta dash-list__meta">
                   {entry.ticket_id !== null ? (
-                    <Link to={`/tickets/${entry.ticket_id}`}>Ticket #{entry.ticket_id}</Link>
+                    <Link to={`/tickets/${entry.ticket_id}`}>Talep #{entry.ticket_id}</Link>
                   ) : null}{' '}
                   {timeAgo(entry.occurred_at)}
                 </span>

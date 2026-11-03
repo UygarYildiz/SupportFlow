@@ -100,7 +100,7 @@ class AnalysisExecutor:
                 runs.fail(
                     run_id,
                     code="internal_error",
-                    message="Unexpected error during analysis",
+                    message="Analiz sırasında beklenmeyen bir hata oluştu",
                     model=self.llm.model_name,
                 )
                 return
@@ -129,7 +129,7 @@ class AnalysisExecutor:
         def load_ticket(ticket_id: int) -> TicketSnapshot:
             ticket = session.get(Ticket, ticket_id)
             if ticket is None:  # pragma: no cover - prevented by the foreign key
-                raise AnalysisError("ticket_missing", "Ticket no longer exists")
+                raise AnalysisError("ticket_missing", "Talep artık mevcut değil")
             customer = session.get(Customer, ticket.customer_id)
             return TicketSnapshot(
                 ticket_id=ticket.id,

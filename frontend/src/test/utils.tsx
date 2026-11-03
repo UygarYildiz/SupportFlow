@@ -27,8 +27,8 @@ export function mockApi(handler: Handler) {
 
 export const agent: User = {
   id: 2,
-  email: 'sam@novashop.example',
-  full_name: 'Sam Support',
+  email: 'selin@novashop.example',
+  full_name: 'Selin Aydın',
   role: 'agent_user',
   is_active: true,
 }
@@ -52,8 +52,8 @@ export function proposal(overrides: Partial<Proposal> = {}): Proposal {
     run_id: 3,
     order_id: 'ORD-1010',
     type: 'change_shipping_address',
-    payload: { current_address: '93 Station Rd, Riverton', new_address: '15 Station Rd, Brookfield' },
-    reason: 'Order has not shipped yet; the shipping address can be changed.',
+    payload: { current_address: 'Atatürk Cad. No:93, Karşıyaka/İzmir', new_address: 'Kordon Sok. No:15, Bornova/İzmir' },
+    reason: 'Sipariş henüz kargoya verilmedi; teslimat adresi değiştirilebilir.',
     policy_rule: 'address_change_v1',
     status: 'pending',
     version: 1,

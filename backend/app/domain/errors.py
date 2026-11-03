@@ -1,4 +1,20 @@
-"""Domain errors. The API layer maps them to HTTP status codes."""
+"""Domain errors. The API layer maps them to HTTP status codes.
+
+Messages are shown to staff, so they are in Turkish (see the root CLAUDE.md).
+"""
+
+# Resource and entity names as staff read them in error messages.
+_NAMES = {
+    "Ticket": "Talep",
+    "Run": "Analiz çalıştırması",
+    "Order": "Sipariş",
+    "Customer": "Müşteri",
+    "Proposal": "Öneri",
+    "User": "Kullanıcı",
+    "ticket": "Talep",
+    "proposal": "Öneri",
+    "run": "Analiz çalıştırması",
+}
 
 
 class DomainError(Exception):
@@ -7,7 +23,7 @@ class DomainError(Exception):
 
 class NotFoundError(DomainError):
     def __init__(self, resource: str, identifier: object) -> None:
-        super().__init__(f"{resource} {identifier} not found")
+        super().__init__(f"{_NAMES.get(resource, resource)} bulunamadı: {identifier}")
         self.resource = resource
         self.identifier = identifier
 
@@ -18,7 +34,9 @@ class ConflictError(DomainError):
 
 class InvalidStateTransitionError(ConflictError):
     def __init__(self, entity: str, current: str, target: str) -> None:
-        super().__init__(f"{entity} cannot move from '{current}' to '{target}'")
+        super().__init__(
+            f"{_NAMES.get(entity, entity)} '{current}' durumundan '{target}' durumuna geçemez"
+        )
         self.entity = entity
         self.current = current
         self.target = target

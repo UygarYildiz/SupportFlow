@@ -58,7 +58,7 @@ def test_ticket_cannot_reference_another_customers_order(
 
     assert foreign.status_code == missing.status_code == 422
     # The message does not reveal that ORD-B1 exists for another customer.
-    assert "does not match any order of this customer" in foreign.json()["detail"]
+    assert "bu müşterinin hiçbir siparişiyle eşleşmiyor" in foreign.json()["detail"]
     assert db_session.scalar(select(func.count(Ticket.id))) == 0
 
 

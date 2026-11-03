@@ -80,7 +80,7 @@ class TokenBudget:
         if self.used > self.max_tokens:
             raise AnalysisError(
                 "token_budget_exceeded",
-                f"Run used {self.used} tokens, budget is {self.max_tokens}",
+                f"Çalıştırma {self.used} token kullandı, bütçe {self.max_tokens}",
             )
 
 
@@ -136,7 +136,7 @@ class AnalysisGraph:
                 {"ticket_id": ticket_id}, config={"recursion_limit": MAX_GRAPH_STEPS}
             )
         except GraphRecursionError as exc:
-            raise AnalysisError("step_limit_exceeded", "Graph exceeded its step limit") from exc
+            raise AnalysisError("step_limit_exceeded", "Graf adım sınırını aştı") from exc
         metrics = AnalysisMetrics(
             model=self.deps.llm.model_name,
             input_tokens=self._usage.input_tokens,
@@ -231,14 +231,14 @@ class AnalysisGraph:
 
     def request_info(self, state: AnalysisState) -> NodeResult:
         missing = (
-            "A valid order number for this account"
+            "Bu hesaba ait geçerli bir sipariş numarası"
             if state["unknown_order_ids"]
-            else "The order number this request is about"
+            else "Talebin ilgili olduğu sipariş numarası"
         )
         warnings = list(state["warnings"])
         if state["unknown_order_ids"]:
             unknown = ", ".join(state["unknown_order_ids"])
-            warnings.append(f"Order(s) mentioned by the customer were not found: {unknown}.")
+            warnings.append(f"Müşterinin bahsettiği sipariş(ler) bulunamadı: {unknown}.")
         return (
             {
                 "missing_information": [missing],
@@ -318,7 +318,7 @@ class AnalysisGraph:
     @property
     def tools(self) -> AgentTools:
         if self._tools is None:  # pragma: no cover - load_ticket always runs first
-            raise AnalysisError("internal_error", "Tools used before the ticket was loaded")
+            raise AnalysisError("internal_error", "Araçlar talep yüklenmeden kullanıldı")
         return self._tools
 
     def _focus_order(self, state: AnalysisState, intent: IntentClassification) -> str | None:
@@ -359,7 +359,7 @@ class AnalysisGraph:
     ) -> Callable[..., dict[str, Any]]:  # LangGraph matches nodes by the `state` keyword
         def run(state: AnalysisState) -> dict[str, Any]:
             if time.monotonic() > self.deps.deadline:
-                raise AnalysisError("run_timeout", "The analysis exceeded its time limit")
+                raise AnalysisError("run_timeout", "Analiz süre sınırını aştı")
             started = time.perf_counter()
             calls_before = len(self._tools.calls) if self._tools else 0
             try:
@@ -393,20 +393,20 @@ def plan_action(
 ) -> tuple[ProposedAction | None, list[str], list[str]]:
     """Return (proposed action, missing information, warnings). Pure function."""
     if intent.instructions_aimed_at_system:
-        return None, [], ["The message contains instructions aimed at the system; no action."]
+        return None, [], ["Mesaj sisteme yönelik talimatlar içeriyor; aksiyon önerilmedi."]
     check = next((c for c in checks if c.order_id == focus_order_id), None)
     if focus_order_id is None or check is None:
         return None, [], []
     if check.informational:
         return None, [], []  # describes the situation; nothing to grant or refuse
     if not check.allowed:
-        return None, [], [f"Policy {check.rule} does not allow this request: {check.reason}"]
+        return None, [], [f"{check.rule} kuralı bu talebe izin vermiyor: {check.reason}"]
 
     order = next(o for o in orders if o.id == focus_order_id)
     if intent.category == TicketCategory.ADDRESS_CHANGE:
         new_address = (intent.requested_new_address or "").strip()
         if not new_address:
-            return None, ["The new delivery address"], []
+            return None, ["Yeni teslimat adresi"], []
         payload = {"current_address": order.shipping_address, "new_address": new_address}
         return _action(ActionType.CHANGE_SHIPPING_ADDRESS, check, payload), [], []
     if intent.category in (TicketCategory.DAMAGED_ITEM, TicketCategory.REFUND_REQUEST):
@@ -434,8 +434,8 @@ def assemble_result(state: AnalysisState) -> AnalysisResult:
     )
     if unverified:
         warnings.append(
-            f"Model cited order(s) not found for this customer: {', '.join(unverified)}. "
-            "They are not shown as evidence."
+            f"Modelin atıf yaptığı sipariş(ler) bu müşteri için bulunamadı: "
+            f"{', '.join(unverified)}. Kanıt olarak gösterilmiyor."
         )
 
     analysis = TicketAnalysis(

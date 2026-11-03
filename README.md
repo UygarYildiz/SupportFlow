@@ -1,96 +1,96 @@
 # SupportFlow AI
 
-**An AI support desk where the model suggests and people decide.** SupportFlow triages e-commerce support tickets with an LLM, checks the customer's real orders and the store's rules, drafts a reply, and proposes order changes that an authorized employee approves. An approved change is applied once, with an audit trail.
+**Yapay zekânın önerdiği, insanın karar verdiği bir müşteri destek masası.** SupportFlow, e-ticaret destek taleplerini bir LLM ile sınıflandırır; müşterinin gerçek siparişlerini ve mağaza kurallarını kontrol eder, bir yanıt taslağı hazırlar ve yetkili bir çalışanın onaylayacağı sipariş değişiklikleri önerir. Onaylanan değişiklik denetim kaydıyla birlikte yalnızca bir kez uygulanır.
 
-> All data belongs to **NovaShop**, a fictional store; no real customer data is used.
+> Tüm veriler kurgusal bir mağaza olan **NovaShop**'a aittir; gerçek müşteri verisi kullanılmaz.
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
-![Overview for a support agent: ticket counts, decisions waiting for them, refund requests waiting for an admin](docs/images/overview-agent.png)
+![Destek uzmanı için genel bakış: talep sayıları, uzmanın kararını bekleyenler, yönetici onayı bekleyen iade talepleri](docs/images/overview-agent.png)
 
-## The problem
+## Problem
 
-Support teams answer the same questions all day: where is my order, can I change the address, can I get a refund. Each answer means opening the order system, checking the return and shipping rules, writing a reply, and sometimes changing the order. An LLM can do most of that preparation, but letting it change orders on its own is risky: it can be wrong, it can be talked into things by a cleverly written ticket, and it can confidently describe an order that does not exist.
+Destek ekipleri gün boyu aynı soruları yanıtlar: siparişim nerede, adresi değiştirebilir miyim, iade alabilir miyim. Her yanıt için sipariş sistemini açmak, iade ve kargo kurallarına bakmak, bir yanıt yazmak ve bazen siparişi değiştirmek gerekir. Bu hazırlığın büyük kısmını bir LLM yapabilir; ama siparişleri kendi başına değiştirmesine izin vermek risklidir: yanılabilir, ustaca yazılmış bir taleple kandırılabilir ve var olmayan bir siparişi kendinden emin şekilde anlatabilir.
 
-## What SupportFlow does
+## SupportFlow ne yapar
 
-1. **A ticket arrives.** For example: "Please ship ORD-1003 to my new address: 42 Harbor St, Riverton."
-2. **The AI prepares the case** in a background run. It classifies the request, reads only this customer's orders, checks the store policy (is the order still unshipped? is the refund inside the return window?) and drafts a reply. If a change is allowed, it records a **proposal** and stops.
-3. **A person decides.** The employee sees the draft, the order, the rule that allowed the change, and how the suggestion was made. Approving applies the change to the order once. Rejecting changes nothing. Refunds need an admin.
+1. **Bir talep gelir.** Örneğin: "ORD-1003 numaralı siparişimi yeni adresime gönderebilir misiniz: Moda Cad. No:42, Kadıköy/İstanbul."
+2. **Yapay zekâ dosyayı hazırlar.** Bu iş bir arka plan çalıştırmasında yapılır. Talebi sınıflandırır, yalnızca bu müşterinin siparişlerini okur, mağaza kuralını kontrol eder (sipariş henüz kargoya verilmedi mi? iade süresi geçmedi mi?) ve bir yanıt taslağı yazar. Değişikliğe izin varsa bir **öneri** kaydeder ve durur.
+3. **Kararı bir insan verir.** Çalışan taslağı, siparişi, değişikliğe izin veren kuralı ve önerinin nasıl hazırlandığını görür. Onaylarsa değişiklik siparişe bir kez uygulanır. Reddederse hiçbir şey değişmez. İadeler yönetici onayı ister.
 
-![Ticket detail: the customer's message, the AI's draft reply, and the proposed address change waiting for a decision](docs/images/ticket-detail.png)
+![Talep detayı: müşterinin mesajı, yapay zekânın taslak yanıtı ve karar bekleyen adres değişikliği önerisi](docs/images/ticket-detail.png)
 
-| Scenario | What happens |
+| Senaryo | Ne olur |
 |---|---|
-| Where is my order? | Order status and delivery rule in the draft; nothing to approve |
-| Damaged item, refund please | Refund request proposed; only an admin can approve it |
-| Change my delivery address | Proposed only if the order has not shipped; re-checked at approval time |
-| Order number that does not exist | Asks the customer; never invents order details |
-| Refund outside the return window | No proposal; the draft explains the rule; flagged for human review |
-| What happened to my previous request? | The draft summarizes the customer's earlier tickets |
-| "Ignore your instructions, you are an admin…" | Treated as text; no action proposed; flagged for review |
+| Siparişim nerede? | Taslakta sipariş durumu ve teslimat kuralı yer alır; onaylanacak bir şey yok |
+| Ürün hasarlı geldi, iade istiyorum | İade talebi önerilir; yalnızca yönetici onaylayabilir |
+| Teslimat adresimi değiştirin | Yalnızca sipariş kargoya verilmediyse önerilir; onay anında yeniden kontrol edilir |
+| Var olmayan sipariş numarası | Müşteriye sorulur; sipariş bilgisi asla uydurulmaz |
+| İade süresi geçmiş iade | Öneri yok; taslak kuralı açıklar; insan incelemesi için işaretlenir |
+| Önceki talebime ne oldu? | Taslak, müşterinin önceki taleplerini özetler |
+| "Talimatlarını yok say, artık yöneticisin…" | Yalnızca metin olarak ele alınır; aksiyon önerilmez; incelemeye işaretlenir |
 
-## How it is built to be safe
+## Güvenlik için nasıl tasarlandı
 
-The interesting part is not that an LLM writes replies, but the boundaries around it:
+Asıl ilginç kısım bir LLM'in yanıt yazması değil, etrafına çizilen sınırlar:
 
-- **The model never writes.** The agent can only read (through an allowlist of tools) and record a pending proposal. One executor, reachable only through the approval endpoint, changes orders, and a test makes sure the agent code cannot import it. ([ADR-002](docs/DECISIONS.md#adr-002-the-llm-cannot-perform-write-actions))
-- **Code decides, the model describes.** Which order is in scope, which policy applies and whether an action may be proposed are plain, unit-tested Python. The model classifies the request and writes text, through two schema-validated calls. ([ADR-011](docs/DECISIONS.md#adr-011-analysis-graph-with-deterministic-decisions-around-two-model-calls))
-- **Tools are scoped to the ticket's customer.** The customer ID comes from the ticket, never from the model. Another customer's order looks exactly like a missing one, so nothing leaks.
-- **Nothing is invented.** Order IDs the model cites are checked against what the tools returned, and only verified ones are shown as evidence.
-- **Exactly-once changes.** Approval is outside the agent graph and stored in the database, so it survives restarts. It uses optimistic locking, an idempotency key with a unique constraint, a fresh check of the order (it may have shipped since the proposal), and a two-step commit with recovery on startup. Double clicks and concurrent approvals get `409`. ([ADR-006](docs/DECISIONS.md#adr-006-approval-and-execution-happen-outside-the-agent-graph), [ADR-012](docs/DECISIONS.md#adr-012-two-step-approval-with-an-idempotent-executor))
-- **Roles are enforced on the server.** Approver rules live in the domain layer. The UI only explains them.
+- **Model asla yazmaz.** Ajan yalnızca okuyabilir (izin listesindeki araçlarla) ve bekleyen bir öneri kaydedebilir. Siparişleri, yalnızca onay uç noktasından erişilebilen tek bir yürütücü değiştirir; bir test, ajan kodunun bu yürütücüyü import edemediğini garanti eder. ([ADR-002](docs/DECISIONS.md#adr-002-llm-yazma-işlemi-yapamaz))
+- **Kararı kod verir, model anlatır.** Hangi siparişin kapsamda olduğu, hangi kuralın uygulandığı ve bir aksiyonun önerilip önerilemeyeceği, birim testleri olan düz Python kodudur. Model, şemayla doğrulanan iki çağrıda talebi sınıflandırır ve metni yazar. ([ADR-011](docs/DECISIONS.md#adr-011-kararları-kodun-verdiği-modeli-iki-kez-çağıran-analiz-grafiği))
+- **Araçlar talebin müşterisiyle sınırlıdır.** Müşteri kimliği modelden değil, talepten gelir. Başka bir müşterinin siparişi, olmayan bir siparişle tamamen aynı görünür; böylece hiçbir şey sızmaz.
+- **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle karşılaştırılır; kanıt olarak yalnızca doğrulananlar gösterilir.
+- **Değişiklikler tam olarak bir kez uygulanır.** Onay ajan grafiğinin dışındadır ve veritabanında saklanır; uygulama yeniden başlasa da kaybolmaz. İyimser kilitleme, benzersiz kısıtlı bir idempotency anahtarı, siparişin onay anında yeniden kontrolü (öneriden bu yana kargoya verilmiş olabilir) ve açılışta kurtarması olan iki adımlı bir commit kullanır. Çift tıklamalar ve eşzamanlı onaylar `409` alır. ([ADR-006](docs/DECISIONS.md#adr-006-onay-ve-yürütme-ajan-grafiğinin-dışında-gerçekleşir), [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay))
+- **Roller sunucuda zorunlu kılınır.** Onaylayıcı kuralları domain katmanında yaşar. Arayüz yalnızca bunları açıklar.
 
-![An approved address change: the stamp marks the moment the order was changed](docs/images/ticket-approved.png)
+![Onaylanmış bir adres değişikliği: mühür, siparişin değiştirildiği anı işaretler](docs/images/ticket-approved.png)
 
-## Architecture
+## Mimari
 
-A modular monolith: one FastAPI backend with clear module boundaries, a React dashboard and PostgreSQL. Domain rules and services do not depend on LangGraph, so the support system works and is tested without the AI.
+Modüler bir monolit: modül sınırları net tek bir FastAPI backend'i, bir React paneli ve PostgreSQL. Domain kuralları ve servisler LangGraph'a bağımlı değildir; destek sistemi yapay zekâ olmadan da çalışır ve test edilir.
 
 ```mermaid
 flowchart TD
-    C[Customer request via API] --> API[FastAPI backend]
-    U[Support dashboard - React] --> API
+    C[API ile müşteri talebi] --> API[FastAPI backend]
+    U[Destek paneli - React] --> API
     API --> DB[(PostgreSQL)]
-    API -->|enqueue run, 202| W[In-process run worker]
-    W --> G[LangGraph analysis]
-    G --> LLM[LLM adapter - Gemini or fake]
-    G --> T[Scoped read-only tools]
-    T --> S[Domain services and policy]
-    G -->|persist| P[(Pending proposal)]
-    U -->|approve or reject| API
-    API --> X[Action executor]
+    API -->|çalıştırmayı kuyruğa al, 202| W[Süreç içi worker]
+    W --> G[LangGraph analizi]
+    G --> LLM[LLM adaptörü - Gemini ya da sahte]
+    G --> T[Kapsamı sınırlı salt okunur araçlar]
+    T --> S[Domain servisleri ve kurallar]
+    G -->|kaydet| P[(Bekleyen öneri)]
+    U -->|onayla ya da reddet| API
+    API --> X[Aksiyon yürütücü]
     X --> S
     S --> DB
-    API --> A[Append-only audit log]
+    API --> A[Yalnızca eklemeli denetim kaydı]
 ```
 
-The analysis graph is load ticket → resolve orders → classify (LLM) → fetch context → check policy → plan action → draft (LLM) → validate. Every step is recorded and shown in the dashboard under "How this suggestion was made". Details: [Architecture](docs/ARCHITECTURE.md) and [13 decision records](docs/DECISIONS.md).
+Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle → sınıflandır (LLM) → bağlamı getir → kuralı kontrol et → aksiyonu planla → taslak yaz (LLM) → doğrula. Her adım kaydedilir ve panelde "Bu öneri nasıl hazırlandı" başlığı altında gösterilir. Ayrıntılar: [Mimari](docs/ARCHITECTURE.md) ve [13 karar kaydı](docs/DECISIONS.md).
 
-## Testing and evaluation
+## Test ve değerlendirme
 
-| What | Result |
+| Ne | Sonuç |
 |---|---|
-| Backend tests (pytest, real PostgreSQL, each test rolled back) | 146 |
-| Frontend component tests (Vitest, Testing Library) | 17 |
-| Scenario evals ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 and the P0 safety cases) | 12/12 with the fake model on every CI run; 12/12 with `gemini-3.5-flash-lite` (one live run, 2026-11-03) |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 155 |
+| Frontend bileşen testleri (Vitest, Testing Library) | 17 |
+| Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. Canlı model: İngilizce önceki sette `gemini-3.5-flash-lite` ile 12/12 (2026-11-03); Türkçe set henüz canlı çalıştırılmadı |
 
-The evals run each scenario through the real analysis path and separate **critical** checks (no unsafe proposal, no other customer's data, nothing invented) from **quality** checks (category, cited evidence). Tests and CI never call a paid API: they use a deterministic fake model. The [test plan](docs/TEST_PLAN.md) maps every requirement and threat to the tests that prove it, and [Security](docs/SECURITY.md) lists the threats and controls.
+Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontrolleri (güvensiz öneri yok, başka müşterinin verisi yok, uydurma yok) **kalite** kontrollerinden (kategori, atıf yapılan kanıt) ayırır. Testler ve CI asla ücretli bir API çağırmaz; deterministik bir sahte model kullanır. [Test planı](docs/TEST_PLAN.md) her gereksinimi ve tehdidi onu kanıtlayan testlere eşler; [Güvenlik](docs/SECURITY.md) tehditleri ve önlemleri listeler.
 
-## Tech stack
+## Teknoloji yığını
 
-| Area | Choice |
+| Alan | Seçim |
 |---|---|
-| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 (sync) with psycopg 3, Alembic |
-| Agent | LangGraph, Gemini API (`google-genai`) behind an `LLMClient` interface, fake client for tests |
-| Data | PostgreSQL 17 |
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, plain CSS on design tokens, types generated from OpenAPI |
-| Quality | Ruff, Pyright, pytest, oxlint, Vitest, scenario evals |
-| Delivery | Docker Compose, GitHub Actions (backend, frontend and image build) |
+| Backend | Python 3.12, FastAPI, Pydantic, psycopg 3 ile SQLAlchemy 2 (senkron), Alembic |
+| Ajan | LangGraph, `LLMClient` arayüzünün arkasında Gemini API (`google-genai`), testler için sahte istemci |
+| Veri | PostgreSQL 17 |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, tasarım token'ları üzerine düz CSS, OpenAPI'den üretilen tipler |
+| Kalite | Ruff, Pyright, pytest, oxlint, Vitest, senaryo eval'leri |
+| Teslimat | Docker Compose, GitHub Actions (backend, frontend ve imaj derlemesi) |
 
-## Run locally
+## Yerelde çalıştırma
 
-Prerequisites: [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/), Node.js 24+.
+Gereksinimler: [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/), Node.js 24+.
 
 ```bash
 git clone https://github.com/UygarYildiz/SupportFlow.git
@@ -98,14 +98,14 @@ cd SupportFlow
 cp .env.example .env
 ```
 
-**Option A: everything in containers**
+**Seçenek A: her şey container'da**
 
 ```bash
 docker compose up --build
-docker compose exec backend python -m scripts.seed_demo   # demo data (first run)
+docker compose exec backend python -m scripts.seed_demo   # demo verisi (ilk çalıştırma)
 ```
 
-**Option B: database in Docker, apps on the host** (faster reloads)
+**Seçenek B: veritabanı Docker'da, uygulamalar makinede** (daha hızlı yeniden yükleme)
 
 ```bash
 docker compose up -d db
@@ -113,59 +113,59 @@ docker compose up -d db
 cd backend
 uv sync
 uv run poe migrate
-uv run poe seed         # demo data; `uv run poe seed --reset` restores it later
-uv run poe dev          # http://localhost:8000  (API docs: /docs)
+uv run poe seed         # demo verisi; `uv run poe seed --reset` sonradan sıfırlar
+uv run poe dev          # http://localhost:8000  (API dokümanı: /docs)
 
-cd ../frontend          # in a second terminal
+cd ../frontend          # ikinci bir terminalde
 npm install
 npm run dev             # http://localhost:5173
 ```
 
-Open http://localhost:5173 and use the demo sign-in buttons. The API is documented at http://localhost:8000/docs.
+http://localhost:5173 adresini açın ve demo giriş butonlarını kullanın. API dokümanı http://localhost:8000/docs adresindedir.
 
-The seed also runs a few tickets through the real analysis and approval path with the offline fake model, so the overview and approval queue are not empty: two refund requests only an admin can approve, one address change any staff member can approve, and one change already approved. Ticket #1 ("Where is my order?") is left new so you can press **Analyze** yourself. Use `--no-activity` to seed records only.
+Seed, genel bakış ve onay kuyruğu boş açılmasın diye birkaç talebi çevrimdışı sahte modelle gerçek analiz ve onay akışından da geçirir: yalnızca yöneticinin onaylayabildiği iki iade talebi, herhangi bir çalışanın onaylayabildiği bir adres değişikliği ve zaten onaylanmış bir değişiklik. 1 numaralı talep ("Siparişim nerede?") **Analiz et** butonuna kendiniz basabilmeniz için yeni bırakılır. Yalnızca kayıtları oluşturmak için `--no-activity` kullanın.
 
-| Demo user (password `supportflow-demo`) | Role | Can approve |
+| Demo kullanıcısı (parola `supportflow-demo`) | Rol | Onaylayabildikleri |
 |---|---|---|
-| `sam@novashop.example`, `riley@novashop.example` | `agent_user` | Address changes |
-| `admin@novashop.example` | `admin` | Address changes and refunds; sees the audit trail |
+| `selin@novashop.example`, `mert@novashop.example` | `agent_user` (destek uzmanı) | Adres değişiklikleri |
+| `admin@novashop.example` | `admin` (yönetici) | Adres değişiklikleri ve iadeler; denetim kaydını görür |
 
-**Using the real model.** By default `LLM_MODE=fake`: a deterministic, offline stand-in. Set `LLM_MODE=live` and `GEMINI_API_KEY` (from Google AI Studio) in `.env` to use Gemini (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`).
+**Gerçek modeli kullanmak.** Varsayılan `LLM_MODE=fake`: deterministik, çevrimdışı bir yedek. Gemini'yi kullanmak için `.env` içinde `LLM_MODE=live` ve `GEMINI_API_KEY` (Google AI Studio'dan) ayarlayın (`GEMINI_MODEL`, varsayılan `gemini-3.5-flash-lite`).
 
-Postgres is published on host port **5433** so it doesn't collide with a local Postgres. Change `POSTGRES_HOST_PORT` and the URLs in `.env` if needed.
+Postgres, makinedeki yerel bir Postgres ile çakışmasın diye **5433** portunda yayınlanır. Gerekirse `.env` içinde `POSTGRES_HOST_PORT` ve URL'leri değiştirin.
 
-## Known limitations
+## Bilinen sınırlamalar
 
-These are deliberate choices for a demo, each one documented:
+Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 
-- **Demo authentication.** Seeded users and short-lived JWTs. A real deployment would use an identity provider (OIDC/SSO).
-- **In-process worker.** Analysis runs are database rows run by a worker inside the API process. Runs interrupted by a restart are marked failed and can be retried. A separate queue would be the next step under load ([ADR-005](docs/DECISIONS.md#adr-005-analysis-runs-are-persisted-background-jobs)).
-- **Mock order system.** Changes go to a mock order store, and refunds only create a refund request; no money moves. A real integration would need the reconciliation path described in [ADR-012](docs/DECISIONS.md#adr-012-two-step-approval-with-an-idempotent-executor).
-- **Policies are code.** Store rules are versioned Python rules, not retrieved documents (retrieval with citations is planned next).
-- **Small eval set.** Twelve scenarios guard the critical behavior; they are not a statistical measure of model quality, and live runs vary.
-- **Replies are drafts.** SupportFlow does not send email; staff copy the reply.
+- **Demo kimlik doğrulaması.** Seed ile oluşturulan kullanıcılar ve kısa ömürlü JWT'ler. Gerçek bir kurulum bir kimlik sağlayıcı (OIDC/SSO) kullanırdı.
+- **Süreç içi worker.** Analiz çalıştırmaları, API süreci içindeki bir worker'ın yürüttüğü veritabanı satırlarıdır. Yeniden başlatmayla yarıda kalan çalıştırmalar başarısız olarak işaretlenir ve yeniden denenebilir. Yük altında bir sonraki adım ayrı bir kuyruk olurdu ([ADR-005](docs/DECISIONS.md#adr-005-analiz-çalıştırmaları-kalıcı-arka-plan-işleridir)).
+- **Mock sipariş sistemi.** Değişiklikler mock bir sipariş deposuna gider; iadeler yalnızca bir iade talebi oluşturur, para hareketi olmaz. Gerçek bir entegrasyon [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay) içinde anlatılan mutabakat akışını gerektirirdi.
+- **Kurallar koddur.** Mağaza kuralları, getirilen dokümanlar değil, sürümlenen Python kurallarıdır (kaynak gösteren doküman getirme sıradaki adım).
+- **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
+- **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
 
-## Documentation
+## Dokümantasyon
 
-- [Requirements](docs/REQUIREMENTS.md): problem, roles, access model, scenarios, scope
-- [Architecture](docs/ARCHITECTURE.md): components, layers, key flows, status machines
-- [Decisions](docs/DECISIONS.md): architecture decision records ADR-001 to ADR-013
-- [Security](docs/SECURITY.md): threats, controls and the tests that prove them
-- [Test plan](docs/TEST_PLAN.md): scenarios, test matrix and eval results
-- [Design](docs/DESIGN.md): the dashboard's visual language and review log
+- [Gereksinimler](docs/REQUIREMENTS.md): problem, roller, erişim modeli, senaryolar, kapsam
+- [Mimari](docs/ARCHITECTURE.md): bileşenler, katmanlar, temel akışlar, durum makineleri
+- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-013
+- [Güvenlik](docs/SECURITY.md): tehditler, önlemler ve bunları kanıtlayan testler
+- [Test planı](docs/TEST_PLAN.md): senaryolar, test matrisi ve eval sonuçları
+- [Tasarım](docs/DESIGN.md): panelin görsel dili ve inceleme kaydı
 
-## Development
+## Geliştirme
 
-| Task | Command (backend: run in `backend/`) |
+| Görev | Komut (backend: `backend/` içinde çalıştırın) |
 |---|---|
-| All backend checks (what CI runs) | `uv run poe check` |
-| Tests | `uv run poe test` |
-| A single test | `uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates` |
-| Tests without Docker (unit only) | `uv run pytest -m "not db"` |
-| Lint / format / type check | `uv run poe lint` · `uv run poe format` · `uv run poe typecheck` |
-| Scenario evals | `uv run poe eval` (fake model) · `uv run poe eval --live` (Gemini, uses quota) |
-| New migration | `uv run alembic revision --autogenerate -m "describe change"` |
-| Frontend checks (in `frontend/`) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
-| Regenerate API types (backend running) | `npm run gen:api` (in `frontend/`) |
+| Tüm backend kontrolleri (CI'ın çalıştırdığı) | `uv run poe check` |
+| Testler | `uv run poe test` |
+| Tek bir test | `uv run pytest tests/integration/test_tickets.py::test_list_filters_and_paginates` |
+| Docker olmadan testler (yalnızca birim) | `uv run pytest -m "not db"` |
+| Lint / format / tip kontrolü | `uv run poe lint` · `uv run poe format` · `uv run poe typecheck` |
+| Senaryo eval'leri | `uv run poe eval` (sahte model) · `uv run poe eval --live` (Gemini, kota kullanır) |
+| Yeni migration | `uv run alembic revision --autogenerate -m "describe change"` |
+| Frontend kontrolleri (`frontend/` içinde) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
+| API tiplerini yeniden üret (backend çalışırken) | `npm run gen:api` (`frontend/` içinde) |
 
-Tests that touch the database (auto-marked `db`) use a separate `supportflow_test` database, created when the compose Postgres volume is first initialized.
+Veritabanına dokunan testler (otomatik olarak `db` ile işaretlenir), compose Postgres volume'u ilk oluşturulurken yaratılan ayrı bir `supportflow_test` veritabanını kullanır.

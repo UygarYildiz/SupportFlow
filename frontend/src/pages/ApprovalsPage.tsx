@@ -13,20 +13,20 @@ export function ApprovalsPage() {
   return (
     <div className="page">
       <header className="page__head">
-        <h1>Approvals</h1>
+        <h1>Onaylar</h1>
         <p className="muted page__lede">
-          Order changes proposed by the AI. Nothing happens to an order until someone approves it.
+          Yapay zekânın önerdiği sipariş değişiklikleri. Biri onaylamadıkça siparişe hiçbir şey olmaz.
         </p>
       </header>
 
-      <nav className="tabs" aria-label="Approval view">
+      <nav className="tabs" aria-label="Onay görünümü">
         <button
           type="button"
           className="tab"
           aria-pressed={view === 'pending'}
           onClick={() => setParams({})}
         >
-          Waiting for a decision
+          Karar bekleyenler
         </button>
         <button
           type="button"
@@ -34,23 +34,23 @@ export function ApprovalsPage() {
           aria-pressed={view === 'decided'}
           onClick={() => setParams({ view: 'decided' })}
         >
-          Decided
+          Karar verilenler
         </button>
       </nav>
 
-      {proposals.isPending ? <p className="loading">Loading proposals…</p> : null}
+      {proposals.isPending ? <p className="loading">Öneriler yükleniyor…</p> : null}
       {proposals.isError ? (
         <p className="notice notice--error" role="alert">
-          Could not load proposals. {proposals.error.message}
+          Öneriler yüklenemedi. {proposals.error.message}
         </p>
       ) : null}
 
       {proposals.data && items.length === 0 ? (
         <div className="empty">
-          <strong>{view === 'pending' ? 'Nothing is waiting for you.' : 'No decisions yet.'}</strong>
+          <strong>{view === 'pending' ? 'Sizi bekleyen bir şey yok.' : 'Henüz karar verilmedi.'}</strong>
           {view === 'pending'
-            ? 'When an AI analysis proposes an address change or a refund, it appears here.'
-            : 'Approved, rejected and blocked proposals appear here.'}
+            ? 'Bir yapay zekâ analizi adres değişikliği ya da iade önerdiğinde burada görünür.'
+            : 'Onaylanan, reddedilen ve engellenen öneriler burada görünür.'}
         </div>
       ) : null}
 

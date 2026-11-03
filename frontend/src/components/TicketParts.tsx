@@ -8,7 +8,7 @@ export function StatusBadge({ status }: { status: TicketStatus }) {
 export function PriorityMark({ priority }: { priority: TicketPriority }) {
   return (
     <span className={`priority priority--${priority}`}>
-      <span className="visually-hidden">Priority: </span>
+      <span className="visually-hidden">Öncelik: </span>
       {PRIORITY_LABEL[priority]}
     </span>
   )
@@ -19,7 +19,7 @@ export function PolicyChecks({ checks }: { checks: PolicyCheck[] }) {
   return (
     <section className="sheet" aria-labelledby="policy-title">
       <h2 id="policy-title" className="sheet__title">
-        Store policy
+        Mağaza kuralı
       </h2>
       <ul className="checks">
         {checks.map((check) => {
@@ -27,11 +27,11 @@ export function PolicyChecks({ checks }: { checks: PolicyCheck[] }) {
           return (
             <li key={`${check.rule}-${check.order_id}`} className={`check check--${verdict}`}>
               <span className="check__verdict">
-                {verdict === 'info' ? 'For information' : verdict === 'allowed' ? 'Allowed' : 'Not allowed'}
+                {verdict === 'info' ? 'Bilgi amaçlı' : verdict === 'allowed' ? 'İzin veriliyor' : 'İzin verilmiyor'}
               </span>
               <span>{check.reason}</span>
               <span className="meta">
-                {check.rule} on {check.order_id}
+                {check.order_id} · {check.rule}
               </span>
             </li>
           )
@@ -42,31 +42,31 @@ export function PolicyChecks({ checks }: { checks: PolicyCheck[] }) {
 }
 
 const EVENT_TEXT: Record<string, (p: Record<string, unknown>) => string> = {
-  ticket_created: () => 'Ticket received',
-  status_changed: (p) => `Status changed to ${STATUS_LABEL[p.to as TicketStatus] ?? String(p.to)}`,
-  priority_changed: (p) => `Priority changed to ${PRIORITY_LABEL[p.to as TicketPriority] ?? String(p.to)}`,
-  analysis_requested: () => 'AI analysis requested',
-  analysis_completed: () => 'AI suggestion ready',
-  analysis_failed: () => 'AI analysis failed',
-  proposal_created: (p) => `Proposed: ${actionLabel(p.type)}`,
-  proposal_approved: (p) => `Approved: ${actionLabel(p.type)}`,
-  proposal_rejected: (p) => `Rejected: ${actionLabel(p.type)}`,
-  proposal_expired: (p) => `Proposal expired: ${actionLabel(p.type)}`,
-  action_executed: (p) => `Applied to the order: ${actionLabel(p.type)}`,
-  action_failed: (p) => `Blocked: ${actionLabel(p.type)}${p.reason ? `. ${String(p.reason)}` : ''}`,
+  ticket_created: () => 'Talep alındı',
+  status_changed: (p) => `Durum değişti: ${STATUS_LABEL[p.to as TicketStatus] ?? String(p.to)}`,
+  priority_changed: (p) => `Öncelik değişti: ${PRIORITY_LABEL[p.to as TicketPriority] ?? String(p.to)}`,
+  analysis_requested: () => 'Yapay zekâ analizi istendi',
+  analysis_completed: () => 'Yapay zekâ önerisi hazır',
+  analysis_failed: () => 'Yapay zekâ analizi başarısız',
+  proposal_created: (p) => `Önerildi: ${actionLabel(p.type)}`,
+  proposal_approved: (p) => `Onaylandı: ${actionLabel(p.type)}`,
+  proposal_rejected: (p) => `Reddedildi: ${actionLabel(p.type)}`,
+  proposal_expired: (p) => `Önerinin süresi doldu: ${actionLabel(p.type)}`,
+  action_executed: (p) => `Siparişe uygulandı: ${actionLabel(p.type)}`,
+  action_failed: (p) => `Engellendi: ${actionLabel(p.type)}${p.reason ? `. ${String(p.reason)}` : ''}`,
 }
 
 function actionLabel(type: unknown): string {
   return ACTION_LABEL[type as keyof typeof ACTION_LABEL] ?? String(type)
 }
 
-const ACTOR: Record<string, string> = { user: 'Staff', system: 'System', customer: 'Customer' }
+const ACTOR: Record<string, string> = { user: 'Personel', system: 'Sistem', customer: 'Müşteri' }
 
 export function Timeline({ events }: { events: TicketEvent[] }) {
   return (
     <section className="history" aria-labelledby="history-title">
       <h2 id="history-title" className="section-title">
-        History
+        Geçmiş
       </h2>
       <ol className="timeline">
         {events.map((event) => (

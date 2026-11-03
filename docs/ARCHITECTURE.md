@@ -1,157 +1,157 @@
-# Architecture
+# Mimari
 
-SupportFlow AI is a **modular monolith**: one FastAPI backend with strictly separated modules, a PostgreSQL database and a React dashboard. Rationale and trade-offs are in [DECISIONS.md](DECISIONS.md).
+SupportFlow AI bir **modüler monolittir**: modülleri sıkı şekilde ayrılmış tek bir FastAPI backend'i, bir PostgreSQL veritabanı ve bir React paneli. Gerekçeler ve ödünleşimler [DECISIONS.md](DECISIONS.md) içinde.
 
-## 1. System overview
+## 1. Sisteme genel bakış
 
 ```mermaid
 flowchart TD
-    C[Customer request via API / webhook] --> API[FastAPI backend]
-    U[Support dashboard - React] --> API
+    C[API / webhook ile müşteri talebi] --> API[FastAPI backend]
+    U[Destek paneli - React] --> API
     API --> DB[(PostgreSQL)]
-    API -->|enqueue run| W[In-process run worker]
-    W --> G[LangGraph agent]
-    G --> LLM[LLM adapter - Gemini / fake]
-    G --> T[Scoped read-only tools]
-    T --> S[Domain services]
-    G -->|persist| P[(Action proposal - pending)]
-    U -->|approve / reject| API
-    API --> X[Action executor]
+    API -->|çalıştırmayı kuyruğa al| W[Süreç içi worker]
+    W --> G[LangGraph ajanı]
+    G --> LLM[LLM adaptörü - Gemini / sahte]
+    G --> T[Kapsamı sınırlı salt okunur araçlar]
+    T --> S[Domain servisleri]
+    G -->|kaydet| P[(Aksiyon önerisi - bekliyor)]
+    U -->|onayla / reddet| API
+    API --> X[Aksiyon yürütücü]
     X --> S
     S --> DB
-    API --> A[Audit log]
+    API --> A[Denetim kaydı]
 ```
 
-## 2. Backend modules and dependency rules
+## 2. Backend modülleri ve bağımlılık kuralları
 
-| Module | Responsibility | May depend on |
+| Modül | Sorumluluk | Bağımlı olabileceği modüller |
 |---|---|---|
-| `api/` | Routers, auth dependencies, request/response mapping, HTTP errors | `services`, `schemas`, `core` |
-| `schemas/` | Pydantic API contracts | — |
-| `core/` | Settings, auth (JWT), logging | — |
-| `domain/` | Entities, status machines, policy rules, approver-role rules | — (pure Python) |
-| `services/` | Use cases: tickets, orders, runs, proposals, action executor, audit | `domain`, `db`, `integrations` |
-| `integrations/` | Mock order/CRM data access; later MCP / n8n adapters | `db` |
-| `agent/` | Graph state, nodes, edges, prompts, tool wrappers, LLM adapters | `services` (read-only methods), `domain` |
-| `db/` | SQLAlchemy models, session, migrations | — |
+| `api/` | Router'lar, kimlik doğrulama bağımlılıkları, istek/yanıt eşleme, HTTP hataları | `services`, `schemas`, `core` |
+| `schemas/` | Pydantic API sözleşmeleri | — |
+| `core/` | Ayarlar, kimlik doğrulama (JWT), loglama | — |
+| `domain/` | Varlıklar, durum makineleri, kurallar, onaylayıcı rol kuralları | — (saf Python) |
+| `services/` | Kullanım senaryoları: talepler, siparişler, çalıştırmalar, öneriler, aksiyon yürütücü, denetim | `domain`, `db`, `integrations` |
+| `integrations/` | Mock sipariş/CRM veri erişimi; ileride MCP / n8n adaptörleri | `db` |
+| `agent/` | Graf durumu, düğümler, kenarlar, prompt'lar, araç sarmalayıcıları, LLM adaptörleri | `services` (salt okunur metotlar), `domain` |
+| `db/` | SQLAlchemy modelleri, oturum, migration'lar | — |
 
-Hard rules:
+Kesin kurallar:
 
-- `domain/` and `services/` never import LangGraph, the LLM SDK or n8n. Business logic is testable without the agent.
-- `agent/` never imports the action executor. The agent's only write is persisting a `pending` proposal through the proposal service.
-- Business rules live in `domain/` and `services/`, never in route handlers or graph nodes.
+- `domain/` ve `services/` LangGraph'ı, LLM SDK'sını ya da n8n'i asla import etmez. İş mantığı ajan olmadan test edilebilir.
+- `agent/` aksiyon yürütücüyü asla import etmez. Ajanın tek yazma işlemi, öneri servisi üzerinden `pending` bir öneri kaydetmektir.
+- İş kuralları route handler'larda ya da graf düğümlerinde değil, `domain/` ve `services/` içinde yaşar.
 
-## 3. Key flows
+## 3. Temel akışlar
 
-### 3.1 Ticket analysis (background run)
+### 3.1 Talep analizi (arka plan çalıştırması)
 
 ```mermaid
 sequenceDiagram
-    participant UI
+    participant UI as Arayüz
     participant API
     participant DB
     participant Worker
-    participant Graph
+    participant Graph as Graf
     UI->>API: POST /tickets/{id}/analyze
-    API->>DB: insert agent_run (queued) [unique: one active run per ticket]
-    API-->>UI: 202 + run_id (409 if a run is active)
+    API->>DB: agent_run ekle (queued) [benzersiz: talep başına tek aktif çalıştırma]
+    API-->>UI: 202 + run_id (aktif çalıştırma varsa 409)
     Worker->>DB: run -> running
     Worker->>Graph: execute(ticket_id, run_id)
-    Graph->>Graph: load ticket, classify, fetch facts, check policy, draft
-    Graph->>DB: save analysis + pending proposal (idempotent)
-    Worker->>DB: run -> succeeded / failed, ticket -> awaiting_review / needs_info / failed
-    UI->>API: GET /runs/{run_id} (polling)
+    Graph->>Graph: talebi yükle, sınıflandır, bilgileri getir, kuralı kontrol et, taslak yaz
+    Graph->>DB: analizi + bekleyen öneriyi kaydet (idempotent)
+    Worker->>DB: run -> succeeded / failed, talep -> awaiting_review / needs_info / failed
+    UI->>API: GET /runs/{run_id} (yoklama)
 ```
 
-- On startup, runs still `running` are marked `failed` with reason `interrupted`.
-- Graph limits: max steps, LLM timeout, retry with backoff, token budget per run.
+- Uygulama açılırken hâlâ `running` olan çalıştırmalar `interrupted` gerekçesiyle `failed` olarak işaretlenir.
+- Graf sınırları: azami adım, LLM zaman aşımı, artan beklemeyle yeniden deneme, çalıştırma başına token bütçesi.
 
-### 3.2 Agent graph (`app/agent/graph.py`, ADR-011)
+### 3.2 Ajan grafiği (`app/agent/graph.py`, ADR-011)
 
 ```mermaid
 flowchart TD
     A[load_ticket] --> B[resolve_orders]
     B --> C[classify - LLM]
-    C --> D{order-related and no order in scope?}
-    D -->|yes| E[request_info]
-    D -->|no| F[fetch_context]
+    C --> D{siparişle ilgili ve kapsamda sipariş yok mu?}
+    D -->|evet| E[request_info]
+    D -->|hayır| F[fetch_context]
     F --> G[check_policy]
-    G --> H[plan_action - deterministic]
+    G --> H[plan_action - deterministik]
     E --> I[draft - LLM]
     H --> I
     I --> J[validate]
 ```
 
-| Node | Does | Model? |
+| Düğüm | Ne yapar | Model? |
 |---|---|---|
-| `load_ticket` | Loads the ticket; binds the tools to its customer | no |
-| `resolve_orders` | Customer's orders + order IDs mentioned in the text; foreign or missing IDs become `unknown_order_ids` | no |
-| `classify` | Category, priority, referenced order, requested address, injection flag | yes |
-| `request_info` | Order-related request without a usable order: ask for it | no |
-| `fetch_context` | Customer's previous tickets (follow-ups, S6) | no |
-| `check_policy` | Applies the category's NovaShop rule to the order in scope | no |
-| `plan_action` | Proposes `change_shipping_address` / `create_refund_request` only if policy allows | no |
-| `draft` | Summary and reply from the facts, policy results and planned action | yes |
-| `validate` | Drops unverified evidence, decides `awaiting_review` vs `needs_info`, sets review flag | no |
+| `load_ticket` | Talebi yükler; araçları talebin müşterisine bağlar | hayır |
+| `resolve_orders` | Müşterinin siparişleri + metinde geçen sipariş kimlikleri; başkasına ait ya da olmayan kimlikler `unknown_order_ids` olur | hayır |
+| `classify` | Kategori, öncelik, atıf yapılan sipariş, istenen adres, injection işareti | evet |
+| `request_info` | Kullanılabilir siparişi olmayan siparişle ilgili talep: siparişi sor | hayır |
+| `fetch_context` | Müşterinin önceki talepleri (takip talepleri, S6) | hayır |
+| `check_policy` | Kategorinin NovaShop kuralını kapsamdaki siparişe uygular | hayır |
+| `plan_action` | `change_shipping_address` / `create_refund_request` aksiyonunu yalnızca kural izin veriyorsa önerir | hayır |
+| `draft` | Bilgilerden, kural sonuçlarından ve planlanan aksiyondan özet ve yanıt | evet |
+| `validate` | Doğrulanmamış kanıtları atar, `awaiting_review` mı `needs_info` mu olacağına karar verir, inceleme işaretini koyar | hayır |
 
-Tools (allowlist, read-only, bound to the ticket's customer): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
+Araçlar (izin listesi, salt okunur, talebin müşterisine bağlı): `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`.
 
-Supporting modules: `prompts.py` (two prompts; customer text inside delimiter tags it cannot close), `llm/` (provider adapters, fake client, retry), `tools.py`, `executor.py` (runs a queued run; records steps in `agent_run_steps`; a started run always ends `succeeded` or `failed`). Run state transitions live in `services/analysis_runs.py`, which knows nothing about LLMs.
+Destekleyici modüller: `prompts.py` (iki prompt; müşteri metni kapatamayacağı ayraç etiketleri içinde), `llm/` (sağlayıcı adaptörleri, sahte istemci, yeniden deneme), `tools.py`, `executor.py` (kuyruktaki bir çalıştırmayı yürütür; adımları `agent_run_steps` tablosuna kaydeder; başlamış bir çalıştırma her zaman `succeeded` ya da `failed` ile biter). Çalıştırma durum geçişleri, LLM'ler hakkında hiçbir şey bilmeyen `services/analysis_runs.py` içinde yaşar.
 
-The proposed action is stored on the run result and, in the same transaction, as a pending `ActionProposal` (Phase 5).
+Önerilen aksiyon çalıştırma sonucunda ve aynı transaction içinde `pending` bir `ActionProposal` olarak saklanır (Faz 5).
 
-### 3.3 Approval and execution (ADR-012)
+### 3.3 Onay ve yürütme (ADR-012)
 
 ```mermaid
 sequenceDiagram
-    participant UI
+    participant UI as Arayüz
     participant API
     participant Svc as ProposalService
     participant Orders as MockOrderSystem
     participant DB
     UI->>API: POST /proposals/{id}/decision (approve, expected_version)
     API->>Svc: decide(...)
-    Svc->>DB: lock proposal; check role, version, status, expiry, payload hash
-    Svc->>DB: approved -> executing + ticket event + audit (commit)
+    Svc->>DB: öneriyi kilitle; rol, sürüm, durum, son kullanma, içerik hash'i kontrolü
+    Svc->>DB: approved -> executing + talep olayı + denetim (commit)
     Svc->>Orders: apply(idempotency_key = proposal-{id})
-    Orders->>DB: key seen? return first result
-    Orders->>DB: lock order, re-check policy (TOCTOU), apply change + action_executions row
-    Svc->>DB: executed / failed + ticket event + audit (commit)
-    API-->>UI: proposal (a repeat request gets 409, never a second effect)
+    Orders->>DB: anahtar görüldü mü? ilk sonucu döndür
+    Orders->>DB: siparişi kilitle, kuralı yeniden kontrol et (TOCTOU), değişikliği uygula + action_executions satırı
+    Svc->>DB: executed / failed + talep olayı + denetim (commit)
+    API-->>UI: öneri (tekrarlanan istek 409 alır, asla ikinci bir etki olmaz)
 ```
 
-- Proposals are created by the run-completion transaction (one per run, one open per ticket); a newer analysis supersedes older pending ones.
-- Approver roles: address changes by any staff role, refund requests by `admin` only (`app/domain/proposals.py`).
-- Startup recovery expires overdue proposals and finishes executions interrupted between the two steps.
-- `refund_requests` is a mock finance record; no money moves.
+- Öneriler çalıştırmayı tamamlayan transaction tarafından oluşturulur (çalıştırma başına bir, talep başına bir açık öneri); daha yeni bir analiz eski bekleyen önerilerin yerini alır.
+- Onaylayıcı roller: adres değişikliklerini her personel rolü, iade taleplerini yalnızca `admin` onaylar (`app/domain/proposals.py`).
+- Açılıştaki kurtarma, süresi geçmiş önerileri sonlandırır ve iki adım arasında yarıda kalan yürütmeleri tamamlar.
+- `refund_requests` mock bir finans kaydıdır; para hareketi yoktur.
 
-## 4. Status machines
+## 4. Durum makineleri
 
-**Ticket** (`app/domain/ticket_status.py`): two separate transition tables.
+**Talep** (`app/domain/ticket_status.py`): iki ayrı geçiş tablosu.
 
-| From | Manual (staff via `PATCH /tickets/{id}`) | System (analysis pipeline only) |
+| Kaynak durum | Elle (personel, `PATCH /tickets/{id}` ile) | Sistem (yalnızca analiz akışı) |
 |---|---|---|
 | `new` | `resolved`, `needs_info` | `triaging` |
-| `triaging` | none | `awaiting_review`, `needs_info`, `failed` |
-| `awaiting_review` | `resolved`, `needs_info` | none |
-| `needs_info` | `new` | none |
-| `failed` | `new` | none |
-| `resolved` | none (terminal) | none |
+| `triaging` | yok | `awaiting_review`, `needs_info`, `failed` |
+| `awaiting_review` | `resolved`, `needs_info` | yok |
+| `needs_info` | `new` | yok |
+| `failed` | `new` | yok |
+| `resolved` | yok (son durum) | yok |
 
-Staff cannot fake an AI triage step, and the pipeline cannot resolve a ticket on its own. Invalid transitions return 409. Every change is appended to `ticket_events`.
+Personel bir yapay zekâ ön değerlendirme adımını taklit edemez, analiz akışı da bir talebi kendi başına çözemez. Geçersiz geçişler 409 döner. Her değişiklik `ticket_events` tablosuna eklenir.
 
-**Action proposal:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`. Every transition increments `version`.
+**Aksiyon önerisi:** `pending → approved → executing → executed | failed`; `pending → rejected`; `pending → expired`. Her geçiş `version` değerini artırır.
 
-**Agent run:** `queued → running → succeeded | failed`.
+**Ajan çalıştırması:** `queued → running → succeeded | failed`.
 
-## 5. Trust boundaries
+## 5. Güven sınırları
 
-- LLM output is an untrusted suggestion. It is validated against a Pydantic schema, and any order IDs it cites are checked against data the tools actually returned.
-- Ticket text, tool results and (later) policy documents and webhook payloads are data, never instructions.
-- Authorization is always server-side. Hiding a button in the UI is not a control. The user's role is re-read from the database on every request, so deactivation takes effect immediately.
-- Order lookups for a customer go through `OrderService.get_customer_order`, which reports another customer's order exactly like a missing one.
-- Logs carry `correlation_id`, `ticket_id` and `run_id`, with PII redacted.
+- LLM çıktısı güvenilmez bir öneridir. Bir Pydantic şemasıyla doğrulanır ve atıf yaptığı sipariş kimlikleri araçların gerçekten döndürdüğü verilerle karşılaştırılır.
+- Talep metni, araç sonuçları ve (ileride) kural dokümanları ile webhook içerikleri talimat değil, veridir.
+- Yetkilendirme her zaman sunucu tarafındadır. Arayüzde bir butonu gizlemek bir güvenlik önlemi değildir. Kullanıcının rolü her istekte veritabanından yeniden okunur; böylece pasifleştirme anında etkili olur.
+- Bir müşteri için sipariş sorguları, başka müşterinin siparişini olmayan bir siparişle tamamen aynı şekilde bildiren `OrderService.get_customer_order` üzerinden yapılır.
+- Loglar `correlation_id`, `ticket_id` ve `run_id` taşır; kişisel veriler maskelenir.
 
 ## 6. Frontend
 
-React + TypeScript + Vite + React Router + TanStack Query, styled with plain CSS on design tokens (ADR-013, `docs/DESIGN.md`). Pages: overview (role-aware: decisions waiting for you or for an admin, audit trail for admins), tickets, ticket detail (message, AI draft, "how this suggestion was made" with graph steps, proposal, order, policy, history), approval queue. A single API client layer; types are generated from the backend OpenAPI schema. AI output is always labeled as a draft.
+React + TypeScript + Vite + React Router + TanStack Query; tasarım token'ları üzerine düz CSS ile stillendirilmiştir (ADR-013, `docs/DESIGN.md`). Sayfalar: genel bakış (role göre: sizin ya da bir yöneticinin kararını bekleyenler, yöneticiler için denetim kaydı), talepler, talep detayı (mesaj, yapay zekâ taslağı, graf adımlarıyla "bu öneri nasıl hazırlandı", öneri, sipariş, kural, geçmiş), onay kuyruğu. Tek bir API istemci katmanı; tipler backend OpenAPI şemasından üretilir. Yapay zekâ çıktısı her zaman taslak olarak etiketlenir.

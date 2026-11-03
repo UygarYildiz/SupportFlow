@@ -6,8 +6,8 @@ import { useAuth } from '../auth/useAuth'
 // Seeded demo accounts (scripts/seed_demo.py). Shown only in development or demo mode.
 const DEMO_PASSWORD = 'supportflow-demo'
 const DEMO_ACCOUNTS = [
-  { email: 'sam@novashop.example', label: 'Sam, support agent' },
-  { email: 'admin@novashop.example', label: 'Ada, admin' },
+  { email: 'selin@novashop.example', label: 'Selin (destek uzmanı)' },
+  { email: 'admin@novashop.example', label: 'Ayşe (yönetici)' },
 ]
 const SHOW_DEMO = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -30,7 +30,7 @@ export function LoginPage() {
       await signIn(emailValue, passwordValue)
       navigate(next, { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Sign-in failed. Try again.')
+      setError(err instanceof ApiError ? err.message : 'Giriş yapılamadı. Tekrar deneyin.')
     } finally {
       setBusy(false)
     }
@@ -46,11 +46,11 @@ export function LoginPage() {
       <div className="login__panel">
         <div className="wordmark wordmark--large">SupportFlow</div>
         <p className="login__intro">
-          Review AI-drafted replies and approve order changes for NovaShop customers.
+          NovaShop müşterileri için yapay zekânın hazırladığı yanıtları inceleyin ve sipariş değişikliklerini onaylayın.
         </p>
         <form className="login__form" onSubmit={onSubmit}>
           <div className="field">
-            <label htmlFor="email">Work email</label>
+            <label htmlFor="email">İş e-postası</label>
             <input
               id="email"
               className="input"
@@ -62,7 +62,7 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Parola</label>
             <input
               id="password"
               className="input"
@@ -79,17 +79,17 @@ export function LoginPage() {
             </p>
           ) : null}
           <button className="button button--primary" type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
           </button>
         </form>
         {SHOW_DEMO ? (
           <section className="login__demo" aria-labelledby="demo-title">
             <h2 id="demo-title" className="login__demo-title">
-              Demo accounts
+              Demo hesapları
             </h2>
             <p className="meta">
-              Synthetic data only. Sam is a support agent; Ada is an admin and can also approve
-              refunds.
+              Yalnızca sentetik veri. Selin bir destek uzmanı; Ayşe yönetici ve iadeleri de
+              onaylayabilir.
             </p>
             <div className="login__demo-buttons">
               {DEMO_ACCOUNTS.map((account) => (
@@ -100,7 +100,7 @@ export function LoginPage() {
                   disabled={busy}
                   onClick={() => void submit(account.email, DEMO_PASSWORD)}
                 >
-                  Sign in as {account.label}
+                  {account.label} olarak giriş yap
                 </button>
               ))}
             </div>
@@ -113,10 +113,10 @@ export function LoginPage() {
 }
 
 const PERMISSIONS: { what: string; agent: boolean; admin: boolean }[] = [
-  { what: 'Read tickets and orders, run AI analysis', agent: true, admin: true },
-  { what: 'Approve an address change', agent: true, admin: true },
-  { what: 'Approve a refund request', agent: false, admin: true },
-  { what: 'See the audit trail', agent: false, admin: true },
+  { what: 'Talepleri ve siparişleri görme, yapay zekâ analizi başlatma', agent: true, admin: true },
+  { what: 'Adres değişikliğini onaylama', agent: true, admin: true },
+  { what: 'İade talebini onaylama', agent: false, admin: true },
+  { what: 'Denetim kaydını görme', agent: false, admin: true },
 ]
 
 /** The right half: what the product does and who may do what. */
@@ -124,47 +124,47 @@ function ProductIntro() {
   return (
     <aside className="intro" aria-labelledby="intro-title">
       <h2 id="intro-title" className="intro__title">
-        How a request moves through SupportFlow
+        Bir talep SupportFlow'da nasıl ilerler
       </h2>
       <ol className="intro__steps">
         <li className="intro__step">
           <span className="intro__num">1</span>
           <div>
-            <strong>A customer writes in</strong>
-            <p className="muted">“Please send ORD-1003 to my new address.”</p>
+            <strong>Müşteri yazar</strong>
+            <p className="muted">“ORD-1003 numaralı siparişimi yeni adresime gönderebilir misiniz?”</p>
           </div>
         </li>
         <li className="intro__step">
           <span className="intro__num">2</span>
           <div className="intro__draft">
-            <span className="carbon__tag">Draft by AI</span>
-            <strong>The AI checks the order and store policy</strong>
+            <span className="carbon__tag">Yapay zekâ taslağı</span>
+            <strong>Yapay zekâ siparişi ve mağaza kurallarını kontrol eder</strong>
             <p className="muted">
-              It drafts a reply and may propose a change. It never changes an order itself.
+              Bir yanıt taslağı hazırlar ve bir değişiklik önerebilir. Siparişi asla kendisi değiştirmez.
             </p>
           </div>
         </li>
         <li className="intro__step">
           <span className="intro__num">3</span>
           <div className="intro__decide">
-            <strong>A person decides</strong>
-            <p className="muted">Approving applies the change once. Every decision is recorded.</p>
+            <strong>Kararı bir insan verir</strong>
+            <p className="muted">Onay, değişikliği bir kez uygular. Her karar kayıt altına alınır.</p>
             <span className="intro__stamp" aria-hidden="true">
-              APPROVED
+              ONAYLANDI
             </span>
           </div>
         </li>
       </ol>
 
       <table className="intro__roles">
-        <caption>Who can do what</caption>
+        <caption>Kim ne yapabilir</caption>
         <thead>
           <tr>
             <th scope="col">
-              <span className="visually-hidden">Permission</span>
+              <span className="visually-hidden">Yetki</span>
             </th>
-            <th scope="col">Support agent</th>
-            <th scope="col">Admin</th>
+            <th scope="col">Destek uzmanı</th>
+            <th scope="col">Yönetici</th>
           </tr>
         </thead>
         <tbody>
@@ -185,7 +185,7 @@ function Allowed({ value }: { value: boolean }) {
   return (
     <td className={value ? 'yes' : 'no'}>
       <span aria-hidden="true">{value ? '✓' : '–'}</span>
-      <span className="visually-hidden">{value ? 'Yes' : 'No'}</span>
+      <span className="visually-hidden">{value ? 'Evet' : 'Hayır'}</span>
     </td>
   )
 }

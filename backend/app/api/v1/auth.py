@@ -16,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(body: LoginRequest, session: DbSession, settings: AppSettings) -> TokenResponse:
     user = UserService(session).authenticate(body.email, body.password)
     if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="E-posta ya da parola hatalı")
     token = create_access_token(user.id, user.role, settings)
     return TokenResponse(access_token=token, expires_in=settings.access_token_expire_minutes * 60)
 

@@ -110,7 +110,7 @@ def test_second_approval_is_rejected_and_changes_nothing(
 
     assert stale.status_code == 409
     assert late.status_code == 409
-    assert "already 'executed'" in late.json()["detail"]
+    assert "zaten 'executed' durumunda" in late.json()["detail"]
     db_session.refresh(order)
     assert order.shipping_address == "changed by someone else later"  # not re-applied
     assert _executions(db_session) == 1
@@ -181,7 +181,7 @@ def test_order_shipped_after_proposal_blocks_the_address_change(
     body = _decide(client, proposal.id, auth_headers(agent)).json()
 
     assert body["status"] == "failed"
-    assert "only change before shipping" in body["failure_reason"]
+    assert "kargoya verilmeden önce" in body["failure_reason"]
     db_session.refresh(order)
     assert order.shipping_address == ORIGINAL_ADDRESS
 
@@ -191,7 +191,7 @@ def test_stale_version_is_rejected(
 ) -> None:
     response = _decide(client, proposal.id, auth_headers(agent), version=7)
     assert response.status_code == 409
-    assert "reload before deciding" in response.json()["detail"]
+    assert "sayfayı yenileyin" in response.json()["detail"]
 
 
 def test_tampered_payload_cannot_be_executed(
@@ -210,7 +210,7 @@ def test_tampered_payload_cannot_be_executed(
     response = _decide(client, proposal.id, auth_headers(agent))
 
     assert response.status_code == 409
-    assert "payload changed" in response.json()["detail"]
+    assert "içeriği önerildikten sonra değiştirildi" in response.json()["detail"]
     db_session.refresh(order)
     assert order.shipping_address == ORIGINAL_ADDRESS
 

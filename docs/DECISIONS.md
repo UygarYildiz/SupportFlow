@@ -1,104 +1,104 @@
-# Architecture Decision Records
+# Mimari Karar Kayıtları (ADR)
 
-Each record: decision, reason, alternatives, and when to revisit.
+Her kayıt şunları içerir: karar, gerekçe, alternatifler ve kararın ne zaman yeniden değerlendirileceği.
 
-## ADR-001: Modular monolith
+## ADR-001: Modüler monolit
 
-**Decision:** One FastAPI application with separate `domain`, `services`, `agent`, `integrations` and `api` modules and enforced dependency rules (see [ARCHITECTURE.md](ARCHITECTURE.md)).
-**Reason:** Keeps operational complexity low for a single developer while preserving clear boundaries that can be split later.
-**Alternatives:** Microservices (rejected: deployment and consistency overhead with no current benefit).
-**Revisit when:** Components need independent scaling or separate teams own them.
+**Karar:** Tek bir FastAPI uygulaması; `domain`, `services`, `agent`, `integrations` ve `api` modülleri ayrı ve aralarındaki bağımlılık kuralları zorunlu (bkz. [ARCHITECTURE.md](ARCHITECTURE.md)).
+**Gerekçe:** Tek geliştirici için operasyonel karmaşıklığı düşük tutar; ileride ayrılabilecek net sınırları korur.
+**Alternatifler:** Mikroservisler (reddedildi: bugün hiçbir faydası olmayan dağıtım ve tutarlılık yükü).
+**Yeniden değerlendir:** Bileşenlerin bağımsız ölçeklenmesi gerekirse ya da farklı ekipler sahiplenirse.
 
-## ADR-002: The LLM cannot perform write actions
+## ADR-002: LLM yazma işlemi yapamaz
 
-**Decision:** The agent only creates `ActionProposal` records. A deterministic `ActionExecutor` applies changes after verifying the approver's role, the policy and the current state.
-**Reason:** Prevents unauthorized, duplicated or hallucination-driven changes. An agent's request is never a permission.
-**Alternatives:** Letting the model call write tools directly (rejected).
+**Karar:** Ajan yalnızca `ActionProposal` (aksiyon önerisi) kaydı oluşturur. Değişiklikleri, onaylayanın rolünü, kuralı ve güncel durumu doğruladıktan sonra deterministik bir `ActionExecutor` uygular.
+**Gerekçe:** Yetkisiz, tekrarlanan ya da halüsinasyona dayanan değişiklikleri önler. Ajanın bir şey istemesi asla yetki anlamına gelmez.
+**Alternatifler:** Modelin yazma araçlarını doğrudan çağırması (reddedildi).
 
-## ADR-003: REST and service interfaces first, MCP later
+## ADR-003: Önce REST ve servis arayüzleri, MCP sonra
 
-**Decision:** Domain services are built and tested through Python interfaces and REST endpoints. MCP (Phase 8) is added later as a read-only adapter over the same services.
-**Reason:** Keeps the tool protocol from leaking into business logic, and the core works without it.
+**Karar:** Domain servisleri Python arayüzleri ve REST uç noktaları üzerinden geliştirilir ve test edilir. MCP (Faz 8) daha sonra aynı servislerin üzerine salt okunur bir adaptör olarak eklenir.
+**Gerekçe:** Araç protokolünün iş mantığına sızmasını engeller; çekirdek MCP olmadan da çalışır.
 
-## ADR-004: Synchronous SQLAlchemy with psycopg 3
+## ADR-004: psycopg 3 ile senkron SQLAlchemy
 
-**Decision:** The MVP uses synchronous SQLAlchemy 2 with the psycopg 3 driver and Alembic migrations.
-**Reason:** Simpler to debug and test; traffic is low. psycopg 3 is also what LangGraph's Postgres checkpointer uses, should we need it later.
-**Alternatives:** Fully async stack with asyncpg.
-**Revisit when:** Measured concurrency problems appear.
+**Karar:** MVP, psycopg 3 sürücüsüyle senkron SQLAlchemy 2 ve Alembic migration'ları kullanır.
+**Gerekçe:** Hata ayıklaması ve test etmesi daha kolay; trafik düşük. psycopg 3 aynı zamanda, ileride gerekirse LangGraph'ın Postgres checkpointer'ının kullandığı sürücü.
+**Alternatifler:** asyncpg ile tamamen asenkron bir yığın.
+**Yeniden değerlendir:** Ölçülebilir eşzamanlılık sorunları ortaya çıkarsa.
 
-## ADR-005: Analysis runs are persisted background jobs
+## ADR-005: Analiz çalıştırmaları kalıcı arka plan işleridir
 
-**Decision:** `POST /tickets/{id}/analyze` inserts an `agent_runs` row with status `queued` and returns `202` with the run ID. An in-process worker executes it. A partial unique index allows one active run per ticket. On startup, runs left `running` are marked `failed` with reason `interrupted`.
-**Reason:** Keeps LLM latency out of the HTTP request and avoids extra infrastructure.
-**Alternatives:** Synchronous request (rejected: timeouts, poor UX); Celery/RQ with Redis (deferred to V2).
-**Revisit when:** Load requires separate worker processes or runs must survive restarts.
+**Karar:** `POST /tickets/{id}/analyze`, `queued` durumunda bir `agent_runs` satırı ekler ve çalıştırma kimliğiyle birlikte `202` döner. İşi, süreç içi (in-process) bir worker yürütür. Kısmi benzersiz indeks, bir talep için aynı anda yalnızca bir aktif çalıştırmaya izin verir. Uygulama açılırken `running` durumunda kalmış çalıştırmalar `interrupted` gerekçesiyle `failed` olarak işaretlenir.
+**Gerekçe:** LLM gecikmesini HTTP isteğinin dışında tutar ve ek altyapı gerektirmez.
+**Alternatifler:** Senkron istek (reddedildi: zaman aşımları, kötü kullanıcı deneyimi); Redis ile Celery/RQ (V2'ye ertelendi).
+**Yeniden değerlendir:** Yük ayrı worker süreçleri gerektirirse ya da çalıştırmaların yeniden başlatmalardan sağ çıkması gerekirse.
 
-## ADR-006: Approval and execution happen outside the agent graph
+## ADR-006: Onay ve yürütme ajan grafiğinin dışında gerçekleşir
 
-**Decision:** The graph persists a `pending` proposal and ends. The decision endpoint calls the `ActionExecutor` in the domain layer. Pending approvals are stored in the business database, not in a graph checkpoint.
-**Reason:** No graph node re-runs after approval, so duplicate side effects are impossible by design. Pending approvals survive restarts, and the executor is testable without the agent.
-**Alternatives:** LangGraph `interrupt()` with a Postgres checkpointer and resume after approval (deferred to V2).
-**Revisit when:** The agent must continue multi-step work after a human decision.
+**Karar:** Graf `pending` (bekleyen) bir öneri kaydeder ve biter. Karar uç noktası domain katmanındaki `ActionExecutor`'ı çağırır. Bekleyen onaylar bir graf checkpoint'inde değil, iş veritabanında saklanır.
+**Gerekçe:** Onaydan sonra hiçbir graf düğümü yeniden çalışmaz; böylece yan etkilerin tekrarlanması tasarım gereği imkânsızdır. Bekleyen onaylar yeniden başlatmalardan etkilenmez ve yürütücü ajandan bağımsız test edilebilir.
+**Alternatifler:** Postgres checkpointer ile LangGraph `interrupt()` ve onaydan sonra kaldığı yerden devam (V2'ye ertelendi).
+**Yeniden değerlendir:** Ajanın bir insan kararından sonra çok adımlı işe devam etmesi gerekirse.
 
-## ADR-007: Demo authentication from Phase 2
+## ADR-007: Faz 2'den itibaren demo kimlik doğrulaması
 
-**Decision:** Seeded users, short-lived JWTs, and `get_current_user` / `require_role` FastAPI dependencies on every endpoint except `/health` and `/ready`. Roles: `agent_user`, `admin`. Approver roles per action type are defined in `domain/`.
-**Reason:** Approval and data-access rules are testable from the start; adding auth late would mean rewriting services.
-**Alternatives:** External identity provider (required for production, out of scope for the demo).
+**Karar:** Seed ile oluşturulan kullanıcılar, kısa ömürlü JWT'ler ve `/health` ile `/ready` dışındaki her uç noktada `get_current_user` / `require_role` FastAPI bağımlılıkları. Roller: `agent_user` (destek uzmanı) ve `admin` (yönetici). Aksiyon tipine göre onaylayıcı roller `domain/` içinde tanımlıdır.
+**Gerekçe:** Onay ve veri erişim kuralları en baştan test edilebilir; kimlik doğrulamayı sonradan eklemek servisleri yeniden yazmak demek olurdu.
+**Alternatifler:** Harici kimlik sağlayıcı (üretim için gerekli, demo kapsamı dışında).
 
-## ADR-008: Ticket and proposal statuses are separate
+## ADR-008: Talep ve öneri durumları ayrıdır
 
-**Decision:** `approved` / `rejected` are proposal statuses only. The ticket has its own lifecycle, and one ticket can have several proposals.
-**Reason:** Mixing two lifecycles in one status field leads to inconsistent states.
+**Karar:** `approved` / `rejected` yalnızca öneri durumlarıdır. Talebin kendi yaşam döngüsü vardır ve bir talebin birden çok önerisi olabilir.
+**Gerekçe:** İki yaşam döngüsünü tek bir durum alanında karıştırmak tutarsız durumlara yol açar.
 
-## ADR-009: Gemini API as the LLM provider
+## ADR-009: LLM sağlayıcısı olarak Gemini API
 
-**Decision:** Use the Gemini API through Google's official `google-genai` Python SDK, behind an `LLMClient` interface (`generate_structured`, timeout, retry, token usage). Structured output uses a JSON schema derived from Pydantic models, and every response is still validated with Pydantic. The model name is configuration (`GEMINI_MODEL`). Phase 3 pins a specific version instead of a `-latest` alias, so the model cannot change underneath tests and evals. Default: `gemini-3.5-flash-lite`. On 2026-11-02 the free-tier quota of `gemini-3.8-flash` was exhausted after a few dozen calls (HTTP 429) and older models returned 404 for new users; the lite model keeps development within the free quota. Switching models is a configuration change only. `LLM_MODE=fake` uses a deterministic `FakeLLMClient` for tests, CI and the public demo.
-**Reason:** Native structured output support, a free tier suitable for development, and a single provider keeps the adapter simple.
-**Consequences:** Free-tier terms may allow the provider to use submitted data; this is acceptable only because all data is synthetic. Never send real customer data. The API key lives only in server-side environment variables.
-**Alternatives:** Other providers remain possible by implementing `LLMClient`; no domain or route code depends on the SDK.
+**Karar:** Gemini API, Google'ın resmî `google-genai` Python SDK'sı üzerinden ve bir `LLMClient` arayüzünün arkasında kullanılır (`generate_structured`, zaman aşımı, yeniden deneme, token kullanımı). Yapılandırılmış çıktı, Pydantic modellerinden türetilen bir JSON şemasıyla alınır ve her yanıt yine de Pydantic ile doğrulanır. Model adı yapılandırmadır (`GEMINI_MODEL`). Faz 3'ten itibaren `-latest` takma adı yerine belirli bir sürüm sabitlenir; böylece model testlerin ve eval'lerin altından değişmez. Varsayılan: `gemini-3.5-flash-lite`. 2026-11-02'de `gemini-3.8-flash`'in ücretsiz kotası birkaç düzine çağrıdan sonra doldu (HTTP 429) ve eski modeller yeni kullanıcılara 404 döndü; lite model geliştirmeyi ücretsiz kota içinde tutar. Model değiştirmek yalnızca bir yapılandırma değişikliğidir. `LLM_MODE=fake`, testler, CI ve herkese açık demo için deterministik bir `FakeLLMClient` kullanır.
+**Gerekçe:** Yerleşik yapılandırılmış çıktı desteği, geliştirmeye uygun bir ücretsiz katman ve tek sağlayıcının adaptörü sade tutması.
+**Sonuçlar:** Ücretsiz katman koşulları sağlayıcının gönderilen veriyi kullanmasına izin verebilir; bu yalnızca tüm veri sentetik olduğu için kabul edilebilir. Gerçek müşteri verisi asla gönderilmez. API anahtarı yalnızca sunucu tarafındaki ortam değişkenlerinde bulunur.
+**Alternatifler:** `LLMClient` uygulanarak başka sağlayıcılar da eklenebilir; hiçbir domain ya da route kodu SDK'ya bağımlı değildir.
 
-## ADR-010: Persistence conventions
+## ADR-010: Kalıcılık kuralları
 
-**Decision:**
-- Customers and orders keep the string IDs of the (mock) external system (`CUS-0001`, `ORD-1001`). Tickets and users, which this system owns, use integer identity keys.
-- Status enums are stored as `VARCHAR` with a `CHECK` constraint, not native PostgreSQL enums.
-- A ticket's order must belong to the ticket's customer. The service checks it, and a composite foreign key `(order_id, customer_id) → orders(id, customer_id)` enforces it in the database as well.
-- Services own the unit of work and commit; route handlers never touch the session directly.
-- Timestamps are timezone-aware UTC.
+**Karar:**
+- Müşteriler ve siparişler (mock) dış sistemin metin kimliklerini korur (`CUS-0001`, `ORD-1001`). Bu sistemin sahip olduğu talepler ve kullanıcılar tamsayı identity anahtarları kullanır.
+- Durum enum'ları yerel PostgreSQL enum'ı olarak değil, `CHECK` kısıtlı `VARCHAR` olarak saklanır.
+- Bir talebin siparişi, talebin müşterisine ait olmalıdır. Bunu servis kontrol eder; ayrıca `(order_id, customer_id) → orders(id, customer_id)` bileşik yabancı anahtarı veritabanı düzeyinde de zorunlu kılar.
+- İş birimini (unit of work) servisler yönetir ve commit eder; route handler'lar oturuma doğrudan dokunmaz.
+- Zaman damgaları saat dilimi bilgili UTC'dir.
 
-**Reason:** Readable external IDs are what customers and the LLM will reference ("ORD-1001"). `CHECK` constraints keep integrity without `ALTER TYPE` migrations when values are added. Ownership is a security rule, so it gets a database-level guarantee in addition to application code.
-**Alternatives:** UUIDs everywhere (less readable in demos and prompts); native enums (harder to evolve).
+**Gerekçe:** Okunabilir dış kimlikler, müşterilerin ve LLM'in atıf yapacağı şeydir ("ORD-1001"). `CHECK` kısıtları, değer eklendiğinde `ALTER TYPE` migration'ı gerektirmeden bütünlüğü korur. Sahiplik bir güvenlik kuralıdır; bu yüzden uygulama koduna ek olarak veritabanı düzeyinde de güvence altındadır.
+**Alternatifler:** Her yerde UUID (demolarda ve prompt'larda daha az okunur); yerel enum'lar (geliştirmesi daha zor).
 
-## ADR-011: Analysis graph with deterministic decisions around two model calls
+## ADR-011: Kararları kodun verdiği, modeli iki kez çağıran analiz grafiği
 
-**Decision:** The analysis is a LangGraph state graph (`app/agent/graph.py`) with nine nodes. Only two call the model: `classify` (intent, referenced order, requested address) and `draft` (summary and reply). Everything that decides something is plain code:
-- which order is in scope (the model's order reference is used only if the customer actually wrote that ID);
-- which policy applies to which category, and its result (`PolicyService`);
-- whether an action may be proposed (`plan_action`: policy must allow it, and never when the message contains instructions aimed at the system);
-- which cited evidence is valid (`assemble_result`).
+**Karar:** Analiz, dokuz düğümlü bir LangGraph durum grafiğidir (`app/agent/graph.py`). Yalnızca ikisi modeli çağırır: `classify` (niyet, atıf yapılan sipariş, istenen adres) ve `draft` (özet ve yanıt). Karar veren her şey düz koddur:
+- hangi siparişin kapsamda olduğu (modelin sipariş atfı yalnızca müşteri o kimliği gerçekten yazdıysa kullanılır);
+- hangi kategoriye hangi kuralın uygulandığı ve sonucu (`PolicyService`);
+- bir aksiyonun önerilip önerilemeyeceği (`plan_action`: kural izin vermeli; mesaj sisteme yönelik talimatlar içeriyorsa asla);
+- atıf yapılan kanıtlardan hangilerinin geçerli olduğu (`assemble_result`).
 
-Tools are an explicit allowlist (`get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`) bound to the ticket's customer from the database. The model does not choose tools; nodes call them. Every node is recorded in `agent_run_steps` (duration, small summary, tool calls). Limits: graph step limit, token budget per run, run deadline. No checkpointer is used (ADR-006).
+Araçlar, talebin veritabanındaki müşterisine bağlanmış açık bir izin listesidir (`get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`). Araçları model seçmez; düğümler çağırır. Her düğüm `agent_run_steps` tablosuna kaydedilir (süre, kısa özet, araç çağrıları). Sınırlar: graf adım sınırı, çalıştırma başına token bütçesi, çalıştırma süre sınırı. Checkpointer kullanılmaz (ADR-006).
 
-**Reason:** A model call can be wrong, fooled or unavailable. Keeping it to classification and wording makes every consequential decision testable without a model, explainable in the UI and identical across providers. Two focused calls are cheaper and easier to validate than one large prompt or free tool use.
-**Alternatives:** One prompt doing everything (Phase 3; harder to control and explain); a ReAct-style agent choosing its own tools (more flexible, but authorization and determinism become harder to guarantee; reconsider for V2 read-only research tasks).
+**Gerekçe:** Bir model çağrısı yanılabilir, kandırılabilir ya da erişilemez olabilir. Modeli sınıflandırma ve metin yazımıyla sınırlamak, sonuç doğuran her kararı modelsiz test edilebilir, arayüzde açıklanabilir ve sağlayıcıdan bağımsız kılar. İki odaklı çağrı, tek büyük bir prompt'tan ya da serbest araç kullanımından daha ucuz ve daha kolay doğrulanır.
+**Alternatifler:** Her şeyi yapan tek bir prompt (Faz 3; kontrol etmesi ve açıklaması daha zor); kendi araçlarını seçen ReAct tarzı bir ajan (daha esnek ama yetkilendirmeyi ve determinizmi garanti etmek zorlaşır; V2'deki salt okunur araştırma görevleri için yeniden düşünülebilir).
 
-## ADR-012: Two-step approval with an idempotent executor
+## ADR-012: Idempotent yürütücü ile iki adımlı onay
 
-**Decision:** An analysis that suggests an action stores a `pending` `ActionProposal` in the same transaction that completes the run. `POST /proposals/{id}/decision` then works in two committed steps:
-1. **Decision:** lock the proposal, check the approver's role, `expected_version`, status, expiry and payload fingerprint; record the decision (`approved`) and move to `executing`.
-2. **Execution:** the order system (mock) applies the action under idempotency key `proposal-{id}`. It locks the order and re-checks the policy first (TOCTOU), then writes the change and one `action_executions` row. The proposal ends `executed` or `failed`.
+**Karar:** Bir aksiyon öneren analiz, çalıştırmayı tamamlayan transaction içinde `pending` bir `ActionProposal` kaydeder. Ardından `POST /proposals/{id}/decision` commit edilen iki adımda çalışır:
+1. **Karar:** öneri kilitlenir; onaylayanın rolü, `expected_version`, durum, son kullanma zamanı ve içerik parmak izi kontrol edilir; karar kaydedilir (`approved`) ve `executing` durumuna geçilir.
+2. **Yürütme:** (mock) sipariş sistemi aksiyonu `proposal-{id}` idempotency anahtarıyla uygular. Önce siparişi kilitler ve kuralı yeniden kontrol eder (TOCTOU), sonra değişikliği ve tek bir `action_executions` satırını yazar. Öneri `executed` ya da `failed` olarak biter.
 
-If the process dies between the steps, startup recovery re-runs step 2; the idempotency key makes that safe. Pending proposals expire after 48 hours and never execute; a new analysis supersedes older pending proposals (one open proposal per ticket, enforced by a partial unique index). Every transition writes a ticket event and an audit entry (append-only via database trigger, PII redacted).
+Süreç iki adım arasında çökerse, açılıştaki kurtarma 2. adımı yeniden çalıştırır; idempotency anahtarı bunu güvenli kılar. Bekleyen öneriler 48 saat sonra süresi dolar ve asla yürütülmez; yeni bir analiz eski bekleyen önerilerin yerini alır (talep başına tek açık öneri, kısmi benzersiz indeksle zorunlu). Her geçiş bir talep olayı ve bir denetim kaydı yazar (veritabanı trigger'ı ile yalnızca eklemeli, kişisel veriler maskelenmiş).
 
-**Reason:** Recording the decision before acting gives a durable trail even if execution fails, and separates "a human said yes" from "the system did it". Version checks and idempotency keys make double clicks, concurrent reviewers and retries harmless. Re-checking at execution time protects against the world changing after the proposal.
-**Alternatives:** A single transaction for decision and execution (simpler, but no record of approvals whose execution failed, and it does not carry over to real external systems); LangGraph `interrupt()` resuming the graph (ADR-006).
-**Revisit when:** A real external system is integrated: add an `unknown` outcome and reconcile through its idempotency API instead of assuming a rollback means "nothing happened".
+**Gerekçe:** Kararı aksiyondan önce kaydetmek, yürütme başarısız olsa bile kalıcı bir iz bırakır ve "bir insan evet dedi" ile "sistem bunu yaptı"yı birbirinden ayırır. Sürüm kontrolleri ve idempotency anahtarları çift tıklamaları, eşzamanlı inceleyenleri ve yeniden denemeleri zararsız kılar. Yürütme anında yeniden kontrol, öneriden sonra değişen koşullara karşı korur.
+**Alternatifler:** Karar ve yürütme için tek transaction (daha basit, ama yürütmesi başarısız olan onayların kaydı kalmaz ve gerçek dış sistemlere taşınamaz); grafı LangGraph `interrupt()` ile kaldığı yerden sürdürmek (ADR-006).
+**Yeniden değerlendir:** Gerçek bir dış sistem entegre edildiğinde: `unknown` sonucu eklenmeli ve rollback'in "hiçbir şey olmadı" anlamına geldiği varsayılmak yerine o sistemin idempotency API'si üzerinden mutabakat yapılmalı.
 
-## ADR-013: Frontend stack and API contract
+## ADR-013: Frontend yığını ve API sözleşmesi
 
-**Decision:** React + TypeScript + Vite with React Router and TanStack Query. Styles are plain CSS on design tokens (`frontend/src/styles/tokens.css`, see [DESIGN.md](DESIGN.md)) instead of Tailwind. API types are generated from the backend's OpenAPI schema (`npm run gen:api`, committed as `src/api/schema.d.ts`); all HTTP goes through `src/api/client.ts` and the hooks in `src/api/queries.ts`. Self-hosted fonts via Fontsource (no third-party font CDN).
-**Reason:** The interface has a deliberate visual language (labels, carbon drafts, stamps) that is easier to express and review as named tokens and component styles than as utility classes. Generated types keep the frontend honest when the API changes; TanStack Query handles polling runs, refetching after decisions and stale data after a 409.
-**Alternatives:** Tailwind (planned originally; fine for speed, weaker for a bespoke visual system); hand-written API types (drift silently).
-**Notes:** `openapi-typescript` needs TypeScript 5 while the app uses TypeScript 7, so it runs through `npx` at generation time instead of being a project dependency.
+**Karar:** React Router ve TanStack Query ile React + TypeScript + Vite. Stiller Tailwind yerine tasarım token'ları üzerine düz CSS'tir (`frontend/src/styles/tokens.css`, bkz. [DESIGN.md](DESIGN.md)). API tipleri backend'in OpenAPI şemasından üretilir (`npm run gen:api`, `src/api/schema.d.ts` olarak commit edilir); tüm HTTP trafiği `src/api/client.ts` ve `src/api/queries.ts` içindeki hook'lar üzerinden geçer. Fontlar Fontsource ile projeyle birlikte sunulur (üçüncü taraf font CDN'i yok).
+**Gerekçe:** Arayüzün bilinçli bir görsel dili var (etiketler, karbon kâğıdı taslaklar, mühürler); bunu utility class'larla değil, isimlendirilmiş token'lar ve bileşen stilleriyle ifade etmek ve incelemek daha kolay. Üretilen tipler API değiştiğinde frontend'i dürüst tutar; TanStack Query çalıştırmaları yoklamayı, kararlardan sonra yeniden veri çekmeyi ve 409 sonrası bayat veriyi yönetir.
+**Alternatifler:** Tailwind (başta planlanmıştı; hız için iyi, özgün bir görsel sistem için zayıf); elle yazılmış API tipleri (sessizce uyumsuzlaşır).
+**Notlar:** `openapi-typescript` TypeScript 5 gerektiriyor, uygulama ise TypeScript 7 kullanıyor; bu yüzden proje bağımlılığı olarak değil, üretim anında `npx` ile çalıştırılır.

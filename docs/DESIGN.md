@@ -1,90 +1,92 @@
-# Design
+# Tasarım
 
-The operations console for NovaShop support staff. Its job: let an employee decide **quickly and safely** on AI-drafted replies and AI-proposed order changes, and always see what the AI used and what the store rules said.
+NovaShop destek ekibi için operasyon konsolu. Görevi: bir çalışanın yapay zekânın taslak yanıtları ve önerdiği sipariş değişiklikleri hakkında **hızlı ve güvenli** karar vermesini sağlamak; yapay zekânın neyi kullandığını ve mağaza kurallarının ne dediğini her zaman göstermek.
 
-## Research notes
+## Araştırma notları
 
-- E-commerce helpdesks (e.g. Gorgias with Shopify) show order context in a panel **beside the conversation**, and let agents act on orders from there.
-- Human-in-the-loop guidance converges on: the AI prepares a **draft that never sends itself**, the draft stays editable, and a human owns the moment where outside-world consequences begin. Approving twice must do nothing.
+- E-ticaret yardım masaları (ör. Shopify ile Gorgias), sipariş bilgisini **konuşmanın yanındaki** bir panelde gösterir ve çalışanların siparişler üzerinde oradan işlem yapmasına izin verir.
+- İnsan onaylı (human-in-the-loop) tasarım önerileri aynı noktada buluşur: yapay zekâ **asla kendiliğinden gönderilmeyen bir taslak** hazırlar, taslak düzenlenebilir kalır ve dış dünyada sonuç doğuran an bir insana aittir. İki kez onaylamak hiçbir şey yapmamalıdır.
 
-SupportFlow follows both: conversation and AI draft in the main column, order and decisions in the side column, and every order change behind an explicit approval.
+SupportFlow ikisini de uygular: konuşma ve yapay zekâ taslağı ana sütunda, sipariş ve kararlar yan sütunda; her sipariş değişikliği açık bir onayın arkasında.
 
-## Concept: a dispatch desk
+## Konsept: bir sevkiyat masası
 
-The visual language comes from parcel paperwork, the world the requests are about:
+Görsel dil, taleplerin konusu olan dünyadan, yani kargo evrakından gelir:
 
-| Thing | Treatment | Why |
+| Öğe | Görünüm | Neden |
 |---|---|---|
-| Order | A **shipping label**: heavy ink border, near-square corners, order number large | It is the physical object the customer is asking about |
-| AI output | A **carbon-copy draft**: dashed frame, pale blue-grey paper, "Draft by AI" tag | Dashed means "not final"; it must read as a suggestion, never as a fact |
-| Proposed change | A label with the change shown as current vs. new | The decision is about one concrete difference |
-| Decision | A **rubber stamp** (APPROVED / REJECTED / BLOCKED / EXPIRED) pressed onto the label | The one memorable element; it marks the moment of consequence |
-| Waiting proposal | Amber offset shadow behind the label | Pending work stands out without another badge |
+| Sipariş | Bir **kargo etiketi**: kalın mürekkep çerçeve, neredeyse kare köşeler, büyük sipariş numarası | Müşterinin sorduğu fiziksel nesne bu |
+| Yapay zekâ çıktısı | Bir **karbon kopya taslak**: kesikli çerçeve, soluk mavi-gri kâğıt, "Yapay zekâ taslağı" etiketi | Kesikli çizgi "kesin değil" demektir; bir bilgi olarak değil, her zaman bir öneri olarak okunmalı |
+| Önerilen değişiklik | Değişikliği mevcut ve yeni olarak gösteren bir etiket | Karar tek, somut bir farka dairdir |
+| Karar | Etiketin üzerine basılan bir **lastik mühür** (ONAYLANDI / REDDEDİLDİ / ENGELLENDİ / SÜRESİ DOLDU) | Akılda kalan tek öğe; sonucun doğduğu anı işaretler |
+| Bekleyen öneri | Etiketin arkasında kehribar renkli kaydırılmış gölge | Bekleyen iş, ek bir rozete gerek kalmadan öne çıkar |
 
-Everything else stays quiet: one typeface for the interface, plain sentence-case copy, left alignment, no decorative gradients or card shadows.
+Geri kalan her şey sakin kalır: arayüz için tek yazı tipi, sade cümle düzeninde metinler, sola hizalama, dekoratif gradyan ya da kart gölgesi yok.
 
-## Tokens
+## Token'lar
 
-| Name | Value | Use |
+| Ad | Değer | Kullanım |
 |---|---|---|
-| Ink | `#1C2B3A` | Text, label borders |
-| Paper | `#EEF1F4` | App background (cool, not cream) |
-| Sheet | `#FFFFFF` | Surfaces |
-| Rule | `#CBD3DC` | Dividers |
-| Carbon | `#F3F5FA` / `#8494AD` | AI draft background / dashed frame |
-| Route teal | `#0F6B73` | Links, primary actions, focus |
-| Stamp green / red / amber | `#1E7B4F` / `#B42318` / `#A15C07` | Applied / rejected or blocked / waiting |
+| Ink (mürekkep) | `#1C2B3A` | Metin, etiket çerçeveleri |
+| Paper (kâğıt) | `#EEF1F4` | Uygulama arka planı (krem değil, soğuk ton) |
+| Sheet (sayfa) | `#FFFFFF` | Yüzeyler |
+| Rule (çizgi) | `#CBD3DC` | Ayırıcılar |
+| Carbon (karbon) | `#F3F5FA` / `#8494AD` | Yapay zekâ taslağı arka planı / kesikli çerçeve |
+| Route teal (rota turkuazı) | `#0F6B73` | Linkler, birincil aksiyonlar, odak |
+| Mühür yeşili / kırmızısı / kehribarı | `#1E7B4F` / `#B42318` / `#A15C07` | Uygulandı / reddedildi ya da engellendi / bekliyor |
 
-Defined in `frontend/src/styles/tokens.css`. Radius follows hierarchy: labels 3px, sheets 8px, controls 6px.
+`frontend/src/styles/tokens.css` içinde tanımlıdır. Köşe yarıçapı hiyerarşiyi izler: etiketler 3px, sayfalar 8px, kontroller 6px.
 
-**Type:** Atkinson Hyperlegible for the whole interface (designed for legibility; its distinct letterforms keep order numbers unambiguous). Big Shoulders Stencil Display only for the wordmark and the stamp. Scale 13 / 14 / 16 / 20 / 26 px; tabular figures everywhere.
+**Yazı tipi:** Tüm arayüz için Atkinson Hyperlegible (okunabilirlik için tasarlanmıştır; belirgin harf biçimleri sipariş numaralarını karışıklığa yer bırakmadan okutur). Big Shoulders Stencil Display yalnızca logo ve mühür için. Ölçek 13 / 14 / 16 / 20 / 26 px; her yerde tabular rakamlar.
 
-## Layout
+## Yerleşim
 
 ```
 ┌────────┬────────────────────────────────────┬──────────────────────┐
-│ rail   │ Ticket title, status, actions                             │
+│ ray    │ Talep başlığı, durum, aksiyonlar                          │
 │        ├────────────────────────────────────┬──────────────────────┤
-│Tickets │ Customer message                   │ Proposed change      │
-│Approv. │ ┌ ─ Suggested reply (draft) ─ ─ ─┐ │ (label + decision)   │
-│        │   summary, warnings, edit, copy    │ Order (label)        │
-│        │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘ │ Store policy         │
-│ user   │ History                            │                      │
+│Talepler│ Müşteri mesajı                     │ Önerilen değişiklik  │
+│Onaylar │ ┌ ─ Önerilen yanıt (taslak) ─ ─ ─┐ │ (etiket + karar)     │
+│        │   özet, uyarılar, düzenle, kopyala │ Sipariş (etiket)     │
+│        │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘ │ Mağaza kuralı        │
+│ kişi   │ Geçmiş                             │                      │
 └────────┴────────────────────────────────────┴──────────────────────┘
 ```
 
-Below 1024px the columns merge in decision order: message, draft, proposal, order, policy, history. Below 760px the rail becomes a top bar.
+1024px'in altında sütunlar karar sırasıyla birleşir: mesaj, taslak, öneri, sipariş, kural, geçmiş. 760px'in altında yan ray üst çubuğa dönüşür.
 
-## Overview (home page)
+## Genel bakış (ana sayfa)
 
-Added after the first owner review. It answers "what needs me?" before "what is in the inbox?":
+Sahibin ilk incelemesinden sonra eklendi. "Gelen kutusunda ne var?" sorusundan önce "Benim ilgilenmem gereken ne var?" sorusunu yanıtlar:
 
 ```
-Hello, Sam                       Support agent. You can approve address changes; refunds go to an admin.
-[5 Ready for review] [14 New] [6 Waiting on customer] [0 Analyzing] [0 Failed] [5 Resolved]   -> filtered list
-┌ Waiting for your decision ┐  ┌ Waiting for an admin (agents) / Audit trail (admins) ┐
-└───────────────────────────┘  └──────────────────────────────────────────────────────┘
-┌ Recently updated tickets  ┐  ┌ Audit trail: "only admins can see this" (agents)    ┐
+Merhaba, Selin                   Destek uzmanı. Adres değişikliklerini onaylayabilirsiniz; iadeler yöneticiye gider.
+[5 İncelemeye hazır] [14 Yeni] [6 Müşteriden bilgi bekleniyor] [0 Analiz ediliyor] [0 Başarısız] [5 Çözüldü]   -> filtrelenmiş liste
+┌ Kararınızı bekleyenler ┐  ┌ Yönetici bekleyenler (destek uzmanı) / Denetim kaydı (yönetici) ┐
+└────────────────────────┘  └──────────────────────────────────────────────────────────────────┘
+┌ Son güncellenen talepler ┐  ┌ Denetim kaydı: "yalnızca yöneticiler görebilir" (destek uzmanı) ┐
 ```
 
-Which list a proposal lands in comes from the API's `can_decide`, never from a role check in the browser. Agents are told the audit trail exists and that only admins see it, instead of it silently missing.
+Bir önerinin hangi listeye düşeceği tarayıcıdaki bir rol kontrolünden değil, API'nin `can_decide` alanından gelir. Destek uzmanlarına denetim kaydının sessizce kaybolması yerine, var olduğu ve yalnızca yöneticilerin görebildiği söylenir.
 
-## Behaviour rules
+## Davranış kuralları
 
-- AI output is always labelled as a draft; facts it relied on are listed ("Based on ORD-1001"), warnings are shown, not hidden.
-- Approve and Reject are disabled while a decision is in flight; a 409 shows the server's reason and the card refreshes to the real state.
-- Roles that may not decide see why, not a disabled mystery button.
-- The only animation is the stamp press (260ms), triggered by the user's decision; it is off with `prefers-reduced-motion`.
-- Keyboard: visible focus ring, skip link, real buttons and links; status changes announced via `role="status"` / `role="alert"`.
+- Yapay zekâ çıktısı her zaman taslak olarak etiketlenir; dayandığı bilgiler listelenir ("ORD-1001'e dayanarak"), uyarılar gizlenmez, gösterilir.
+- Bir karar işlenirken Onayla ve Reddet devre dışıdır; 409 durumunda sunucunun gerekçesi gösterilir ve kart gerçek durumla yenilenir.
+- Karar veremeyen roller gizemli bir devre dışı buton değil, nedenini görür.
+- Tek animasyon, kullanıcının kararıyla tetiklenen mühür basmasıdır (260ms); `prefers-reduced-motion` açıkken kapalıdır.
+- Klavye: görünür odak halkası, içeriğe atlama linki, gerçek buton ve linkler; durum değişiklikleri `role="status"` / `role="alert"` ile duyurulur.
 
-## Owner review log
+## Sahip inceleme kaydı
 
-**Round 1 (2026-11-03).**
+**1. tur (2026-11-03).**
 
-- Overall look: approved ("a good atmosphere"). Keep the dispatch-desk concept.
-- Ticket list: fine as it is.
-- Login page's empty right side: now a short "how a request moves" explainer (customer, AI draft, person decides) and a "who can do what" table for the two roles.
-- "No visible difference between agent and admin": the rule existed (refunds need an admin) but the demo data had no pending refund and admin-only data had no screen. Fixed by the overview page above, an "Admin only" marker on refund proposals, the role line under the greeting, and seeded demo activity with refunds waiting.
-- New: the overview page is the home page after sign-in.
+- Genel görünüm: onaylandı ("güzel bir atmosfer"). Sevkiyat masası konsepti korunacak.
+- Talep listesi: olduğu gibi iyi.
+- Giriş sayfasının boş sağ tarafı: artık kısa bir "bir talep nasıl ilerler" açıklaması (müşteri, yapay zekâ taslağı, karar veren kişi) ve iki rol için "kim ne yapabilir" tablosu var.
+- "Destek uzmanı ile yönetici arasında görünür bir fark yok": kural vardı (iadeler yönetici ister) ama demo verisinde bekleyen iade yoktu ve yöneticiye özel verinin bir ekranı yoktu. Yukarıdaki genel bakış sayfası, iade önerilerindeki "Yalnızca yönetici" işareti, selamlamanın altındaki rol satırı ve bekleyen iadeleri olan seed demo hareketleriyle düzeltildi.
+- Yeni: girişten sonra ana sayfa genel bakış sayfasıdır.
 
-Still open: whether the draft editor should sit above the summary.
+**Türkçeleştirme (2026-11-03).** Proje Türk işverenlere Türkçe sunulacağı için arayüz metinleri, demo verisi ve dokümanlar Türkçeye çevrildi. Mühür metinleri Türkçe karakter içeriyor (İ, Ü); iki fontun da Fontsource paketi latin-ext alt kümesini (U+0100–02BA) yüklediği için bu karakterler kendi fontuyla çizilir. Ekran görüntüleri (`docs/images/`) Türkçe arayüzle yeniden alınmalı.
+
+Hâlâ açık: taslak düzenleyicinin özetin üstünde mi durması gerektiği.

@@ -10,36 +10,36 @@ export function AppShell() {
   return (
     <div className="shell">
       <a className="skip-link" href="#main">
-        Skip to content
+        İçeriğe atla
       </a>
-      <nav className="rail" aria-label="Main">
+      <nav className="rail" aria-label="Ana menü">
         <div className="wordmark" aria-label="SupportFlow">
           SupportFlow
         </div>
         <ul className="rail__links">
           <li>
             <NavLink to="/" end className="rail__link">
-              Overview
+              Genel bakış
             </NavLink>
           </li>
           <li>
             <NavLink to="/tickets" className="rail__link">
-              Tickets
+              Talepler
               {summary.data ? (
-                <span className="rail__count" title="Ready for review">
+                <span className="rail__count" title="İncelemeye hazır">
                   {summary.data.by_status.awaiting_review}
-                  <span className="visually-hidden"> ready for review</span>
+                  <span className="visually-hidden"> incelemeye hazır</span>
                 </span>
               ) : null}
             </NavLink>
           </li>
           <li>
             <NavLink to="/approvals" className="rail__link">
-              Approvals
+              Onaylar
               {pending > 0 ? (
                 <span className="rail__count rail__count--alert">
                   {pending}
-                  <span className="visually-hidden"> waiting</span>
+                  <span className="visually-hidden"> bekliyor</span>
                 </span>
               ) : null}
             </NavLink>
@@ -48,9 +48,9 @@ export function AppShell() {
         {user ? (
           <div className="rail__user">
             <span className="rail__name">{user.full_name}</span>
-            <span className="meta">{user.role === 'admin' ? 'Admin' : 'Support agent'}</span>
+            <span className="meta">{user.role === 'admin' ? 'Yönetici' : 'Destek uzmanı'}</span>
             <button type="button" className="button button--quiet rail__signout" onClick={signOut}>
-              Sign out
+              Çıkış yap
             </button>
           </div>
         ) : null}

@@ -48,7 +48,7 @@ def test_damage_can_be_reported_within_30_days(days_since_delivery: int, allowed
 def test_return_is_not_possible_before_delivery() -> None:
     decision = check_return_request(None, NOW)
     assert not decision.allowed
-    assert "not been delivered" in decision.reason
+    assert "henüz teslim edilmedi" in decision.reason
 
 
 def test_business_days_skip_weekends() -> None:
@@ -74,8 +74,8 @@ def test_delivery_check_explains_the_timeline() -> None:
     delivered = check_delivery(OrderStatus.DELIVERED, None, NOW)
 
     assert delayed.allowed
-    assert "8 business day(s)" in delayed.reason
+    assert "8 iş günü" in delayed.reason
     assert not on_time.allowed
-    assert "1 business day(s)" in on_time.reason
+    assert "1 iş günü" in on_time.reason
     assert not delivered.allowed
-    assert "not in transit" in delivered.reason
+    assert "yolda değil" in delivered.reason

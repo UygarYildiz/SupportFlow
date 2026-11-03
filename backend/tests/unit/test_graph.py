@@ -114,7 +114,7 @@ def test_order_request_without_a_usable_order_asks_for_it_and_skips_policy() -> 
     assert "check_policy" not in recorder.nodes
     assert recorder.nodes[3] == "request_info"
     assert result.outcome_status == TicketStatus.NEEDS_INFO
-    assert result.analysis.missing_information == ["A valid order number for this account"]
+    assert result.analysis.missing_information == ["Bu hesaba ait geçerli bir sipariş numarası"]
     assert result.proposed_action is None
     assert "ORD-9999" in result.warnings[0]
 
@@ -179,7 +179,7 @@ def test_address_change_without_new_address_asks_for_it() -> None:
         [check("address_change_v1", "ORD-1", allowed=True)],
     )
     assert action is None
-    assert missing == ["The new delivery address"]
+    assert missing == ["Yeni teslimat adresi"]
 
 
 @pytest.mark.parametrize("category", ["damaged_item", "refund_request"])
@@ -203,7 +203,7 @@ def test_instructions_aimed_at_the_system_never_produce_an_action() -> None:
         [check("returns_v1", "ORD-1", allowed=True)],
     )
     assert action is None
-    assert "instructions aimed at the system" in warnings[0]
+    assert "sisteme yönelik talimatlar" in warnings[0]
 
 
 # --- limits and failures -----------------------------------------------------------------

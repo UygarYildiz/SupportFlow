@@ -43,7 +43,7 @@ export async function request<T>(
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     })
   } catch {
-    throw new ApiError(0, 'Cannot reach the server. Check that the backend is running.')
+    throw new ApiError(0, 'Sunucuya ulaşılamıyor. Backend uygulamasının çalıştığından emin olun.')
   }
 
   if (response.status === 401 && path !== '/auth/login') onUnauthorized()
@@ -57,10 +57,10 @@ async function errorMessage(response: Response): Promise<string> {
     if (body && typeof body === 'object' && 'detail' in body) {
       const detail = (body as { detail: unknown }).detail
       if (typeof detail === 'string') return detail
-      if (Array.isArray(detail)) return 'Some fields are invalid. Check the form and try again.'
+      if (Array.isArray(detail)) return 'Bazı alanlar geçersiz. Formu kontrol edip tekrar deneyin.'
     }
   } catch {
     // not JSON
   }
-  return `Request failed (${response.status})`
+  return `İstek başarısız oldu (${response.status})`
 }

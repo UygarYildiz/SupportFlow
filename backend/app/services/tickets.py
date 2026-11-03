@@ -106,7 +106,7 @@ class TicketService:
         actor: User,
     ) -> Ticket:
         if self.session.get(Customer, customer_id) is None:
-            raise BusinessRuleViolationError(f"Unknown customer '{customer_id}'")
+            raise BusinessRuleViolationError(f"Bilinmeyen müşteri: '{customer_id}'")
         if order_id is not None:
             owned = self.session.scalar(
                 select(Order.id).where(Order.id == order_id, Order.customer_id == customer_id)
@@ -114,7 +114,7 @@ class TicketService:
             if owned is None:
                 # Same message whether the order is missing or belongs to someone else.
                 raise BusinessRuleViolationError(
-                    f"Order '{order_id}' does not match any order of this customer"
+                    f"'{order_id}' bu müşterinin hiçbir siparişiyle eşleşmiyor"
                 )
 
         ticket = Ticket(

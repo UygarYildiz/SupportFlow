@@ -31,24 +31,23 @@ export function TicketsPage() {
   return (
     <div className="page">
       <header className="page__head">
-        <h1>Tickets</h1>
+        <h1>Talepler</h1>
         {pending > 0 ? (
           <Link to="/approvals" className="attention">
-            {pending === 1 ? '1 order change is' : `${pending} order changes are`} waiting for a
-            decision
+            Karar bekleyen {pending} sipariş değişikliği var
           </Link>
         ) : null}
       </header>
 
       <div className="filters">
-        <nav aria-label="Filter by status" className="tabs">
+        <nav aria-label="Duruma göre filtrele" className="tabs">
           <button
             type="button"
             className="tab"
             aria-pressed={status === undefined}
             onClick={() => update({ status: undefined })}
           >
-            All <span className="tab__count">{summary.data?.total ?? ''}</span>
+            Tümü <span className="tab__count">{summary.data?.total ?? ''}</span>
           </button>
           {TABS.map((tab) => (
             <button
@@ -64,14 +63,14 @@ export function TicketsPage() {
           ))}
         </nav>
         <div className="field field--inline">
-          <label htmlFor="priority-filter">Priority</label>
+          <label htmlFor="priority-filter">Öncelik</label>
           <select
             id="priority-filter"
             className="select"
             value={priority ?? ''}
             onChange={(e) => update({ priority: e.target.value || undefined })}
           >
-            <option value="">Any</option>
+            <option value="">Hepsi</option>
             {(Object.keys(PRIORITY_LABEL) as TicketPriority[]).map((value) => (
               <option key={value} value={value}>
                 {PRIORITY_LABEL[value]}
@@ -81,33 +80,33 @@ export function TicketsPage() {
         </div>
       </div>
 
-      {tickets.isPending ? <p className="loading">Loading tickets…</p> : null}
+      {tickets.isPending ? <p className="loading">Talepler yükleniyor…</p> : null}
       {tickets.isError ? (
         <p className="notice notice--error" role="alert">
-          Could not load tickets. {tickets.error.message}
+          Talepler yüklenemedi. {tickets.error.message}
         </p>
       ) : null}
 
       {page && page.items.length === 0 ? (
         <div className="empty">
-          <strong>No tickets here.</strong>
+          <strong>Burada talep yok.</strong>
           {status || priority
-            ? 'Nothing matches these filters. Choose another status or clear the priority filter.'
-            : 'New customer requests appear here as soon as they arrive.'}
+            ? 'Bu filtrelere uyan talep yok. Başka bir durum seçin ya da öncelik filtresini temizleyin.'
+            : 'Yeni müşteri talepleri gelir gelmez burada görünür.'}
         </div>
       ) : null}
 
       {page && page.items.length > 0 ? (
         <>
           <table className="ticket-table">
-            <caption className="visually-hidden">Tickets, newest first</caption>
+            <caption className="visually-hidden">Talepler, en yeni önce</caption>
             <thead>
               <tr>
-                <th scope="col">Ticket</th>
-                <th scope="col">Request</th>
-                <th scope="col">Status</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Received</th>
+                <th scope="col">Talep</th>
+                <th scope="col">Talep türü</th>
+                <th scope="col">Durum</th>
+                <th scope="col">Öncelik</th>
+                <th scope="col">Geliş</th>
               </tr>
             </thead>
             <tbody>
@@ -118,10 +117,10 @@ export function TicketsPage() {
                       {ticket.subject}
                     </Link>
                     <span className="meta ticket-table__who">
-                      #{ticket.id} from {ticket.customer_name}
+                      #{ticket.id}, {ticket.customer_name}
                     </span>
                   </td>
-                  <td>{ticket.category ? CATEGORY_LABEL[ticket.category] : <span className="muted">Not analyzed</span>}</td>
+                  <td>{ticket.category ? CATEGORY_LABEL[ticket.category] : <span className="muted">Analiz edilmedi</span>}</td>
                   <td>
                     <StatusBadge status={ticket.status} />
                   </td>
@@ -149,17 +148,17 @@ function Pagination(props: { offset: number; total: number; onChange: (offset: n
   if (total <= PAGE_SIZE) return null
   const end = Math.min(offset + PAGE_SIZE, total)
   return (
-    <nav className="pagination" aria-label="Pages">
+    <nav className="pagination" aria-label="Sayfalar">
       <button
         type="button"
         className="button"
         disabled={offset === 0}
         onClick={() => onChange(Math.max(0, offset - PAGE_SIZE))}
       >
-        Previous
+        Önceki
       </button>
       <span className="meta">
-        {offset + 1} to {end} of {total}
+        {total} talepten {offset + 1}–{end}
       </span>
       <button
         type="button"
@@ -167,7 +166,7 @@ function Pagination(props: { offset: number; total: number; onChange: (offset: n
         disabled={end >= total}
         onClick={() => onChange(offset + PAGE_SIZE)}
       >
-        Next
+        Sonraki
       </button>
     </nav>
   )

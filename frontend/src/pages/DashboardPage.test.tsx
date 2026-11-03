@@ -7,7 +7,7 @@ import { DashboardPage } from './DashboardPage'
 const admin: User = {
   id: 1,
   email: 'admin@novashop.example',
-  full_name: 'Ada Admin',
+  full_name: 'Ayşe Demir',
   role: 'admin',
   is_active: true,
 }
@@ -24,7 +24,7 @@ const refund = proposal({
   ticket_id: 2,
   order_id: 'ORD-1002',
   type: 'create_refund_request',
-  payload: { refund_reason: 'damaged_item', order_total: '39.50' },
+  payload: { refund_reason: 'damaged_item', order_total: '1249.00' },
 })
 
 const audit = [
@@ -64,12 +64,12 @@ function api(role: User['role']) {
       return { body: { items: [], total: 0, limit: 6, offset: 0 } }
     }
     if (url.pathname.endsWith('/audit')) {
-      return role === 'admin' ? { body: audit } : { status: 403, body: { detail: 'Forbidden' } }
+      return role === 'admin' ? { body: audit } : { status: 403, body: { detail: 'Bu işlem için yetkiniz yok' } }
     }
     if (url.pathname.endsWith('/users')) {
-      return { body: [admin, { ...admin, id: 2, full_name: 'Sam Support', role: 'agent_user' }] }
+      return { body: [admin, { ...admin, id: 2, full_name: 'Selin Aydın', role: 'agent_user' }] }
     }
-    return { status: 404, body: { detail: 'Not found' } }
+    return { status: 404, body: { detail: 'Bulunamadı' } }
   })
 }
 
@@ -78,7 +78,7 @@ describe('DashboardPage', () => {
     api('agent_user')
     renderWithProviders(<DashboardPage />)
 
-    const counter = await screen.findByRole('link', { name: /4\s*Ready for review/ })
+    const counter = await screen.findByRole('link', { name: /4\s*İncelemeye hazır/ })
     expect(counter).toHaveAttribute('href', '/tickets?status=awaiting_review')
   })
 
@@ -86,13 +86,13 @@ describe('DashboardPage', () => {
     const calls = api('agent_user')
     renderWithProviders(<DashboardPage />)
 
-    const mine = await screen.findByRole('region', { name: /Waiting for your decision/ })
-    const others = screen.getByRole('region', { name: /Waiting for an admin/ })
+    const mine = await screen.findByRole('region', { name: /Kararınızı bekleyenler/ })
+    const others = screen.getByRole('region', { name: /Yönetici bekleyenler/ })
     expect(await within(mine).findByText('ORD-1003')).toBeInTheDocument()
     expect(within(mine).queryByText('ORD-1002')).not.toBeInTheDocument()
     expect(within(others).getByText('ORD-1002')).toBeInTheDocument()
-    expect(within(others).getByText('Admin only')).toBeInTheDocument()
-    expect(screen.getByText(/Only admins can see who proposed/)).toBeInTheDocument()
+    expect(within(others).getByText('Yalnızca yönetici')).toBeInTheDocument()
+    expect(screen.getByText(/yalnızca yöneticiler/)).toBeInTheDocument()
     expect(calls.some((c) => c.path.endsWith('/audit'))).toBe(false)
   })
 
@@ -100,28 +100,28 @@ describe('DashboardPage', () => {
     api('admin')
     renderWithProviders(<DashboardPage />, { user: admin })
 
-    const mine = await screen.findByRole('region', { name: /Waiting for your decision/ })
+    const mine = await screen.findByRole('region', { name: /Kararınızı bekleyenler/ })
     expect(await within(mine).findByText('ORD-1002')).toBeInTheDocument()
     expect(within(mine).getByText('ORD-1003')).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: /Waiting for an admin/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /Yönetici bekleyenler/ })).not.toBeInTheDocument()
 
-    const trail = screen.getByRole('region', { name: /Audit trail/ })
-    expect(await within(trail).findByText('Sam Support')).toBeInTheDocument()
-    expect(within(trail).getByText(/approved a change/)).toBeInTheDocument()
-    expect(within(trail).getByText('AI analysis')).toBeInTheDocument()
+    const trail = screen.getByRole('region', { name: /Denetim kaydı/ })
+    expect(await within(trail).findByText('Selin Aydın')).toBeInTheDocument()
+    expect(within(trail).getByText(/bir değişikliği onayladı/)).toBeInTheDocument()
+    expect(within(trail).getByText('Yapay zekâ analizi')).toBeInTheDocument()
   })
 
   it('shows an error instead of empty lists when proposals fail to load', async () => {
     mockApi((url) =>
       url.pathname.endsWith('/proposals')
-        ? { status: 500, body: { detail: 'Database unavailable' } }
+        ? { status: 500, body: { detail: 'Veritabanına ulaşılamıyor' } }
         : url.pathname.endsWith('/tickets/summary')
           ? { body: summary }
           : { body: { items: [], total: 0, limit: 6, offset: 0 } },
     )
     renderWithProviders(<DashboardPage />)
 
-    expect(await screen.findByText(/Could not load proposals/)).toBeInTheDocument()
-    expect(screen.queryByText('Nothing needs your decision right now.')).not.toBeInTheDocument()
+    expect(await screen.findByText(/Öneriler yüklenemedi/)).toBeInTheDocument()
+    expect(screen.queryByText('Şu anda kararınızı bekleyen bir şey yok.')).not.toBeInTheDocument()
   })
 })

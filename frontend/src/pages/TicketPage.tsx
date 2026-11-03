@@ -11,15 +11,15 @@ import { formatDateTime, timeAgo } from '../lib/format'
 // Mirrors the manual transitions allowed by the backend (app/domain/ticket_status.py).
 const ACTIONS: Partial<Record<TicketStatus, { to: TicketStatus; label: string }[]>> = {
   new: [
-    { to: 'resolved', label: 'Mark resolved' },
-    { to: 'needs_info', label: 'Waiting on customer' },
+    { to: 'resolved', label: 'Çözüldü olarak işaretle' },
+    { to: 'needs_info', label: 'Müşteriden bilgi bekleniyor' },
   ],
   awaiting_review: [
-    { to: 'resolved', label: 'Mark resolved' },
-    { to: 'needs_info', label: 'Waiting on customer' },
+    { to: 'resolved', label: 'Çözüldü olarak işaretle' },
+    { to: 'needs_info', label: 'Müşteriden bilgi bekleniyor' },
   ],
-  needs_info: [{ to: 'new', label: 'Reopen' }],
-  failed: [{ to: 'new', label: 'Reopen to try again' }],
+  needs_info: [{ to: 'new', label: 'Yeniden aç' }],
+  failed: [{ to: 'new', label: 'Tekrar denemek için yeniden aç' }],
 }
 
 export function TicketPage() {
@@ -28,15 +28,15 @@ export function TicketPage() {
   const runs = useTicketRuns(ticketId)
   const proposals = useProposals({ ticketId })
 
-  if (ticket.isPending) return <p className="loading">Loading ticket…</p>
+  if (ticket.isPending) return <p className="loading">Talep yükleniyor…</p>
   if (ticket.isError) {
     const missing = ticket.error instanceof ApiError && ticket.error.status === 404
     return (
       <div className="page">
         <p className="notice notice--error" role="alert">
-          {missing ? `Ticket #${ticketId} does not exist.` : `Could not load the ticket. ${ticket.error.message}`}
+          {missing ? `#${ticketId} numaralı talep bulunamadı.` : `Talep yüklenemedi. ${ticket.error.message}`}
         </p>
-        <Link to="/tickets">Back to tickets</Link>
+        <Link to="/tickets">Taleplere dön</Link>
       </div>
     )
   }
@@ -52,7 +52,7 @@ export function TicketPage() {
     <div className="page page--ticket">
       <header className="ticket-head">
         <Link to="/tickets" className="ticket-head__back">
-          Tickets
+          Talepler
         </Link>
         <div className="ticket-head__title">
           <h1>{data.subject}</h1>
@@ -69,7 +69,7 @@ export function TicketPage() {
         <div className="ticket-grid__main">
           <section className="message" aria-labelledby="message-title">
             <h2 id="message-title" className="visually-hidden">
-              Customer message
+              Müşteri mesajı
             </h2>
             <p className="message__from">
               <strong>{data.customer.display_name}</strong>{' '}
@@ -81,7 +81,7 @@ export function TicketPage() {
           </section>
 
           {runs.isPending ? (
-            <p className="loading">Loading the AI suggestion…</p>
+            <p className="loading">Yapay zekâ önerisi yükleniyor…</p>
           ) : (
             <SuggestionPanel ticket={data} runs={runs.data ?? []} />
           )}
@@ -89,7 +89,7 @@ export function TicketPage() {
           <Timeline events={data.events} />
         </div>
 
-        <aside className="ticket-grid__side" aria-label="Order and decisions">
+        <aside className="ticket-grid__side" aria-label="Sipariş ve kararlar">
           {ordered.map((proposal) => (
             <ProposalCard key={proposal.id} proposal={proposal} />
           ))}
@@ -97,12 +97,12 @@ export function TicketPage() {
             <OrderLabel order={data.order} />
           ) : (
             <div className="empty">
-              <strong>No order linked.</strong>
-              The customer did not reference one of their orders.
+              <strong>Bağlı sipariş yok.</strong>
+              Müşteri kendi siparişlerinden birine atıf yapmadı.
             </div>
           )}
           <PolicyChecks checks={checks} />
-          <p className="meta">Received {formatDateTime(data.created_at)}</p>
+          <p className="meta">Geliş: {formatDateTime(data.created_at)}</p>
         </aside>
       </div>
     </div>

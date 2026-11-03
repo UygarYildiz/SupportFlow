@@ -18,15 +18,15 @@ describe('TicketsPage', () => {
     )
     renderWithProviders(<TicketsPage />)
 
-    expect(await screen.findByText('No tickets here.')).toBeInTheDocument()
+    expect(await screen.findByText('Burada talep yok.')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   it('shows a clear error when the API fails', async () => {
-    mockApi(() => ({ status: 500, body: { detail: 'Database unavailable' } }))
+    mockApi(() => ({ status: 500, body: { detail: 'Veritabanına ulaşılamıyor' } }))
     renderWithProviders(<TicketsPage />)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load tickets')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Talepler yüklenemedi')
   })
 
   it('points to decisions that are waiting', async () => {
@@ -37,7 +37,7 @@ describe('TicketsPage', () => {
     )
     renderWithProviders(<TicketsPage />)
 
-    expect(await screen.findByRole('link', { name: /2 order changes are waiting/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /Karar bekleyen 2 sipariş değişikliği/ })).toHaveAttribute(
       'href',
       '/approvals',
     )

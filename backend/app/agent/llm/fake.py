@@ -3,6 +3,8 @@
 Used by tests, CI and the public demo: free, offline and reproducible. It reads
 the same prompts the real model gets and answers with simple rules, so the
 whole graph (routing, policy, validation, run bookkeeping) is exercised.
+Customer messages are matched in Turkish (the demo language) and English; the
+texts it writes are Turkish, like the live model's.
 """
 
 import json
@@ -13,16 +15,30 @@ from pydantic import BaseModel
 
 from app.agent.llm.base import LLMResponse
 from app.agent.schemas import DraftReply, IntentClassification
-from app.domain.enums import TicketCategory, TicketPriority
+from app.domain.enums import OrderStatus, TicketCategory, TicketPriority
+from app.domain.policies import ORDER_STATUS_LABEL
 
 _KEYWORDS: list[tuple[TicketCategory, tuple[str, ...]]] = [
-    (TicketCategory.DAMAGED_ITEM, ("damaged", "cracked", "broken", "defective")),
-    (TicketCategory.ADDRESS_CHANGE, ("address", "ship it to", "send it to")),
-    (TicketCategory.REFUND_REQUEST, ("refund", "return", "money back")),
-    (TicketCategory.DELIVERY_DELAY, ("where is", "not arrived", "hasn't arrived", "still not",
-                                     "not received", "haven't received", "delayed", "status")),
+    (TicketCategory.DAMAGED_ITEM, ("hasar", "kırık", "kırılmış", "çatlak", "bozuk", "arızalı",
+                                   "damaged", "cracked", "broken", "defective")),
+    (TicketCategory.ADDRESS_CHANGE, ("adres", "address", "ship it to", "send it to")),
+    (TicketCategory.REFUND_REQUEST, ("iade", "geri ödeme", "paramı geri", "refund", "return",
+                                     "money back")),
+    (TicketCategory.DELIVERY_DELAY, ("nerede", "ulaşmadı", "gelmedi", "hâlâ", "hala",
+                                     "teslim almadım",
+                                     "elime geçmedi", "gecik", "durum", "where is", "not arrived",
+                                     "hasn't arrived", "still not", "not received",
+                                     "haven't received", "delayed", "status")),
 ]  # fmt: skip
+_NOT_ADDRESS_WORDS = ("hasar", "iade", "damaged", "refund", "return")
 _FOLLOW_UP_MARKERS = (
+    "önceki talebim",
+    "önceki isteğim",
+    "son talebim",
+    "dönüş yapılmadı",
+    "dönüş alamadım",
+    "geri dönüş",
+    "ne oldu",
     "previous request",
     "earlier request",
     "my last request",
@@ -31,12 +47,45 @@ _FOLLOW_UP_MARKERS = (
     "never heard back",
     "what happened to my",
 )
-_INJECTION_MARKERS = ("ignore all previous", "ignore previous", "you are now", "system instruction")
+_INJECTION_MARKERS = (
+    "önceki tüm talimatları",
+    "önceki talimatları",
+    "talimatları yok say",
+    "artık yöneticisin",
+    "artık bir yöneticisin",
+    "sistem talimatı",
+    "ignore all previous",
+    "ignore previous",
+    "you are now",
+    "system instruction",
+)
 _ORDER_ID = re.compile(r"\bORD-\d{3,6}\b", re.IGNORECASE)
+# "Yeni adresim: Moda Caddesi No:42, Kadıköy/İstanbul." / "Doğru adres: ... olarak."
+_NEW_ADDRESS_TR = re.compile(
+    r"adres(?:im|imi|i|e)?\s*:\s*(.+?)(?:\s+olarak\b.*?)?[.?!](?=\s|$)", re.IGNORECASE
+)
 # "... to 42 Harbor St, Riverton." / "new address: 7 Cedar Rd." / "... instead?"
-_NEW_ADDRESS = re.compile(
+_NEW_ADDRESS_EN = re.compile(
     r"(?:\bto|address:)[:\s]+(\d+[^.?!]*?)(?:\s+instead)?[.?!]", re.IGNORECASE
 )
+
+_CATEGORY_LABEL = {
+    TicketCategory.DELIVERY_DELAY.value: "teslimat sorusu",
+    TicketCategory.REFUND_REQUEST.value: "iade talebi",
+    TicketCategory.ADDRESS_CHANGE.value: "adres değişikliği",
+    TicketCategory.DAMAGED_ITEM.value: "hasarlı ürün",
+    TicketCategory.GENERAL.value: "genel soru",
+    TicketCategory.UNKNOWN.value: "belirsiz talep",
+}
+_TICKET_STATUS_LABEL = {
+    "new": "yeni",
+    "triaging": "analiz ediliyor",
+    "awaiting_review": "inceleniyor",
+    "needs_info": "bilgi bekleniyor",
+    "resolved": "çözüldü",
+    "failed": "başarısız",
+}
+_TEAM_WILL_REPLY = "Ekibimizden bir arkadaşımız en kısa sürede size dönüş yapacak."
 
 
 class FakeLLMClient:
@@ -51,7 +100,7 @@ class FakeLLMClient:
             output = _draft(prompt)
         else:  # pragma: no cover - programming error
             raise TypeError(f"FakeLLMClient cannot answer {response_schema.__name__}")
-        text = json.dumps(output)
+        text = json.dumps(output, ensure_ascii=False)
         # Rough token estimate (~4 characters per token) so metrics are populated.
         return LLMResponse(
             text=text,
@@ -61,15 +110,25 @@ class FakeLLMClient:
         )
 
 
+def turkish_lower(text: str) -> str:
+    """Lowercase with Turkish dotted/dotless i (Python's lower() maps 'I' to 'i')."""
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
+def _searchable(text: str) -> str:
+    # Turkish rules for Turkish words, default rules for English ones ("IGNORE" -> "ignore").
+    return f"{turkish_lower(text)}\n{text.lower()}"
+
+
 def _classify(prompt: str) -> dict[str, Any]:
     message = _between(prompt, "<ticket_message>", "</ticket_message>")
-    lowered = message.lower()
+    lowered = _searchable(message)
     suspicious = any(marker in lowered for marker in _INJECTION_MARKERS)
-    address = _NEW_ADDRESS.search(message)
+    address = _NEW_ADDRESS_TR.search(message) or _NEW_ADDRESS_EN.search(message)
     if suspicious:
         category = TicketCategory.UNKNOWN
-    elif address and not any(word in lowered for word in ("damaged", "refund", "return")):
-        category = TicketCategory.ADDRESS_CHANGE  # "please send it to 12 Main St"
+    elif address and not any(word in lowered for word in _NOT_ADDRESS_WORDS):
+        category = TicketCategory.ADDRESS_CHANGE  # "yeni adresim: Moda Caddesi No:42"
     else:
         category = _category(lowered)
     if category != TicketCategory.ADDRESS_CHANGE:
@@ -96,49 +155,60 @@ def _draft(prompt: str) -> dict[str, Any]:
     order = next((o for o in facts["orders"] if o["id"] == focus), None)
     denied = [c for c in facts["policy_checks"] if not c["allowed"] and not c["informational"]]
     category = facts["category"]
-    message = _between(prompt, "<ticket_message>", "</ticket_message>").lower()
+    message = _searchable(_between(prompt, "<ticket_message>", "</ticket_message>"))
     follow_up = bool(facts["previous_tickets"]) and any(m in message for m in _FOLLOW_UP_MARKERS)
 
     if facts["missing_information"]:
         if facts["unknown_order_ids"]:
-            lead = (
-                f"We could not find order {', '.join(facts['unknown_order_ids'])} in your account."
-            )
+            ids = ", ".join(facts["unknown_order_ids"])
+            lead = f"Hesabınızda {ids} numaralı siparişi bulamadık."
         else:
-            lead = "Thanks for reaching out."
-        body = f"{lead} Could you please send us: {'; '.join(facts['missing_information'])}?"
+            lead = "Bize ulaştığınız için teşekkür ederiz."
+        wanted = "; ".join(_lower_first(item) for item in facts["missing_information"])
+        body = f"{lead} Lütfen şu bilgiyi bizimle paylaşır mısınız: {wanted}?"
     elif category == TicketCategory.UNKNOWN.value:
-        body = "Thanks for your message. A team member will review it shortly."
+        body = (
+            "Mesajınız için teşekkür ederiz. "
+            "Ekibimizden bir arkadaşımız en kısa sürede inceleyecek."
+        )
     elif denied:
-        body = f"We looked into your request for order {focus}. {denied[0]['reason']}"
+        body = f"{focus} numaralı siparişinizle ilgili talebinizi inceledik. {denied[0]['reason']}"
     elif facts["planned_action"]:
         body = (
-            f"We received your request regarding order {focus}. "
-            "A team member will review it and get back to you shortly."
+            f"{focus} numaralı siparişinizle ilgili talebinizi aldık. "
+            "Ekibimizden bir arkadaşımız talebinizi inceleyip en kısa sürede size dönüş yapacak."
         )
     elif follow_up:  # S6: the customer asks about an earlier ticket, not about the order
         body = _previous_tickets_text(facts["previous_tickets"])
     elif order is not None:
         checks = " ".join(c["reason"] for c in facts["policy_checks"])
-        body = f"Your order {focus} is currently '{order['status']}'. {checks}".strip()
+        status = ORDER_STATUS_LABEL.get(OrderStatus(order["status"]), order["status"])
+        body = f"{focus} numaralı siparişinizin şu anki durumu: {status}. {checks}".strip()
     elif facts["previous_tickets"]:
         body = _previous_tickets_text(facts["previous_tickets"])
     else:
-        body = "Thanks for reaching out. A team member will get back to you shortly."
+        body = f"Bize ulaştığınız için teşekkür ederiz. {_TEAM_WILL_REPLY}"
 
+    label = _CATEGORY_LABEL.get(category, category)
     return {
-        "summary": f"Request classified as {category.replace('_', ' ')}"
-        + (f" about order {focus}." if focus else "."),
+        "summary": f"Talep '{label}' olarak sınıflandırıldı"
+        + (f" ({focus} numaralı sipariş)." if focus else "."),
         "needs_human_review": category == TicketCategory.UNKNOWN.value or bool(denied),
-        "draft_reply": f"Hello {name},\n\n{body}\n\nBest regards,\nNovaShop Support",
+        "draft_reply": f"Merhaba {name},\n\n{body}\n\nSaygılarımızla,\nNovaShop Destek Ekibi",
         "missing_information": [],
         "evidence_order_ids": [focus] if order else [],
     }
 
 
 def _previous_tickets_text(tickets: list[dict[str, Any]]) -> str:
-    subjects = ", ".join(f"'{t['subject']}' ({t['status']})" for t in tickets)
-    return f"We found your earlier requests: {subjects}. A team member will follow up."
+    subjects = ", ".join(
+        f"'{t['subject']}' ({_TICKET_STATUS_LABEL.get(t['status'], t['status'])})" for t in tickets
+    )
+    return f"Önceki taleplerinizi bulduk: {subjects}. {_TEAM_WILL_REPLY}"
+
+
+def _lower_first(text: str) -> str:
+    return turkish_lower(text[:1]) + text[1:]
 
 
 def _category(message: str) -> TicketCategory:

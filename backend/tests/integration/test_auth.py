@@ -34,7 +34,7 @@ def test_login_failures_are_indistinguishable(client: TestClient, db_session: Se
     for email, password in attempts:
         response = client.post("/api/v1/auth/login", json={"email": email, "password": password})
         assert response.status_code == 401
-        assert response.json() == {"detail": "Invalid email or password"}
+        assert response.json() == {"detail": "E-posta ya da parola hatalı"}
 
 
 def test_requests_without_valid_token_get_401(client: TestClient, db_session: Session) -> None:

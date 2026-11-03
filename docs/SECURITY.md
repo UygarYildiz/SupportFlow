@@ -1,40 +1,40 @@
-# Security
+# Güvenlik
 
-SupportFlow AI lets a language model read customer messages and suggest changes to orders. The design assumes the model can be **wrong, fooled or unavailable**, and that ticket text can be **hostile**. This document lists the threats considered, the controls in place and the tests that prove them. It is a demo with synthetic data; production gaps are listed at the end.
+SupportFlow AI, bir dil modelinin müşteri mesajlarını okumasına ve siparişlerde değişiklik önermesine izin verir. Tasarım, modelin **yanılabileceğini, kandırılabileceğini ya da erişilemez olabileceğini** ve talep metninin **kötü niyetli** olabileceğini varsayar. Bu doküman ele alınan tehditleri, alınan önlemleri ve bunları kanıtlayan testleri listeler. Bu, sentetik veriyle çalışan bir demodur; üretim için eksikler sonda listelenmiştir.
 
-## Trust model
+## Güven modeli
 
-| Source | Trusted? | Handling |
+| Kaynak | Güvenilir mi? | Nasıl ele alınır |
 |---|---|---|
-| Ticket subject and message | No | Treated as data inside delimiter tags it cannot close; never used for authorization |
-| Model output | No | Validated against strict schemas; used only for classification, parameters and wording |
-| Model-cited order IDs | No | Kept only if retrieved for this customer; others dropped and flagged |
-| Tool results (orders, policy) | Yes (our own database) | Read-only and scoped to the ticket's customer |
-| Staff identity and role | Yes, after authentication | Re-read from the database on every request |
+| Talep konusu ve mesajı | Hayır | Kapatamayacağı ayraç etiketleri içinde veri olarak ele alınır; yetkilendirmede asla kullanılmaz |
+| Model çıktısı | Hayır | Katı şemalarla doğrulanır; yalnızca sınıflandırma, parametreler ve metin için kullanılır |
+| Modelin atıf yaptığı sipariş kimlikleri | Hayır | Yalnızca bu müşteri için getirildiyse tutulur; diğerleri atılır ve işaretlenir |
+| Araç sonuçları (siparişler, kurallar) | Evet (kendi veritabanımız) | Salt okunur ve talebin müşterisiyle sınırlı |
+| Personel kimliği ve rolü | Evet, kimlik doğrulamadan sonra | Her istekte veritabanından yeniden okunur |
 
-## Threats and controls
+## Tehditler ve önlemler
 
-| # | Threat | Controls | Verified by |
+| # | Tehdit | Önlemler | Doğrulayan |
 |---|---|---|---|
-| T1 | **Prompt injection**: the ticket tells the model to act as admin, refund everything, change addresses | Customer text is delimited and neutralized; both prompts state it is untrusted. The model cannot act: actions are decided by `plan_action` (policy must allow; never when `instructions_aimed_at_system`). Even a fooled model only produces a draft that a human reviews. | `test_prompt_injection_changes_nothing_but_the_analysis`, `test_customer_text_cannot_break_out_of_its_delimiters`, `test_instructions_aimed_at_the_system_never_produce_an_action` |
-| T2 | **Action without approval** | The agent has no write tools; `app/agent/` cannot import execution code. Proposals start `pending`; only `POST /proposals/{id}/decision` with `approve` reaches the executor. | `test_proposal_alone_never_changes_anything`, `test_analysis_never_modifies_orders`, `test_agent_code_cannot_reach_the_executor` |
-| T3 | **Unauthorized approval** (e.g. an agent user approving a refund) | Approver roles per action type in `app/domain/proposals.py`, enforced server-side before any state is revealed (403). The UI hint `can_decide` is informational only. | `test_agent_user_cannot_decide_a_refund_but_admin_can`, `test_admin_only_endpoint_rejects_agent_users` |
-| T4 | **Double execution** (double click, two reviewers, retries, restart mid-way) | Optimistic locking (`expected_version`) and row lock on the proposal; status machine with final states; idempotency key per proposal with a unique constraint; one execution row per proposal; startup reconciliation re-applies at most once. | `test_second_approval_is_rejected_and_changes_nothing`, `test_idempotency_key_prevents_a_second_effect_even_if_called_again`, `test_restart_between_decision_and_execution_is_reconciled_once` |
-| T5 | **Time of check vs. time of use**: the order ships between proposal and approval | The order system locks the order and re-checks the policy right before changing it; a failed re-check ends the proposal as `failed` with the reason. | `test_order_shipped_after_proposal_blocks_the_address_change` |
-| T6 | **Proposal tampering** after review (payload changed in the database) | SHA-256 fingerprint of type, order and payload stored at creation and verified before execution; mismatch → 409 and an `proposal.integrity_failed` audit entry. | `test_tampered_payload_cannot_be_executed` |
-| T7 | **Stale decisions** (approving something nobody looked at for days) | Proposals expire after `PROPOSAL_TTL_HOURS` (48); expired proposals never execute; a new analysis supersedes older pending proposals. | `test_expired_proposal_never_executes`, `test_one_open_proposal_per_ticket_and_new_analysis_supersedes` |
-| T8 | **Cross-customer data leak** (asking about someone else's order) | Every lookup on behalf of a ticket is customer-scoped; a foreign order is indistinguishable from a missing one; a composite foreign key ties ticket and proposal orders to the customer. | `test_unknown_and_foreign_orders_lead_to_needs_info`, `test_database_tools_are_scoped_to_one_customer`, `test_database_also_enforces_order_ownership` |
-| T9 | **Fabricated facts** (invented order status, tracking, policy) | Drafts are written only from retrieved facts; unknown orders force `needs_info`; unverified evidence is removed and flagged. | `test_unverified_evidence_is_dropped_and_flags_review`, `test_order_request_without_a_usable_order_asks_for_it_and_skips_policy` |
-| T10 | **Audit tampering** | Audit entries are written in the same transaction as the change; a database trigger rejects UPDATE and DELETE on `audit_logs`; read access is admin only. | `test_audit_trail_is_redacted_admin_only_and_append_only` |
-| T11 | **Personal data in logs** | Audit details redact address and e-mail fields; raw model output is never stored or logged; step summaries contain IDs and counts, not customer text. | `test_audit_details_redact_personal_data` |
-| T12 | **Account discovery and session abuse** | Identical login failure for unknown user, wrong password and inactive account (with constant-time dummy hash); short-lived JWTs; deactivation takes effect immediately; production refuses the development JWT secret. | `test_login_failures_are_indistinguishable`, `test_deactivated_user_loses_access_immediately`, `test_production_refuses_the_development_secret` |
-| T13 | **Cost and availability abuse of the LLM** | Public demo runs `LLM_MODE=fake`; per-run token budget, step limit and deadline; retries only for transient errors with backoff; one active analysis per ticket. | `test_token_budget_stops_the_run`, `test_expired_deadline_stops_before_the_next_node`, `test_database_allows_only_one_active_run_per_ticket` |
-| T14 | **Secret leakage** | Secrets only in `.env` (git-ignored) or CI secrets; the Gemini key is a `SecretStr` and never logged; provider error messages are not passed through. | Manual check before each commit (diff scanned for key patterns) |
+| T1 | **Prompt injection**: talep, modele yönetici gibi davranmasını, her şeyi iade etmesini, adresleri değiştirmesini söyler | Müşteri metni ayraçlanır ve etkisizleştirilir; iki prompt da metnin güvenilmez olduğunu belirtir. Model aksiyon alamaz: aksiyonlara `plan_action` karar verir (kural izin vermeli; `instructions_aimed_at_system` varsa asla). Kandırılmış bir model bile yalnızca bir insanın incelediği bir taslak üretir. | `test_prompt_injection_changes_nothing_but_the_analysis`, `test_customer_text_cannot_break_out_of_its_delimiters`, `test_instructions_aimed_at_the_system_never_produce_an_action` |
+| T2 | **Onaysız aksiyon** | Ajanın yazma aracı yoktur; `app/agent/` yürütme kodunu import edemez. Öneriler `pending` başlar; yürütücüye yalnızca `approve` kararıyla `POST /proposals/{id}/decision` ulaşır. | `test_proposal_alone_never_changes_anything`, `test_analysis_never_modifies_orders`, `test_agent_code_cannot_reach_the_executor` |
+| T3 | **Yetkisiz onay** (ör. bir destek uzmanının iadeyi onaylaması) | Aksiyon tipine göre onaylayıcı roller `app/domain/proposals.py` içinde; herhangi bir durum bilgisi açığa çıkmadan önce sunucu tarafında zorunlu (403). Arayüzdeki `can_decide` ipucu yalnızca bilgilendirme amaçlıdır. | `test_agent_user_cannot_decide_a_refund_but_admin_can`, `test_admin_only_endpoint_rejects_agent_users` |
+| T4 | **Çift yürütme** (çift tıklama, iki inceleyen, yeniden denemeler, yarıda kalan yeniden başlatma) | Öneride iyimser kilitleme (`expected_version`) ve satır kilidi; son durumları olan durum makinesi; öneri başına benzersiz kısıtlı idempotency anahtarı; öneri başına tek yürütme satırı; açılıştaki mutabakat en fazla bir kez yeniden uygular. | `test_second_approval_is_rejected_and_changes_nothing`, `test_idempotency_key_prevents_a_second_effect_even_if_called_again`, `test_restart_between_decision_and_execution_is_reconciled_once` |
+| T5 | **Kontrol zamanı ile kullanım zamanı farkı (TOCTOU)**: sipariş, öneri ile onay arasında kargoya verilir | Sipariş sistemi, değiştirmeden hemen önce siparişi kilitler ve kuralı yeniden kontrol eder; başarısız kontrol öneriyi gerekçesiyle `failed` olarak bitirir. | `test_order_shipped_after_proposal_blocks_the_address_change` |
+| T6 | İncelemeden sonra **önerinin kurcalanması** (veritabanında içeriğin değiştirilmesi) | Tip, sipariş ve içeriğin SHA-256 parmak izi oluşturulurken saklanır ve yürütmeden önce doğrulanır; uyuşmazlık → 409 ve `proposal.integrity_failed` denetim kaydı. | `test_tampered_payload_cannot_be_executed` |
+| T7 | **Bayat kararlar** (günlerdir kimsenin bakmadığı bir şeyi onaylamak) | Öneriler `PROPOSAL_TTL_HOURS` (48) sonra süresi dolar; süresi dolan öneriler asla yürütülmez; yeni bir analiz eski bekleyen önerilerin yerini alır. | `test_expired_proposal_never_executes`, `test_one_open_proposal_per_ticket_and_new_analysis_supersedes` |
+| T8 | **Müşteriler arası veri sızıntısı** (başkasının siparişini sormak) | Bir talep adına yapılan her sorgu müşteriyle sınırlıdır; başka müşterinin siparişi, olmayan bir siparişten ayırt edilemez; bileşik yabancı anahtar talep ve öneri siparişlerini müşteriye bağlar. | `test_unknown_and_foreign_orders_lead_to_needs_info`, `test_database_tools_are_scoped_to_one_customer`, `test_database_also_enforces_order_ownership` |
+| T9 | **Uydurulmuş bilgiler** (olmayan sipariş durumu, kargo takibi, kural) | Taslaklar yalnızca getirilen bilgilerden yazılır; bilinmeyen siparişler `needs_info`'ya zorlar; doğrulanmamış kanıtlar kaldırılır ve işaretlenir. | `test_unverified_evidence_is_dropped_and_flags_review`, `test_order_request_without_a_usable_order_asks_for_it_and_skips_policy` |
+| T10 | **Denetim kaydının kurcalanması** | Denetim kayıtları değişiklikle aynı transaction'da yazılır; bir veritabanı trigger'ı `audit_logs` üzerindeki UPDATE ve DELETE'i reddeder; okuma erişimi yalnızca yöneticidedir. | `test_audit_trail_is_redacted_admin_only_and_append_only` |
+| T11 | **Loglarda kişisel veri** | Denetim ayrıntılarında adres ve e-posta alanları maskelenir; ham model çıktısı asla saklanmaz ya da loglanmaz; adım özetleri müşteri metni değil, kimlik ve sayılar içerir. | `test_audit_details_redact_personal_data` |
+| T12 | **Hesap keşfi ve oturum kötüye kullanımı** | Bilinmeyen kullanıcı, yanlış parola ve pasif hesap için aynı giriş hatası (sabit süreli sahte hash ile); kısa ömürlü JWT'ler; pasifleştirme anında etkili olur; üretim ortamı geliştirme JWT sırrını reddeder. | `test_login_failures_are_indistinguishable`, `test_deactivated_user_loses_access_immediately`, `test_production_refuses_the_development_secret` |
+| T13 | **LLM'in maliyet ve erişilebilirlik açısından kötüye kullanımı** | Herkese açık demo `LLM_MODE=fake` ile çalışır; çalıştırma başına token bütçesi, adım sınırı ve süre sınırı; yeniden deneme yalnızca geçici hatalarda ve artan beklemeyle; talep başına tek aktif analiz. | `test_token_budget_stops_the_run`, `test_expired_deadline_stops_before_the_next_node`, `test_database_allows_only_one_active_run_per_ticket` |
+| T14 | **Sır sızıntısı** | Sırlar yalnızca `.env` (git tarafından yok sayılır) ya da CI secret'larında; Gemini anahtarı bir `SecretStr`'dir ve asla loglanmaz; sağlayıcı hata mesajları dışarı aktarılmaz. | Her commit öncesi elle kontrol (diff, anahtar kalıpları için taranır) |
 
-## Known gaps (production would need)
+## Bilinen eksikler (üretim için gerekenler)
 
-- A real identity provider (OIDC/SSO) and MFA instead of seeded demo users.
-- Rate limiting on login and analysis endpoints; request size limits at the edge.
-- A database role for the application without `TRUNCATE`/DDL rights, so the audit trail cannot be wiped (the demo reset script truncates on purpose).
-- An "unknown outcome" state and reconciliation against a real external system's idempotency API (the mock order system shares our database, so a rolled-back execution is known to have changed nothing).
-- Dependency and secret scanning in CI, plus structured security logging (Phase 10).
+- Seed ile oluşturulan demo kullanıcıları yerine gerçek bir kimlik sağlayıcı (OIDC/SSO) ve MFA.
+- Giriş ve analiz uç noktalarında rate limiting; uç katmanda istek boyutu sınırları.
+- Uygulama için `TRUNCATE`/DDL yetkisi olmayan bir veritabanı rolü; böylece denetim kaydı silinemez (demo sıfırlama betiği bilerek truncate yapar).
+- "Bilinmeyen sonuç" durumu ve gerçek bir dış sistemin idempotency API'sine karşı mutabakat (mock sipariş sistemi bizim veritabanımızı paylaştığı için, geri alınan bir yürütmenin hiçbir şeyi değiştirmediği kesin olarak bilinir).
+- CI'da bağımlılık ve sır taraması, ayrıca yapılandırılmış güvenlik loglaması (Faz 10).

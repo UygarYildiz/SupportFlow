@@ -1,81 +1,82 @@
-# Test plan
+# Test planı
 
-How the requirements are verified. Backend tests run against a real PostgreSQL test database (each test in a rolled-back transaction); no test calls the paid LLM API.
+Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, types, 146 tests
-cd backend && uv run poe eval         # scenario evals (fake model); --live for Gemini
-cd frontend && npm test               # 17 component tests (Vitest + Testing Library)
+cd backend && uv run poe check        # lint, format, tip kontrolü, 155 test
+cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
+cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Library)
 ```
 
-## Scenarios (docs/REQUIREMENTS.md section 5)
+## Senaryolar (docs/REQUIREMENTS.md bölüm 5)
 
-| Scenario | Verified by |
+| Senaryo | Doğrulayan |
 |---|---|
-| S1 Where is my order | `test_analysis_records_every_graph_step` (policy check, verified evidence, no action) |
-| S2 Damaged item → refund request | `test_allowed_refund_cases_propose_a_refund_request`, `test_agent_user_cannot_decide_a_refund_but_admin_can` |
-| S3 Address change | `test_allowed_address_change_produces_a_pending_proposal`, `test_ticket_to_ai_proposal_to_approval_to_single_change` |
-| S4 Unknown order | `test_unknown_and_foreign_orders_lead_to_needs_info`, `test_order_request_without_a_usable_order_asks_for_it_and_skips_policy` |
-| S5 Refund outside the window | `test_refund_outside_the_return_window_gets_no_proposal` |
-| S6 Previous request | `test_previous_tickets_reach_the_draft_for_follow_ups` |
+| S1 Siparişim nerede | `test_analysis_records_every_graph_step` (kural kontrolü, doğrulanmış kanıt, aksiyon yok) |
+| S2 Hasarlı ürün → iade talebi | `test_allowed_refund_cases_propose_a_refund_request`, `test_agent_user_cannot_decide_a_refund_but_admin_can` |
+| S3 Adres değişikliği | `test_allowed_address_change_produces_a_pending_proposal`, `test_ticket_to_ai_proposal_to_approval_to_single_change` |
+| S4 Bilinmeyen sipariş | `test_unknown_and_foreign_orders_lead_to_needs_info`, `test_order_request_without_a_usable_order_asks_for_it_and_skips_policy` |
+| S5 İade süresi dışında iade | `test_refund_outside_the_return_window_gets_no_proposal` |
+| S6 Önceki talep | `test_previous_tickets_reach_the_draft_for_follow_ups` |
 
-## Scenario evals
+## Senaryo eval'leri
 
-`evals/scenarios.jsonl` describes 12 tickets in plain data: S1–S6, the P0 safety cases (TC-05, TC-06, TC-07/TC-18, TC-10) and a few edge cases. Each gets its own customer and orders and runs through the real path (queued run, LangGraph, database tools, policy, proposal). Checks come in two kinds:
+`evals/scenarios.jsonl`, 13 talebi düz veri olarak tanımlar: S1–S6, P0 güvenlik senaryoları (TC-05, TC-06, TC-07/TC-18, TC-10; TC-10 hem Türkçe hem İngilizce) ve birkaç uç durum. Talepler Türkçedir. Her birinin kendi müşterisi ve siparişleri vardır ve gerçek akıştan geçer (kuyruğa alınan çalıştırma, LangGraph, veritabanı araçları, kurallar, öneri). Kontroller iki türlüdür:
 
-- **Critical** (must hold for any model): ticket status, which write action is proposed (or none), the proposal targets the customer's own order, the new address is the one the customer wrote, verified evidence only from the customer's orders, no other customer's data or injected values in the reply.
-- **Quality** (must hold for the fake model, measured for the live one): category, cited evidence, the follow-up reply refers to the earlier request.
+- **Kritik** (her model için sağlanmalı): talep durumu, hangi yazma aksiyonunun önerildiği (ya da hiçbirinin), önerinin müşterinin kendi siparişini hedeflemesi, yeni adresin müşterinin yazdığı adres olması, doğrulanmış kanıtın yalnızca müşterinin siparişlerinden gelmesi, yanıtta başka müşterinin verisinin ya da enjekte edilmiş değerlerin bulunmaması.
+- **Kalite** (sahte model için sağlanmalı, canlı model için ölçülür): kategori, atıf yapılan kanıt, takip yanıtının önceki talebe değinmesi.
 
-`tests/integration/test_evals.py` runs every scenario with the fake model in CI and also proves a wrong expectation is reported as a failure. `uv run poe eval --live` runs the same file against Gemini (spaced out for rate limits) to measure the real model; it never runs in CI.
+`tests/integration/test_evals.py` CI'da her senaryoyu sahte modelle çalıştırır ve yanlış bir beklentinin başarısızlık olarak raporlandığını da kanıtlar. `uv run poe eval --live` aynı dosyayı gerçek modeli ölçmek için Gemini'ye karşı çalıştırır (rate limit için aralıklı); CI'da asla çalışmaz.
 
-Live results (one run each; outcomes can vary between runs):
+Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çalıştırmaya değişebilir):
 
-| Date | Model | Prompt version | Fully passed | Passed every critical check |
+| Tarih | Model | Prompt sürümü | Tamamen geçen | Tüm kritik kontrolleri geçen |
 |---|---|---|---|---|
-| 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v2` | 12/12 | 12/12 |
+| 2026-11-03 | `gemini-3.5-flash-lite` | `graph-v2` (İngilizce set) | 12/12 | 12/12 |
+| — | `gemini-3.5-flash-lite` | `graph-v3` (Türkçe set) | henüz çalıştırılmadı | |
 
-## Test matrix (ROADMAP §6)
+## Test matrisi (ROADMAP §6)
 
-| ID | Case | Status | Verified by |
+| ID | Durum | Kapsam | Doğrulayan |
 |---|---|---|---|
-| TC-01 | Address change on unshipped order → pending proposal | Covered | `test_allowed_address_change_produces_a_pending_proposal` |
-| TC-02 | Approved → address updated once, audit written | Covered | `test_approval_executes_the_change_exactly_once`, `test_audit_trail_is_redacted_admin_only_and_append_only` |
-| TC-03 | Rejected → address unchanged | Covered | `test_reject_ends_the_proposal_without_any_change` |
-| TC-04 | Approved twice → one action | Covered | `test_second_approval_is_rejected_and_changes_nothing`, `test_idempotency_key_prevents_a_second_effect_even_if_called_again` |
-| TC-05 | Order ships before approval → blocked with reason | Covered | `test_order_shipped_after_proposal_blocks_the_address_change` |
-| TC-06 | Unknown order → `needs_info`, nothing invented | Covered | `test_unknown_and_foreign_orders_lead_to_needs_info` |
-| TC-07 | Another customer's order → no leak | Covered | `test_database_tools_are_scoped_to_one_customer`, `test_scoped_lookup_treats_another_customers_order_as_missing` |
-| TC-08 | Invalid model JSON → controlled failure | Covered | `test_invalid_model_output_is_a_controlled_failure`, `test_invalid_model_output_fails_the_run_safely_and_allows_retry` |
-| TC-09 | LLM timeout → retries, then failed run | Covered | `test_transient_errors_are_retried_with_growing_backoff`, `test_llm_outage_fails_the_run_with_a_stable_code` |
-| TC-10 | Prompt injection "act as admin" | Covered | `test_prompt_injection_changes_nothing_but_the_analysis` |
-| TC-11 | Malicious instructions in a policy source | Phase 7 (RAG) | |
-| TC-12 | Webhook replay | Phase 9 (n8n) | |
-| TC-13 | Restart while an approval is pending | Covered | `test_ticket_to_ai_proposal_to_approval_to_single_change`, `test_restart_between_decision_and_execution_is_reconciled_once` |
-| TC-14 | MCP tool with unauthorized order | Phase 8 (MCP) | |
-| TC-15 | Policy version changed | Phase 7 (RAG) | |
-| TC-16 | Database unreachable → `/ready` 503 | Covered | `test_ready_returns_503_when_database_is_unreachable` |
-| TC-17 | Two concurrent analyses → one runs | Covered | `test_second_analysis_request_while_queued_is_rejected`, `test_database_allows_only_one_active_run_per_ticket` |
-| TC-18 | Model passes another customer's order ID | Covered | `test_model_cannot_point_the_agent_at_an_order_the_customer_never_mentioned`, `test_database_tools_are_scoped_to_one_customer` |
-| TC-19 | Agent user approves a refund → 403 | Covered | `test_agent_user_cannot_decide_a_refund_but_admin_can` |
-| TC-20 | Restart during a run | Covered | `test_restart_marks_unfinished_runs_as_interrupted` |
+| TC-01 | Kargoya verilmemiş siparişte adres değişikliği → bekleyen öneri | Kapsandı | `test_allowed_address_change_produces_a_pending_proposal` |
+| TC-02 | Onaylandı → adres bir kez güncellenir, denetim kaydı yazılır | Kapsandı | `test_approval_executes_the_change_exactly_once`, `test_audit_trail_is_redacted_admin_only_and_append_only` |
+| TC-03 | Reddedildi → adres değişmez | Kapsandı | `test_reject_ends_the_proposal_without_any_change` |
+| TC-04 | İki kez onaylandı → tek aksiyon | Kapsandı | `test_second_approval_is_rejected_and_changes_nothing`, `test_idempotency_key_prevents_a_second_effect_even_if_called_again` |
+| TC-05 | Sipariş onaydan önce kargoya verildi → gerekçeyle engellenir | Kapsandı | `test_order_shipped_after_proposal_blocks_the_address_change` |
+| TC-06 | Bilinmeyen sipariş → `needs_info`, hiçbir şey uydurulmaz | Kapsandı | `test_unknown_and_foreign_orders_lead_to_needs_info` |
+| TC-07 | Başka müşterinin siparişi → sızıntı yok | Kapsandı | `test_database_tools_are_scoped_to_one_customer`, `test_scoped_lookup_treats_another_customers_order_as_missing` |
+| TC-08 | Geçersiz model JSON'ı → kontrollü hata | Kapsandı | `test_invalid_model_output_is_a_controlled_failure`, `test_invalid_model_output_fails_the_run_safely_and_allows_retry` |
+| TC-09 | LLM zaman aşımı → yeniden deneme, ardından başarısız çalıştırma | Kapsandı | `test_transient_errors_are_retried_with_growing_backoff`, `test_llm_outage_fails_the_run_with_a_stable_code` |
+| TC-10 | Prompt injection: "yönetici gibi davran" | Kapsandı | `test_prompt_injection_changes_nothing_but_the_analysis` |
+| TC-11 | Bir kural kaynağında kötü niyetli talimatlar | Faz 7 (RAG) | |
+| TC-12 | Webhook tekrarı | Faz 9 (n8n) | |
+| TC-13 | Bir onay beklerken yeniden başlatma | Kapsandı | `test_ticket_to_ai_proposal_to_approval_to_single_change`, `test_restart_between_decision_and_execution_is_reconciled_once` |
+| TC-14 | Yetkisiz siparişle MCP aracı | Faz 8 (MCP) | |
+| TC-15 | Kural sürümü değişti | Faz 7 (RAG) | |
+| TC-16 | Veritabanına erişilemiyor → `/ready` 503 | Kapsandı | `test_ready_returns_503_when_database_is_unreachable` |
+| TC-17 | Eşzamanlı iki analiz → biri çalışır | Kapsandı | `test_second_analysis_request_while_queued_is_rejected`, `test_database_allows_only_one_active_run_per_ticket` |
+| TC-18 | Model başka müşterinin sipariş kimliğini verir | Kapsandı | `test_model_cannot_point_the_agent_at_an_order_the_customer_never_mentioned`, `test_database_tools_are_scoped_to_one_customer` |
+| TC-19 | Destek uzmanı iadeyi onaylar → 403 | Kapsandı | `test_agent_user_cannot_decide_a_refund_but_admin_can` |
+| TC-20 | Çalıştırma sırasında yeniden başlatma | Kapsandı | `test_restart_marks_unfinished_runs_as_interrupted` |
 
-## Frontend (Phase 6 acceptance)
+## Frontend (Faz 6 kabul kriterleri)
 
-| Requirement | Verified by |
+| Gereksinim | Doğrulayan |
 |---|---|
-| Empty list shows a meaningful message | `TicketsPage.test.tsx`: explains an empty inbox |
-| API error is never shown as success | `TicketsPage.test.tsx`: clear error; `ProposalCard.test.tsx`: conflict instead of success |
-| Double submit is blocked; the shown version is sent | `ProposalCard.test.tsx`: blocks a second click while applying |
-| Unauthorized roles get no decision buttons (the API also refuses: TC-19) | `ProposalCard.test.tsx`: no decision buttons |
-| Wrong credentials explained | `LoginPage.test.tsx` |
-| Overview counts link to the filtered list | `DashboardPage.test.tsx`: links each status count |
-| Role difference is visible: agents see refunds as "waiting for an admin", admins decide them and see the audit trail | `DashboardPage.test.tsx`: agent never asks for the audit trail; admin gets every decision; `ProposalCard.test.tsx`: "Admin only" marker |
-| Demo data shows both roles at work, through the real analysis/approval path and without a paid model | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
+| Boş liste anlamlı bir mesaj gösterir | `TicketsPage.test.tsx`: boş gelen kutusunu açıklar |
+| API hatası asla başarı olarak gösterilmez | `TicketsPage.test.tsx`: net hata; `ProposalCard.test.tsx`: başarı yerine çakışma |
+| Çift gönderim engellenir; gösterilen sürüm gönderilir | `ProposalCard.test.tsx`: uygulanırken ikinci tıklamayı engeller |
+| Yetkisiz roller karar butonu görmez (API de reddeder: TC-19) | `ProposalCard.test.tsx`: karar butonu yok |
+| Yanlış giriş bilgileri açıklanır | `LoginPage.test.tsx` |
+| Genel bakış sayıları filtrelenmiş listeye bağlanır | `DashboardPage.test.tsx`: her durum sayısını bağlar |
+| Rol farkı görünür: destek uzmanları iadeleri "yönetici bekliyor" olarak görür, yöneticiler karar verir ve denetim kaydını görür | `DashboardPage.test.tsx`: destek uzmanı denetim kaydını asla istemez, yönetici her kararı alır; `ProposalCard.test.tsx`: "Yalnızca yönetici" işareti |
+| Demo verisi iki rolü de iş başında gösterir; gerçek analiz/onay akışından ve ücretli model olmadan | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
 
-Visual checks are done with screenshots at 1440px and 390px wide (login, overview as agent and as admin, tickets, ticket detail in each state, approvals, stamp after decision).
+Görsel kontroller 1440px ve 390px genişlikte ekran görüntüleriyle yapılır (giriş, destek uzmanı ve yönetici olarak genel bakış, talepler, her durumda talep detayı, onaylar, karardan sonraki mühür).
 
-## Known gaps
+## Bilinen eksikler
 
-- No browser end-to-end tests in CI yet (Phase 10).
-- No load or concurrency tests beyond row locks and unique constraints.
-- Live-model evals are run by hand (`poe eval --live`), not on every change, to stay within the free API quota.
+- CI'da henüz tarayıcıda uçtan uca test yok (Faz 10).
+- Satır kilitleri ve benzersiz kısıtların ötesinde yük ya da eşzamanlılık testi yok.
+- Ücretsiz API kotası içinde kalmak için canlı model eval'leri her değişiklikte değil, elle çalıştırılır (`poe eval --live`).

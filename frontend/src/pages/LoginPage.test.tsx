@@ -9,7 +9,7 @@ import { LoginPage } from './LoginPage'
 
 describe('LoginPage', () => {
   it('shows the server message for wrong credentials', async () => {
-    mockApi(() => ({ status: 401, body: { detail: 'Invalid email or password' } }))
+    mockApi(() => ({ status: 401, body: { detail: 'E-posta ya da parola hatalı' } }))
     const user = userEvent.setup()
     render(
       <QueryClientProvider client={new QueryClient()}>
@@ -21,10 +21,10 @@ describe('LoginPage', () => {
       </QueryClientProvider>,
     )
 
-    await user.type(screen.getByLabelText('Work email'), 'sam@novashop.example')
-    await user.type(screen.getByLabelText('Password'), 'wrong')
-    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await user.type(screen.getByLabelText('İş e-postası'), 'selin@novashop.example')
+    await user.type(screen.getByLabelText('Parola'), 'wrong')
+    await user.click(screen.getByRole('button', { name: 'Giriş yap' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password')
+    expect(await screen.findByRole('alert')).toHaveTextContent('E-posta ya da parola hatalı')
   })
 })
