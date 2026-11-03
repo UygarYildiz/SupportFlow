@@ -57,7 +57,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 
 - [x] Faz 7 — RAG ile şirket politikaları (2026-11-03; `feat/policy-rag`, ADR-014)
 - [ ] Faz 8 — MCP ile araç entegrasyonları (2026-11-03; `feat/mcp-tools`, ADR-015) — kod, testler ve dokümanlar tamam; yalnızca MCP Inspector ile elle test sahibin makinesinde kaldı
-- [ ] Faz 11-B — Canlı demo deployment
+- [ ] Faz 11-B — Canlı demo deployment (2026-11-03: canlı, https://supportflow-w7q.pages.dev; yalnız gece sıfırlaması için `DEMO_DATABASE_URL` secret'ı ve ilk çalıştırması kaldı)
 
 **Blok C — Opsiyonel**
 
@@ -917,12 +917,12 @@ Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince n
 
 ## Faz 11-B — Canlı demo deployment (opsiyonel ama önerilir)
 
-- [ ] Frontend'i statik hosting'de yayınla (örn. Cloudflare Pages).
-- [ ] FastAPI backend'i container destekli uygun bir hostta çalıştır (ücretsiz katmanların uyku/soğuk başlatma sınırlarını kontrol et).
+- [x] Frontend'i statik hosting'de yayınla (örn. Cloudflare Pages). (2026-11-03: https://supportflow-w7q.pages.dev, `main`'den otomatik; sahip tarayıcıdan uçtan uca denedi: giriş, analiz (MCP), onay.)
+- [x] FastAPI backend'i container destekli uygun bir hostta çalıştır (ücretsiz katmanların uyku/soğuk başlatma sınırlarını kontrol et). (2026-11-03: Render free, Frankfurt, https://supportflow-api-e4i6.onrender.com; 15 dk boşta uyur, soğuk başlatma 30–60 sn; ADR-016.)
 - [x] PostgreSQL için yönetilen DB veya küçük VM; migration planı, health/readiness checks. (2026-11-03: Supabase `supportflow`, Frankfurt; ayrı şema + süper yetkisiz rol, Data API'ye kapalı; migration'lar Render açılışında; güvenlik danışmanı temiz; ADR-016.)
-- [ ] **Public demo `LLM_MODE=fake` (veya kayıtlı yanıtlar) ile çalışır.** Gerçek LLM açılacaksa: sert bütçe sınırı, rate limit, yalnız giriş yapmış demo kullanıcıları.
+- [x] **Public demo `LLM_MODE=fake` (veya kayıtlı yanıtlar) ile çalışır.** (Render'da `LLM_MODE=fake`, `EMBEDDING_MODE=fake`; çalıştırmalarda model `fake-llm`.) Gerçek LLM açılacaksa: sert bütçe sınırı, rate limit, yalnız giriş yapmış demo kullanıcıları.
 - [ ] Demo verisi periyodik reset (örn. günlük seed). (`.github/workflows/demo-reset.yml` hazır; `DEMO_DATABASE_URL` secret'ı sahip tarafından eklenecek, ilk çalıştırma doğrulanacak.)
-- [ ] n8n yayınlanıyorsa admin panelini halka açık bırakma.
+- [x] n8n yayınlanıyorsa admin panelini halka açık bırakma. (n8n yayınlanmadı; Faz 9 opsiyonel.)
 
 ### İş görüşmesi için 5 dakikalık demo
 

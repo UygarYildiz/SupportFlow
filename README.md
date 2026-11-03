@@ -6,6 +6,8 @@
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
+**Canlı demo: [supportflow-w7q.pages.dev](https://supportflow-w7q.pages.dev)**. Giriş ekranındaki demo butonlarıyla destek uzmanı ya da yönetici olarak girin. Model sahtedir (ücretsiz, deterministik), veriler kurgusaldır ve her gece sıfırlanır. Sunucu boştayken uyur; ilk açılış 30–60 saniye sürebilir.
+
 ![Destek uzmanı için genel bakış: talep sayıları, uzmanın kararını bekleyenler, yönetici onayı bekleyen iade talepleri](docs/images/overview-agent.png)
 
 ## Problem
@@ -146,6 +148,7 @@ Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 - **Kararları kurallar verir, dokümanlar açıklar.** Mağaza kuralları sürümlenen Python kodudur; politika dokümanları yalnızca kaynak göstermek için getirilir ve karar vermez ([ADR-014](docs/DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)). Bilgi tabanı beş dokümanlık küçük bir set.
 - **MCP yalnızca yerel.** MCP sunucusu stdio ile yerel istemcilere açıktır; uzaktan erişim (HTTP + OAuth 2.1) yoktur ve araçlar yalnızca okur ([ADR-015](docs/DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)).
 - **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
+- **Ücretsiz katmanda canlı demo.** Backend 15 dakika boşta kalınca uyur; demo sahte modelle çalışır ve demo hesapları herkese açıktır ([ADR-016](docs/DECISIONS.md#adr-016-canlı-demo-cloudflare-pages--render--supabase-ücretsiz-katmanlar)).
 - **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
 
 ## Dokümantasyon

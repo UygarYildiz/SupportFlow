@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 // Empty in development (Vite proxies /api). The live demo sets the backend's origin,
-// e.g. https://supportflow-api.onrender.com, at build time.
+// e.g. https://supportflow-api-e4i6.onrender.com, at build time.
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
 
 /** The URL to fetch: a same-origin path, or an absolute URL when the API lives elsewhere. */
