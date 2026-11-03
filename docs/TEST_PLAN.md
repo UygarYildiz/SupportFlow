@@ -3,9 +3,9 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 200 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 232 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
-cd frontend && npm test               # 20 bileşen testi (Vitest + Testing Library)
+cd frontend && npm test               # 22 bileşen ve birim testi (Vitest + Testing Library)
 ```
 
 ## Senaryolar (docs/REQUIREMENTS.md bölüm 5)
@@ -72,7 +72,7 @@ Sahte embedder'ın tek kaçırdığı soru "Kargoda kırılan bir ürün": kelim
 | TC-11 | Bir kural kaynağında kötü niyetli talimatlar | Kapsandı | `test_instructions_inside_a_policy_document_change_nothing`, `test_customer_text_inside_facts_cannot_close_the_facts_block` |
 | TC-12 | Webhook tekrarı | Faz 9 (n8n) | |
 | TC-13 | Bir onay beklerken yeniden başlatma | Kapsandı | `test_ticket_to_ai_proposal_to_approval_to_single_change`, `test_restart_between_decision_and_execution_is_reconciled_once` |
-| TC-14 | Yetkisiz siparişle MCP aracı | Faz 8 (MCP) | |
+| TC-14 | Yetkisiz siparişle MCP aracı | Kapsandı: başka müşterinin siparişi `not_found` (olmayan siparişle aynı yanıt), başka talep `forbidden`, geçersiz/süresi dolmuş token ya da pasif kullanıcı `unauthorized`; ajan da MCP üzerinden aynı sınırla okur | `test_tc14_another_customers_order_is_not_found_without_leaking_data`, `test_an_analysis_connection_reads_only_its_own_ticket`, `test_identity_comes_from_a_valid_staff_token_only`, `test_the_agent_reads_orders_through_mcp_and_foreign_orders_stay_hidden` |
 | TC-15 | Kural sürümü değişti | Kapsandı: yeni sürüm eskisinin yerini alıyor, arama (dolayısıyla taslağa giden alıntılar) yalnızca güncel sürümü görüyor | `test_a_new_version_supersedes_the_old_one_for_search`, `test_editing_a_document_without_a_new_version_is_refused` |
 | TC-16 | Veritabanına erişilemiyor → `/ready` 503 | Kapsandı | `test_ready_returns_503_when_database_is_unreachable` |
 | TC-17 | Eşzamanlı iki analiz → biri çalışır | Kapsandı | `test_second_analysis_request_while_queued_is_rejected`, `test_database_allows_only_one_active_run_per_ticket` |
@@ -95,6 +95,19 @@ Sahte embedder'ın tek kaçırdığı soru "Kargoda kırılan bir ürün": kelim
 | Demo verisi iki rolü de iş başında gösterir; gerçek analiz/onay akışından ve ücretli model olmadan | `test_seed.py::test_demo_activity_shows_both_approval_roles_and_is_idempotent` |
 
 Görsel kontroller 1440px ve 390px genişlikte ekran görüntüleriyle yapılır (giriş, destek uzmanı ve yönetici olarak genel bakış, talepler, her durumda talep detayı, onaylar, karardan sonraki mühür).
+
+## MCP araçları (Faz 8)
+
+| Gereksinim | Doğrulayan |
+|---|---|
+| Ajan siparişi MCP aracından sorguluyor; aynı veri REST'te de var; iki yol aynı analizi üretiyor | `test_analysis_records_every_graph_step` (adım kaydında `via: "mcp"`), `test_direct_and_mcp_transports_give_the_same_analysis` |
+| Araçlar dar ve salt okunur; şema dışı argüman reddediliyor | `test_the_server_offers_only_narrow_read_only_tools`, `test_arguments_are_validated_before_anything_runs` |
+| Çağrı kimliği ve sonucu log'da, personel çağrıları denetim kaydında | `test_staff_calls_are_audited_and_logged_with_a_call_id`, `test_analysis_calls_are_logged_but_not_audited` |
+| Zaman aşımı ve hata eşleme | `test_a_slow_tool_times_out`, `test_other_tool_errors_stop_the_analysis`, `test_not_found_and_malformed_ids_read_as_missing_orders`, `test_an_unexpected_failure_reveals_nothing` |
+| Araç sonucundaki talimat yalnızca veri | `test_instructions_inside_a_tool_result_are_only_data` |
+| stdio giriş noktası gerçekten MCP konuşuyor; token olmadan başlamıyor | `test_stdio_server_lists_its_tools_and_refuses_a_bad_token`, `test_stdio_server_does_not_start_without_a_token` |
+
+Elle doğrulama (2026-11-03): stdio sunucusu, geliştirme veritabanı ve gerçek bir personel token'ıyla SDK'nın stdio istemcisinden çağrıldı: üç araç listelendi, talebin kendi siparişi döndü, başka müşterinin siparişi `not_found`, `limit=99` şema hatası verdi, her çağrı `call_id` ile log'landı. MCP Inspector ile kontrol [OPERATIONS](OPERATIONS.md#mcp-sunucusunu-bir-istemciye-bağlamak)'taki komutla yapılır.
 
 ## Dokümantasyon
 

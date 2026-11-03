@@ -49,6 +49,7 @@ class ToolCall:
     name: str
     arguments: dict[str, Any]
     found: bool
+    via: Literal["direct", "mcp"] = "direct"  # how the tool was reached (ADR-015)
 
 
 class AgentTools(Protocol):

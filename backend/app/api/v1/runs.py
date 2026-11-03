@@ -26,6 +26,8 @@ def get_analysis_executor() -> AnalysisExecutor:
         run_timeout_seconds=settings.agent_run_timeout_seconds,
         proposal_ttl_hours=settings.proposal_ttl_hours,
         embedder=build_embedder(settings),
+        tool_transport=settings.agent_tool_transport,
+        tool_timeout_seconds=settings.mcp_tool_timeout_seconds,
     )
 
 

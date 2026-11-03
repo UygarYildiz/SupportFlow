@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.162.0",
     "google-genai>=2.34.0",
     "langgraph>=1.2.19",
+    "mcp>=2.3.0",
     "pgvector>=0.5.1",
     "psycopg[binary]>=3.2",
     "pwdlib[argon2]>=0.3.1",
@@ -73,6 +74,8 @@ migrate = { cmd = "alembic upgrade head", help = "Apply migrations" }
 seed = { cmd = "python -m scripts.seed_demo", help = "Insert demo data (add --reset to wipe first)" }
 ingest = { cmd = "python -m scripts.ingest_policies", help = "Index policy documents for retrieval (--fake: offline embedder)" }
 eval-rag = { cmd = "python -m evals.retrieval", help = "Policy retrieval quality: hit@k, MRR (--live: Gemini embeddings)" }
+mcp = { cmd = "python -m app.mcp", help = "Read-only MCP server over stdio (needs MCP_ACCESS_TOKEN)" }
+mcp-token = { cmd = "python -m scripts.mcp_token", help = "Print a staff access token for the MCP server (--email)" }
 docs = { cmd = "python -m scripts.check_docs", help = "Check docs for broken links, anchors and API drift" }
 eval = { cmd = "python -m evals", help = "Run scenario evals (fake model; --live for Gemini)" }
 check = { sequence = ["lint", "format-check", "typecheck", "test"], help = "Everything CI runs" }

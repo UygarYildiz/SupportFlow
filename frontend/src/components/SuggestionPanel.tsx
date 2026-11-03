@@ -3,6 +3,7 @@ import { ApiError } from '../api/client'
 import { useAnalyze, useRun } from '../api/queries'
 import type { AnalysisResult, Run, RunStep, TicketDetail } from '../api/types'
 import { CATEGORY_LABEL, PRIORITY_LABEL, timeAgo } from '../lib/format'
+import { type RecordedToolCall, toolCallLabel } from './toolCalls'
 
 const STEP_LABEL: Record<string, string> = {
   load_ticket: 'Talebi okudu',
@@ -208,9 +209,7 @@ function HowItWasMade({ run }: { run: Run }) {
             <span className="meta">{step.duration_ms} ms</span>
             {Array.isArray(step.summary.tool_calls) && step.summary.tool_calls.length > 0 ? (
               <span className="steps__tools meta">
-                {(step.summary.tool_calls as { tool: string; found: boolean }[])
-                  .map((call) => `${call.tool}${call.found ? '' : ' (bulunamadı)'}`)
-                  .join(', ')}
+                {(step.summary.tool_calls as RecordedToolCall[]).map(toolCallLabel).join(', ')}
               </span>
             ) : null}
           </li>

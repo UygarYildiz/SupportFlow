@@ -13,7 +13,10 @@ flowchart TD
     W --> G[LangGraph ajanı]
     G --> LLM[LLM adaptörü - Gemini / sahte]
     G --> T[Kapsamı sınırlı salt okunur araçlar]
-    T --> S[Domain servisleri]
+    T -->|sipariş ve geçmiş: süreç içi MCP| M[MCP sunucusu - salt okunur]
+    T -->|kural ve politika| S[Domain servisleri]
+    M --> S
+    H[MCP istemcisi - Inspector, masaüstü asistanı] -->|stdio + personel tokenı| M
     G -->|kaydet| P[(Aksiyon önerisi - bekliyor)]
     U -->|onayla / reddet| API
     API --> X[Aksiyon yürütücü]
@@ -31,9 +34,10 @@ flowchart TD
 | `core/` | Ayarlar, kimlik doğrulama (JWT), loglama | — |
 | `domain/` | Varlıklar, durum makineleri, kurallar, onaylayıcı rol kuralları | — (saf Python) |
 | `services/` | Kullanım senaryoları: talepler, siparişler, çalıştırmalar, öneriler, aksiyon yürütücü, denetim | `domain`, `db`, `integrations` |
-| `integrations/` | Mock sipariş/CRM veri erişimi; ileride MCP / n8n adaptörleri | `db` |
+| `integrations/` | Mock sipariş/CRM veri erişimi; ileride n8n adaptörleri | `db` |
+| `mcp/` | Salt okunur MCP adaptörü (ADR-015): araç şemaları, bağlantı kimliği, yetki kontrolü, hata eşleme, çağrı log'u ve denetimi; stdio giriş noktası | `services` (salt okunur), `domain`, `core`, `db` |
 | `knowledge/policies/` (veri) | Sürümlü NovaShop politika dokümanları (markdown); `poe ingest` ile indekslenir | — |
-| `agent/` | Graf durumu, düğümler, kenarlar, prompt'lar, araç sarmalayıcıları, LLM adaptörleri | `services` (salt okunur metotlar), `domain` |
+| `agent/` | Graf durumu, düğümler, kenarlar, prompt'lar, araç sarmalayıcıları, LLM adaptörleri | `services` (salt okunur metotlar), `domain`, `mcp` (sunucu ve şemalar) |
 | `db/` | SQLAlchemy modelleri, oturum, migration'lar | — |
 
 Kesin kurallar:
@@ -41,6 +45,7 @@ Kesin kurallar:
 - `domain/` ve `services/` LangGraph'ı, LLM SDK'sını ya da n8n'i asla import etmez. İş mantığı ajan olmadan test edilebilir.
 - `agent/` aksiyon yürütücüyü asla import etmez. Ajanın tek yazma işlemi, öneri servisi üzerinden `pending` bir öneri kaydetmektir.
 - İş kuralları route handler'larda ya da graf düğümlerinde değil, `domain/` ve `services/` içinde yaşar.
+- `mcp/` iş kuralı eklemez ve yazma yoluna (yürütücü, `integrations`, öneri servisi) erişemez; `domain/` ve `services/` `mcp`'yi import etmez.
 
 ## 3. Temel akışlar
 
@@ -97,7 +102,7 @@ flowchart TD
 | `draft` | Bilgilerden, kural sonuçlarından ve planlanan aksiyondan özet ve yanıt | evet |
 | `validate` | Doğrulanmamış kanıtları atar, `awaiting_review` mı `needs_info` mu olacağına karar verir, inceleme işaretini koyar | hayır |
 
-Araçlar (izin listesi, salt okunur): talebin müşterisine bağlı `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`; ortak politika bilgi tabanını okuyan `search_policies`. Arama sorgusu adım kayıtlarına yazılmaz.
+Araçlar (izin listesi, salt okunur): talebin müşterisine bağlı `get_order`, `get_customer_orders`, `get_customer_tickets`, `get_policy`; ortak politika bilgi tabanını okuyan `search_policies`. İlk üçü varsayılan olarak MCP sunucusu üzerinden çağrılır (bkz. [§3.5](#35-salt-okunur-mcp-adaptörü-adr-015)); her araç çağrısı adım kaydında `via: "mcp" | "direct"` ile görünür. Arama sorgusu adım kayıtlarına yazılmaz.
 
 Destekleyici modüller: `prompts.py` (iki prompt; müşteri metni kapatamayacağı ayraç etiketleri içinde), `llm/` (sağlayıcı adaptörleri, sahte istemci, yeniden deneme), `tools.py`, `executor.py` (kuyruktaki bir çalıştırmayı yürütür; adımları `agent_run_steps` tablosuna kaydeder; başlamış bir çalıştırma her zaman `succeeded` ya da `failed` ile biter). Çalıştırma durum geçişleri, LLM'ler hakkında hiçbir şey bilmeyen `services/analysis_runs.py` içinde yaşar.
 
@@ -145,6 +150,34 @@ flowchart LR
 - Her indeksleme bir `ingestion_jobs` satırı yazar (durum, model, sayılar, hata).
 - Dokümanlar karar vermez; kararlar `domain/policies.py`'de kalır. Graf, `retrieve_policy` düğümüyle bilgi tabanını okur; taslak yalnızca getirilen maddelere atıf yapabilir (`validate` diğerlerini atar ve uyarır).
 
+### 3.5 Salt okunur MCP adaptörü (ADR-015)
+
+```mermaid
+sequenceDiagram
+    participant Graph as Graf (çalıştırma)
+    participant Client as McpAgentTools
+    participant MCP as MCP sunucusu
+    participant Svc as SupportLookupService
+    Graph->>Client: get_order(order_id)
+    Client->>MCP: tools/call get_order_status {ticket_id, order_id} (JSON-RPC, süreç içi)
+    MCP->>MCP: kimlik = bağlantı (çalıştırma, yalnızca kendi talebi), authorize(ticket_id)
+    MCP->>Svc: order_for_ticket(ticket_id, order_id)
+    Svc-->>MCP: müşteri talepten gelir; başkasının siparişi = NotFoundError
+    MCP-->>Client: yapılandırılmış sonuç ya da [not_found] / [forbidden] / [unauthorized] / [internal_error]
+    Client-->>Graph: OrderFact ya da None; diğer hatalar analizi tool_error ile durdurur
+```
+
+| Araç | Girdi | Çıktı |
+|---|---|---|
+| `get_order_status` | `ticket_id`, `order_id` (desen ve uzunluk sınırlı) | Tek sipariş: durum, ürün adı ve adedi, tutar, adres, tarihler |
+| `get_customer_orders` | `ticket_id`, `limit` (1–20) | Talebin müşterisinin siparişleri, yeniden eskiye |
+| `get_ticket_history` | `ticket_id`, `limit` (1–10) | Aynı müşterinin diğer talepleri: konu, durum, tarih |
+
+- **İki bağlantı türü:** Analiz çalıştırması sunucuya kendi süreci içinde, çalıştırmanın oturumu ve transaction'ıyla bağlanır; bu bağlantının kimliği yalnızca analiz edilen talebi okuyabilir. Dış istemciler (MCP Inspector, masaüstü asistanları) `uv run poe mcp` ile stdio üzerinden bağlanır; kimlik `MCP_ACCESS_TOKEN` içindeki personel token'ıdır ve her çağrıda doğrulanır.
+- **Aynı servis, iki kapı:** Araçların okuduğu veriler REST API'de de vardır (`GET /tickets/{id}`, `GET /orders/{id}`, `GET /customers/{id}/orders`); MCP yeni bir yetki ya da iş kuralı eklemez.
+- **İzlenebilirlik:** Her çağrı bir `call_id` alır ve araç, çağıran, talep, sonuç ve süreyle log'lanır. Personel çağrıları ayrıca `mcp.tool_called` denetim kaydı yazar; analiz çağrıları çalıştırma adımlarında görünür.
+- **Zaman aşımı ve geri dönüş:** İstemci tarafında `MCP_TOOL_TIMEOUT_SECONDS` aşılırsa analiz `tool_timeout` ile biter. Senkron bir veritabanı sorgusu yarıda kesilemez; süre sınırı sorgu bitince uygulanır. `AGENT_TOOL_TRANSPORT=direct` aynı araçları servislerden doğrudan çağırır (iki yolun aynı sonucu verdiği testle doğrulanır).
+
 ## 4. Durum makineleri
 
 **Talep** (`app/domain/ticket_status.py`): iki ayrı geçiş tablosu.
@@ -167,7 +200,8 @@ Personel bir yapay zekâ ön değerlendirme adımını taklit edemez, analiz ak�
 ## 5. Güven sınırları
 
 - LLM çıktısı güvenilmez bir öneridir. Bir Pydantic şemasıyla doğrulanır ve atıf yaptığı sipariş kimlikleri araçların gerçekten döndürdüğü verilerle karşılaştırılır.
-- Talep metni, araç sonuçları ve (ileride) kural dokümanları ile webhook içerikleri talimat değil, veridir.
+- Talep metni, araç sonuçları (MCP araçları dahil), politika dokümanları ve (ileride) webhook içerikleri talimat değil, veridir.
+- MCP araçlarında kimlik araç parametresinden değil bağlantıdan gelir; `ticket_id` yalnızca neyin okunacağını söyler, okunup okunamayacağına sunucu karar verir.
 - Yetkilendirme her zaman sunucu tarafındadır. Arayüzde bir butonu gizlemek bir güvenlik önlemi değildir. Kullanıcının rolü her istekte veritabanından yeniden okunur; böylece pasifleştirme anında etkili olur.
 - Bir müşteri için sipariş sorguları, başka müşterinin siparişini olmayan bir siparişle tamamen aynı şekilde bildiren `OrderService.get_customer_order` üzerinden yapılır.
 - Loglar `correlation_id`, `ticket_id` ve `run_id` taşır; kişisel veriler maskelenir.

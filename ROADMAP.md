@@ -56,7 +56,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 **Blok B — V1 genişletmeleri**
 
 - [x] Faz 7 — RAG ile şirket politikaları (2026-11-03; `feat/policy-rag`, ADR-014)
-- [ ] Faz 8 — MCP ile araç entegrasyonları
+- [ ] Faz 8 — MCP ile araç entegrasyonları (2026-11-03; `feat/mcp-tools`, ADR-015) — kod, testler ve dokümanlar tamam; yalnızca MCP Inspector ile elle test sahibin makinesinde kaldı
 - [ ] Faz 11-B — Canlı demo deployment
 
 **Blok C — Opsiyonel**
@@ -747,21 +747,21 @@ MCP sunucusu ilk olarak **read-only** olsun. `get_order_status`, `get_customer_o
 
 ### Görevler
 
-- [ ] MCP ile uygulamanın domain servisleri arasındaki sınırı çiz.
-- [ ] Yerel kullanım için stdio; gerekiyorsa HTTP tabanlı transport kararını belgele.
-- [ ] Tool şemalarını açık ve dar tut: gerekli ID parametreleri, tip kontrolü, sınırlı response.
-- [ ] MCP Inspector ile araçları manuel test et.
-- [ ] Agent'dan en az iki read-only MCP tool çağır.
-- [ ] Kullanıcı/tenant bağlamını güvenli aktar; istemci parametresinden kimlik yetkisi türetme.
-- [ ] Tool timeout, error mapping ve çağrı audit'i ekle.
-- [ ] Tool sonucuna zararlı yönerge enjekte edildiğinde agent bunu talimat değil veri olarak ele alsın.
-- [ ] MCP auth/transport seçiminin risklerini `docs/SECURITY.md` içine yaz.
+- [x] MCP ile uygulamanın domain servisleri arasındaki sınırı çiz. (2026-11-03: `app/mcp/` → `SupportLookupService`; iş kuralı ve yazma yolu yok, import sınırı testi; ARCHITECTURE §3.5.)
+- [x] Yerel kullanım için stdio; gerekiyorsa HTTP tabanlı transport kararını belgele. (ADR-015: stdio + ajan için süreç içi bağlantı; HTTP + OAuth 2.1 canlı yayına bırakıldı.)
+- [x] Tool şemalarını açık ve dar tut: gerekli ID parametreleri, tip kontrolü, sınırlı response. (`ticket_id` zorunlu, `order_id` desen/uzunluk, `limit` 1–20 / 1–10; yapılandırılmış çıktı şeması; `readOnlyHint`.)
+- [ ] MCP Inspector ile araçları manuel test et. (Inspector'ı `npx` ile indirip çalıştırma izni bu oturumda yoktu. Aynı stdio sunucusu SDK'nın stdio istemcisiyle, geliştirme veritabanı ve gerçek token'la elle doğrulandı. Inspector komutu OPERATIONS'ta.)
+- [x] Agent'dan en az iki read-only MCP tool çağır. (`get_customer_orders`, `get_order_status`, `get_ticket_history`; varsayılan `AGENT_TOOL_TRANSPORT=mcp`; adım kaydında `via: "mcp"`.)
+- [x] Kullanıcı/tenant bağlamını güvenli aktar; istemci parametresinden kimlik yetkisi türetme. (Kimlik bağlantıdan: stdio'da her çağrıda doğrulanan personel token'ı, ajanda yalnızca kendi talebine bağlı çalıştırma; müşteri talepten.)
+- [x] Tool timeout, error mapping ve çağrı audit'i ekle. (`MCP_TOOL_TIMEOUT_SECONDS` → `tool_timeout`; `[unauthorized|forbidden|not_found|internal_error]`; `call_id` log satırı + personel çağrıları için `mcp.tool_called` denetim kaydı.)
+- [x] Tool sonucuna zararlı yönerge enjekte edildiğinde agent bunu talimat değil veri olarak ele alsın. (`test_instructions_inside_a_tool_result_are_only_data`: ürün adı ve önceki talep konusunda talimat; `<facts>` içinde etkisiz, aksiyon yok.)
+- [x] MCP auth/transport seçiminin risklerini `docs/SECURITY.md` içine yaz. (T17–T19 ve bilinen eksikler: HTTP/OAuth yok, düz metin token, hız sınırı yok.)
 
 **Çıkış kriterleri**
 
-- [ ] Agent siparişi MCP aracından sorguluyor; aynı servis REST üzerinden de erişilebilir.
-- [ ] Tool çağrısı ID ve result/error log'da izleniyor.
-- [ ] Yetkisiz order ID ile veri sızıntısı yok.
+- [x] Agent siparişi MCP aracından sorguluyor; aynı servis REST üzerinden de erişilebilir. (`test_direct_and_mcp_transports_give_the_same_analysis`; REST: `/tickets/{id}`, `/orders/{id}`, `/customers/{id}/orders`.)
+- [x] Tool çağrısı ID ve result/error log'da izleniyor. (`test_staff_calls_are_audited_and_logged_with_a_call_id`.)
+- [x] Yetkisiz order ID ile veri sızıntısı yok. (TC-14: `test_tc14_another_customers_order_is_not_found_without_leaking_data`.)
 
 **Commit:** `feat: expose authorized support tools over MCP`
 

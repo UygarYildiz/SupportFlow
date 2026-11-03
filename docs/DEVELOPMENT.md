@@ -44,12 +44,13 @@ SupportFlow/
 │   │   ├── services/       # kullanım senaryoları; transaction'ı sahiplenir
 │   │   ├── integrations/   # mock sipariş sistemi (tek yazma yolu)
 │   │   ├── agent/          # LangGraph grafı, prompt'lar, araçlar, LLM adaptörleri
+│   │   ├── mcp/            # salt okunur MCP sunucusu (araçlar, erişim, stdio girişi)
 │   │   ├── db/             # SQLAlchemy modelleri ve oturum
 │   │   └── demo/           # seed verisi ve demo hareketleri
 │   ├── alembic/            # migration'lar
 │   ├── evals/              # eval çalıştırıcı (senaryolar kökteki evals/ altında)
 │   ├── knowledge/policies/ # sürümlü NovaShop politika dokümanları (RAG kaynağı)
-│   ├── scripts/            # seed_demo.py, ingest_policies.py, check_docs.py
+│   ├── scripts/            # seed_demo.py, ingest_policies.py, mcp_token.py, check_docs.py
 │   └── tests/              # unit/ (DB'siz) ve integration/ (gerçek Postgres)
 ├── frontend/src/
 │   ├── api/                # client.ts (tüm HTTP), queries.ts (hook'lar), üretilmiş tipler
@@ -79,6 +80,7 @@ Backend komutları `backend/` içinde çalışır.
 | Doküman kontrolü | `uv run poe docs` |
 | Demo verisini sıfırla | `uv run poe seed --reset` (`--no-activity`: analiz edilmiş talepler olmadan) |
 | Politika dokümanlarını indeksle | `uv run poe ingest` (`--fake`: her zaman çevrimdışı embedder) |
+| MCP sunucusu (stdio) ve token'ı | `uv run poe mcp` · `uv run poe mcp-token --email …` ([OPERATIONS](OPERATIONS.md#mcp-sunucusunu-bir-istemciye-bağlamak)) |
 | Frontend kontrolleri (`frontend/`) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
 | API tiplerini yeniden üret (backend çalışırken) | `npm run gen:api` |
 
@@ -124,6 +126,8 @@ Kurallar `app/domain/policies.py` içinde saf fonksiyonlardır ve şimdiki zaman
 ### Yeni bir ajan aracı
 
 Araçlar salt okunur ve talebin müşterisiyle sınırlıdır. Ekleme: `ALLOWED_TOOLS` + `DatabaseTools` (`app/agent/tools.py`) + `tests.fakes.InMemoryTools`. Müşteri adına yapılan her sipariş sorgusu `OrderService.get_customer_order(customer_id, order_id)` üzerinden geçer.
+
+Müşteri verisi okuyan bir araç MCP üzerinden de sunulacaksa: sorguyu `SupportLookupService`'e (talep kimliğiyle) ekleyin, `app/mcp/server.py`'de dar şemalı bir araç tanımlayın (`invoke` ile: kimlik, yetki, hata eşleme ve log oradan gelir), yanıt modelini `app/mcp/schemas.py`'ye koyun, `TOOL_NAMES`'i güncelleyin ve ajan tarafında `app/agent/mcp_tools.py`'deki `MCP_TOOLS` eşlemesine ekleyin. Sözleşme testi (`tests/unit/test_mcp_tools.py`) her aracın salt okunur işaretli olduğunu ve `ticket_id` istediğini kontrol eder.
 
 ### Politika dokümanını değiştirmek
 

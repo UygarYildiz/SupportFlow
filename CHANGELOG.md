@@ -6,6 +6,8 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Eklendi
 
+- **Salt okunur MCP araçları (Faz 8):** `get_order_status`, `get_customer_orders`, `get_ticket_history`; MCP Inspector ya da bir masaüstü asistanı stdio üzerinden personel token'ıyla bağlanabilir (`poe mcp`, `poe mcp-token`). Kimlik bağlantıdan gelir, müşteri talepten; başka müşterinin siparişi görünmez. Her çağrı `call_id` ile log'lanır, personel çağrıları denetim kaydına yazılır.
+- **Ajan MCP üzerinden okuyor:** analiz, sipariş ve talep geçmişini aynı MCP sunucusundan alır (`AGENT_TOOL_TRANSPORT=mcp`, geri dönüş `direct`); "Bu öneri nasıl hazırlandı" listesi MCP çağrılarını "· MCP" ile işaretler. Yeni analiz hata kodları: `tool_timeout`, `tool_error`.
 - **Kaynak gösteren taslaklar (Faz 7):** analiz, kural sonucunu açıklayan politika maddelerini getirir (`retrieve_policy`); taslak bu maddelere atıf yapar ("Dayanak: İade Politikası v1, IADE-2"), atıflar getirilen maddelerle doğrulanır, kaynak yoksa personele söylenir. Politika metni ve müşteri metni ayraçtan çıkamaz; dokümana gizlenmiş talimatlar hiçbir aksiyon üretmez.
 - **Getirme kalitesi ölçümü:** 20 soruluk golden set ve `poe eval-rag` (hit@k, MRR); çevrimdışı sonuç CI'da taban değerle korunuyor. Yürürlük tarihi gelmemiş politika sürümüne dayanan analizler insan incelemesine gidiyor.
 - **Panelde kaynaklar:** "Mağaza kuralı" kutusu kural sonucunun dayandığı politika maddesini gösterir (politika adı, sürüm, madde, açılır metin, yürürlük tarihi).
