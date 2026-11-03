@@ -54,7 +54,7 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | `MCP_TOOL_TIMEOUT_SECONDS` | `10` | Bir MCP araç çağrısının süre sınırı; aşılırsa analiz `tool_timeout` ile biter |
 | `MCP_ACCESS_TOKEN` | yok | stdio MCP sunucusunun adına çalıştığı personel token'ı (`poe mcp-token`); boşsa `poe mcp` başlamaz |
 | `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları görünür (geliştirmede hep görünür) |
-| `VITE_API_BASE_URL` (frontend) | yok | Backend'in adresi (ör. `https://supportflow-api.onrender.com`); boşsa istekler aynı kaynağa gider (geliştirmede Vite proxy'si). Derleme sırasında okunur |
+| `VITE_API_BASE_URL` (frontend) | yok | Backend'in adresi (canlıda `https://supportflow-api-e4i6.onrender.com`); boşsa istekler aynı kaynağa gider (geliştirmede Vite proxy'si). Derleme sırasında okunur |
 | `CORS_ALLOW_ORIGINS` | yok | API'yi tarayıcıdan çağırabilecek kaynaklar, virgülle (canlıda Pages adresi). Boşsa CORS başlığı eklenmez |
 
 ## Rutin prosedürler
@@ -135,10 +135,12 @@ Barındırma kararı ve gerekçesi [ADR-016](DECISIONS.md#adr-016-canlı-demo-cl
 
 | Parça | Nerede | Ayarlar |
 |---|---|---|
-| Frontend | Cloudflare Pages, `supportflow` projesi | Kök dizin `frontend`, derleme `npm run build`, çıktı `dist`; ortam: `VITE_API_BASE_URL`, `VITE_DEMO_MODE=true`, `NODE_VERSION=24`. Güvenlik başlıkları `frontend/public/_headers`'ta |
-| Backend | Render, `supportflow-api` (free, Frankfurt, Docker) | Dockerfile `backend/Dockerfile`, bağlam `backend`; ortam: `APP_ENV=production`, `DATABASE_URL`, `JWT_SECRET_KEY`, `LLM_MODE=fake`, `EMBEDDING_MODE=fake`, `CORS_ALLOW_ORIGINS` |
+| Frontend | Cloudflare Pages, `supportflow` projesi: https://supportflow-w7q.pages.dev | Kök dizin `frontend`, derleme `npm run build`, çıktı `dist`; ortam: `VITE_API_BASE_URL`, `VITE_DEMO_MODE=true`, `NODE_VERSION=24`. Güvenlik başlıkları `frontend/public/_headers`'ta |
+| Backend | Render, `supportflow-api` (free, Frankfurt, Docker): https://supportflow-api-e4i6.onrender.com | Dockerfile `backend/Dockerfile`, bağlam `backend`; ortam: `APP_ENV=production`, `DATABASE_URL`, `JWT_SECRET_KEY`, `LLM_MODE=fake`, `EMBEDDING_MODE=fake`, `CORS_ALLOW_ORIGINS` |
 | Veritabanı | Supabase, `supportflow` projesi (Frankfurt) | Şema `supportflow`, rol `supportflow_app`; bağlantı session pooler: `postgresql+psycopg://supportflow_app.<proje-ref>:<parola>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require` |
 | Günlük sıfırlama | GitHub Actions `Demo reset` (03:00 UTC, elle de çalıştırılabilir) | Secret: `DEMO_DATABASE_URL` (yukarıdaki bağlantı adresi) |
+
+**Erişim notu:** 2026-11-03'te geliştirme makinesindeki komut satırı araçları (`curl`, PowerShell) hiçbir `*.pages.dev` adresine bağlanamadı (TLS el sıkışmasında bağlantı sıfırlandı), aynı makinedeki tarayıcı ise siteyi açtı. Muhtemel neden, ağdaki SNI filtrelemesi ve tarayıcının ECH ile alan adını gizlemesi. Bir ziyaretçi açamazsa önce başka bir tarayıcı ya da ağ denenmeli; kalıcı çözüm, Pages'e bağlanan kendi alan adıdır.
 
 **Yayın:** `main`'e birleşen her değişiklik Render ve Pages'te kendiliğinden yayınlanır. Render açılışta migration'ları uygular; yeni bir migration geri alınamaz durumdaysa önce yerelde `upgrade`/`downgrade` turunu (`test_migrations.py`) doğrulayın.
 
@@ -146,7 +148,7 @@ Barındırma kararı ve gerekçesi [ADR-016](DECISIONS.md#adr-016-canlı-demo-cl
 
 **Veriyi elle sıfırlamak:** GitHub → Actions → Demo reset → "Run workflow", ya da yerelden `DATABASE_URL=<canlı adres> uv run python -m scripts.seed_demo --reset`.
 
-**Soğuk başlatma:** Render ücretsiz servisi 15 dakika istek almazsa uyur. Gösterimden önce `https://supportflow-api.onrender.com/ready` adresini açıp `ready` yanıtını bekleyin.
+**Soğuk başlatma:** Render ücretsiz servisi 15 dakika istek almazsa uyur. Gösterimden önce `https://supportflow-api-e4i6.onrender.com/ready` adresini açıp `ready` yanıtını bekleyin.
 
 **Uygulama rolünü kurmak** (yeni bir Supabase projesinde bir kez, SQL editöründe):
 
@@ -182,7 +184,7 @@ Ajanın MCP üzerinden yaptığı sipariş sorgusu süre sınırını aştı ya 
 
 ### Canlı demoda "Sunucuya ulaşılamıyor"
 
-Önce `https://supportflow-api.onrender.com/ready`'yi açın: Render servisi uyuyorsa 30–60 saniye içinde uyanır. Sürekli hata varsa Render → Logs'a bakın. Tarayıcı konsolunda CORS hatası görünüyorsa Render'daki `CORS_ALLOW_ORIGINS` değeri Pages adresiyle (sonunda `/` olmadan) birebir aynı olmalıdır. `/ready` 503 dönüyorsa Supabase projesinin duraklatılmadığını (Supabase panelinde "Restore") ve `DATABASE_URL`'nin session pooler adresi olduğunu kontrol edin.
+Önce `https://supportflow-api-e4i6.onrender.com/ready`'yi açın: Render servisi uyuyorsa 30–60 saniye içinde uyanır. Sürekli hata varsa Render → Logs'a bakın. Tarayıcı konsolunda CORS hatası görünüyorsa Render'daki `CORS_ALLOW_ORIGINS` değeri Pages adresiyle (sonunda `/` olmadan) birebir aynı olmalıdır. `/ready` 503 dönüyorsa Supabase projesinin duraklatılmadığını (Supabase panelinde "Restore") ve `DATABASE_URL`'nin session pooler adresi olduğunu kontrol edin.
 
 ### `/ready` 503 dönüyor
 
