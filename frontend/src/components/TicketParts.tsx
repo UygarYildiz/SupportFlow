@@ -1,5 +1,5 @@
-import type { PolicyCheck, TicketEvent, TicketPriority, TicketStatus } from '../api/types'
-import { ACTION_LABEL, PRIORITY_LABEL, STATUS_LABEL, formatDateTime } from '../lib/format'
+import type { PolicyCheck, PolicyExcerpt, TicketEvent, TicketPriority, TicketStatus } from '../api/types'
+import { ACTION_LABEL, PRIORITY_LABEL, STATUS_LABEL, formatDate, formatDateTime } from '../lib/format'
 
 export function StatusBadge({ status }: { status: TicketStatus }) {
   return <span className={`badge badge--${status}`}>{STATUS_LABEL[status]}</span>
@@ -14,29 +14,62 @@ export function PriorityMark({ priority }: { priority: TicketPriority }) {
   )
 }
 
-export function PolicyChecks({ checks }: { checks: PolicyCheck[] }) {
-  if (checks.length === 0) return null
+interface PolicyProps {
+  checks: PolicyCheck[]
+  excerpts?: PolicyExcerpt[]
+  citedClauseIds?: string[]
+}
+
+/** Store rule results, and the policy clauses that explain them (sources, not decisions). */
+export function PolicyChecks({ checks, excerpts = [], citedClauseIds = [] }: PolicyProps) {
+  if (checks.length === 0 && excerpts.length === 0) return null
+  const cited = excerpts.filter((e) => citedClauseIds.includes(e.clause_id))
+  // If the draft cited nothing, the retrieved clauses are still the honest context.
+  const sources = cited.length > 0 ? cited : excerpts
   return (
     <section className="sheet" aria-labelledby="policy-title">
       <h2 id="policy-title" className="sheet__title">
         Mağaza kuralı
       </h2>
-      <ul className="checks">
-        {checks.map((check) => {
-          const verdict = check.informational ? 'info' : check.allowed ? 'allowed' : 'blocked'
-          return (
-            <li key={`${check.rule}-${check.order_id}`} className={`check check--${verdict}`}>
-              <span className="check__verdict">
-                {verdict === 'info' ? 'Bilgi amaçlı' : verdict === 'allowed' ? 'İzin veriliyor' : 'İzin verilmiyor'}
-              </span>
-              <span>{check.reason}</span>
-              <span className="meta">
-                {check.order_id} · {check.rule}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
+      {checks.length > 0 ? (
+        <ul className="checks">
+          {checks.map((check) => {
+            const verdict = check.informational ? 'info' : check.allowed ? 'allowed' : 'blocked'
+            return (
+              <li key={`${check.rule}-${check.order_id}`} className={`check check--${verdict}`}>
+                <span className="check__verdict">
+                  {verdict === 'info' ? 'Bilgi amaçlı' : verdict === 'allowed' ? 'İzin veriliyor' : 'İzin verilmiyor'}
+                </span>
+                <span>{check.reason}</span>
+                <span className="meta">
+                  {check.order_id} · {check.rule}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+      {sources.length > 0 ? (
+        <div className="citations">
+          <h3 className="citations__title">{cited.length > 0 ? 'Dayanağı' : 'İlgili politika maddeleri'}</h3>
+          <ul className="citations__list">
+            {sources.map((excerpt) => (
+              <li key={`${excerpt.policy_id}-${excerpt.clause_id}`} className="citation">
+                <details>
+                  <summary>
+                    <span className="citation__ref">
+                      {excerpt.title} v{excerpt.version} · {excerpt.clause_id}
+                    </span>{' '}
+                    <span className="citation__heading">{excerpt.heading}</span>
+                  </summary>
+                  <blockquote className="citation__text">{excerpt.text}</blockquote>
+                  <span className="meta">Yürürlük: {formatDate(excerpt.effective_from)}</span>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   )
 }

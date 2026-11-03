@@ -181,6 +181,8 @@ Personel. Çalıştırmanın durumu ve sonucu; tamamlanana kadar yoklanır (pane
 | `steps` | Çalışan graf düğümleri: `node`, `status`, `duration_ms`, `summary` (araç çağrıları, sayılar; müşteri metni yok) |
 | `result.analysis` | `category`, `suggested_priority`, `summary`, `needs_human_review`, `draft_reply`, `missing_information`, `evidence_order_ids` |
 | `result.verified_order_ids` / `unverified_order_ids` | Kanıtların backend doğrulaması; doğrulanmayanlar kanıt olarak gösterilmez |
+| `result.policy_excerpts` | Kural sonucunu açıklamak için getirilen politika maddeleri: `policy_id`, `title`, `version`, `effective_from`, `clause_id`, `heading`, `text` |
+| `result.cited_clause_ids` / `unverified_clause_ids` | Taslağın atıf yaptığı ve getirilen maddelerle doğrulanan madde kimlikleri; doğrulanmayanlar ayrı listelenir ve gösterilmez |
 | `result.policy_checks` | `rule`, `order_id`, `allowed`, `reason`, `informational` |
 | `result.proposed_action` | Önerilen aksiyon ya da `null`; aynı transaction'da bekleyen bir öneri olarak kaydedilir |
 | `result.warnings`, `result.outcome_status` | Personele uyarılar; talebin varacağı durum (`awaiting_review` / `needs_info`) |
@@ -204,6 +206,12 @@ Personel. Çalıştırmanın durumu ve sonucu; tamamlanana kadar yoklanır (pane
     "rule": "address_change_v1", "order_id": "ORD-1003", "allowed": true,
     "reason": "Sipariş henüz kargoya verilmedi; teslimat adresi değiştirilebilir.", "informational": false
   }],
+  "policy_excerpts": [{
+    "policy_id": "address_change", "title": "Adres Değişikliği Politikası", "version": 1,
+    "effective_from": "2026-01-01", "clause_id": "ADRES-1", "heading": "Ne zaman mümkün",
+    "text": "Teslimat adresi yalnızca sipariş \"beklemede\" ya da \"hazırlanıyor\" durumundayken ..."
+  }],
+  "cited_clause_ids": ["ADRES-1"],
   "proposed_action": {
     "type": "change_shipping_address", "order_id": "ORD-1003",
     "payload": { "current_address": "Atatürk Bulvarı No:52, Kadıköy/İstanbul",
@@ -211,7 +219,7 @@ Personel. Çalıştırmanın durumu ve sonucu; tamamlanana kadar yoklanır (pane
     "requires_approval": true
   },
   "outcome_status": "awaiting_review",
-  "prompt_version": "graph-v3"
+  "prompt_version": "graph-v4"
 }
 ```
 

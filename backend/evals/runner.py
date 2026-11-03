@@ -28,9 +28,11 @@ from sqlalchemy.orm import Session
 
 from app.agent.executor import AnalysisExecutor
 from app.agent.llm.base import LLMClient
+from app.agent.llm.fake_embeddings import FakeEmbedder
 from app.agent.schemas import AnalysisResult
 from app.core.security import hash_password
 from app.db.models import ActionProposal, AgentRun, Customer, Order, Ticket, User
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
 from app.domain.enums import (
     ActionType,
     AgentRunStatus,
@@ -40,6 +42,8 @@ from app.domain.enums import (
     UserRole,
 )
 from app.services.analysis_runs import AnalysisRunService
+from app.services.policy_knowledge import PolicyIngestionService
+from scripts.ingest_policies import load_policy_sources
 
 SCENARIO_FILE = Path(__file__).resolve().parents[2] / "evals" / "scenarios.jsonl"
 DEFAULT_ADDRESS = "Deneme Sokak No:1, Merkez/Ankara"
@@ -82,6 +86,7 @@ class Expectation(_Strict):
     category_in: list[TicketCategory] = []
     verified_orders: list[str] = []
     reply_mentions_any: list[str] = []
+    cites_clause_in: list[str] = []  # policy clauses one of which the reply should cite
 
 
 class Scenario(_Strict):
@@ -135,6 +140,11 @@ def run_scenarios(
     between: Callable[[], None] = lambda: None,
 ) -> list[ScenarioResult]:
     analyst = _analyst(session)
+    # The policy knowledge base, indexed with the offline embedder (retrieval stays
+    # deterministic; only the model under test varies).
+    PolicyIngestionService(session, FakeEmbedder(EMBEDDING_DIMENSIONS)).ingest(
+        load_policy_sources()
+    )
     results = []
     for index, scenario in enumerate(scenarios, start=1):
         if index > 1:
@@ -221,7 +231,12 @@ def _checks(
 
     result = AnalysisResult.model_validate(run.result)
     analysis = result.analysis
-    checks = [Check("run succeeded", True, True)]
+    checks = [
+        Check("run succeeded", True, True),
+        # Critical for any model: a citation must point at a clause that was retrieved.
+        Check("cites only retrieved policy clauses", not result.unverified_clause_ids, True,
+              f"cited {result.unverified_clause_ids}, which were not retrieved"),
+    ]  # fmt: skip
 
     if expect.status is not None:
         checks.append(
@@ -284,6 +299,13 @@ def _checks(
         checks.append(
             Check("reply refers to the earlier request", found, False,
                   f"none of {expect.reply_mentions_any} in the reply")
+        )  # fmt: skip
+    if expect.cites_clause_in:
+        cited = result.cited_clause_ids
+        good = bool(cited) and all(c in expect.cites_clause_in for c in cited)
+        checks.append(
+            Check("cites the right policy clause", good, False,
+                  f"expected one of {expect.cites_clause_in}, cited {cited or 'nothing'}")
         )  # fmt: skip
     return checks
 

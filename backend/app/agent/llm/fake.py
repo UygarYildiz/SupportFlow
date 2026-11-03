@@ -189,6 +189,11 @@ def _draft(prompt: str) -> dict[str, Any]:
     else:
         body = f"Bize ulaştığınız için teşekkür ederiz. {_TEAM_WILL_REPLY}"
 
+    # Cite the best retrieved clause, as the live model is asked to (ADR-014).
+    excerpts = [] if facts["missing_information"] else facts.get("policy_excerpts", [])[:1]
+    for excerpt in excerpts:
+        body += f" (Dayanak: {excerpt['title']} v{excerpt['version']}, {excerpt['clause_id']}.)"
+
     label = _CATEGORY_LABEL.get(category, category)
     return {
         "summary": f"Talep '{label}' olarak sınıflandırıldı"
@@ -197,6 +202,7 @@ def _draft(prompt: str) -> dict[str, Any]:
         "draft_reply": f"Merhaba {name},\n\n{body}\n\nSaygılarımızla,\nNovaShop Destek Ekibi",
         "missing_information": [],
         "evidence_order_ids": [focus] if order else [],
+        "cited_clause_ids": [excerpt["clause_id"] for excerpt in excerpts],
     }
 
 

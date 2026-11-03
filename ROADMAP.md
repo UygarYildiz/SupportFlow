@@ -55,7 +55,7 @@ GitHub'da yarım kalmış, çok sayıda boş checkbox'lı bir proje, bitmiş dah
 
 **Blok B — V1 genişletmeleri**
 
-- [ ] Faz 7 — RAG ile şirket politikaları
+- [x] Faz 7 — RAG ile şirket politikaları (2026-11-03; `feat/policy-rag`, ADR-014)
 - [ ] Faz 8 — MCP ile araç entegrasyonları
 - [ ] Faz 11-B — Canlı demo deployment
 
@@ -708,30 +708,30 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 
 ### Görevler
 
-- [ ] `policy_documents`, `policy_chunks`, `ingestion_jobs` modelini oluştur.
-- [ ] Doküman alma → parse → normalize → chunk → embedding → pgvector indeks süreci.
-- [ ] Belge kimliği, versiyon, bölüm, kaynak yolu ve effective date metadata tut.
-- [ ] İndekslemeyi idempotent yap; aynı dokümanın tekrar yüklenmesi duplicate üretmesin.
-- [ ] Politika aramasında erişim/versiyon filtresi uygula; eski sürüme sessizce dayanma.
-- [ ] İlk olarak basit dense vector retrieval; gerekirse keyword + hybrid search ekle.
-- [ ] Agent'a yalnız seçilmiş politika alıntılarını, kaynak ID'leri ve tarihlerini ver.
-- [ ] Kaynak yoksa “politika bulunamadı” de; cevap uydurma.
-- [ ] Politika belgeleri kurala dair *kanıt* sunar; iade yapma yetkisini tek başına vermez.
-- [ ] Test veri setindeki her senaryo için doğru policy clause referansı bekle.
+- [x] `policy_documents`, `policy_chunks`, `ingestion_jobs` modelini oluştur. (2026-11-03, migration `29965e867c2d`; pgvector imajı compose + CI.)
+- [x] Doküman alma → parse → normalize → chunk → embedding → pgvector indeks süreci. (`uv run poe ingest`; madde bazlı parçalar; `gemini-embedding-2@768` ya da sahte embedder; HNSW kosinüs.)
+- [x] Belge kimliği, versiyon, bölüm, kaynak yolu ve effective date metadata tut.
+- [x] İndekslemeyi idempotent yap; aynı dokümanın tekrar yüklenmesi duplicate üretmesin. (İçerik hash'i; sürüm artırılmadan değişiklik reddediliyor.)
+- [x] Politika aramasında erişim/versiyon filtresi uygula; eski sürüme sessizce dayanma. (Yalnızca `is_current` sürüm ve aynı embedding modeli aranıyor; politika kimliğiyle daraltılabiliyor.)
+- [x] İlk olarak basit dense vector retrieval; gerekirse keyword + hybrid search ekle. (Dense; hibrit gerekirse 7.4 ölçümüne göre.)
+- [x] Agent'a yalnız seçilmiş politika alıntılarını, kaynak ID'leri ve tarihlerini ver. (2026-11-03: `retrieve_policy` düğümü, `search_policies` aracı; kurala göre politika filtresi, sorgu kural gerekçesinden; `graph-v4`.)
+- [x] Kaynak yoksa “politika bulunamadı” de; cevap uydurma. (Uyarı + atıf yok; getirilmeyen maddeye atıf atılıyor ve incelemeye işaretleniyor; arama hatası analizi düşürmüyor.)
+- [x] Politika belgeleri kurala dair *kanıt* sunar; iade yapma yetkisini tek başına vermez. (Alıntılar `plan_action`'dan sonra getiriliyor; TC-11 testi.)
+- [x] Test veri setindeki her senaryo için doğru policy clause referansı bekle. (Kural içeren 8 eval senaryosunda `cites_clause_in`; her senaryoda kritik kontrol: yalnızca getirilen maddelere atıf. Sahte model 13/13.)
 
 ### RAG kalite kontrolü
 
-- [ ] 20 örnek soruluk golden dataset hazırla.
-- [ ] Retrieval hit@k / doğru belge bulma oranını ölç.
-- [ ] Yanıttaki kaynak ID gerçekten getirilen bölüm mü kontrol et.
-- [ ] Çelişkili/eskimiş politika durumunda insan eskalasyonu var.
-- [ ] Politika dosyasına gömülü “ignore previous instructions” metni agent yetkisini değiştirmiyor.
+- [x] 20 örnek soruluk golden dataset hazırla. (`evals/policy_retrieval.jsonl`.)
+- [x] Retrieval hit@k / doğru belge bulma oranını ölç. (`poe eval-rag`; 2026-11-03 Gemini hit@1 0.90 / hit@3 1.00 / MRR 0.94, çevrimdışı 0.80 / 0.95 / 0.86; çevrimdışı taban CI testinde.)
+- [x] Yanıttaki kaynak ID gerçekten getirilen bölüm mü kontrol et. (`assemble_result`; eval'de kritik kontrol.)
+- [x] Çelişkili/eskimiş politika durumunda insan eskalasyonu var. (Eski sürüm aranmıyor; sürümsüz değişiklik indekslenmiyor; yürürlüğe girmemiş sürüm → uyarı + inceleme; doküman-kod sayı çelişkisi testle engelleniyor.)
+- [x] Politika dosyasına gömülü “ignore previous instructions” metni agent yetkisini değiştirmiyor. (`test_instructions_inside_a_policy_document_change_nothing`; `<facts>` artık etkisizleştiriliyor.)
 
 **Çıkış kriterleri**
 
-- [ ] UI, önerinin hangi politika bölümüne dayandığını gösteriyor.
-- [ ] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor.
-- [ ] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor.
+- [x] UI, önerinin hangi politika bölümüne dayandığını gösteriyor. (2026-11-03: "Mağaza kuralı" kutusunda "Dayanağı"; `TicketParts.test.tsx`; görsel kontrol #7, #3, #14.)
+- [x] Politika değiştiğinde yeniden indeksleme sonrası yeni cevap doğrulanıyor. (`test_a_new_version_supersedes_the_old_one_for_search`: yeni sürümün metni geliyor, eskisi gelmiyor.)
+- [x] Kaynaksız iddialar ve erişim sınırı ihlalleri kontrol ediliyor. (Atıf doğrulaması; arama yalnızca güncel sürüm ve aynı model.)
 
 **Commit:** `feat: add versioned policy RAG with citations`
 

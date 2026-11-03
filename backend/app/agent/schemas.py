@@ -5,7 +5,7 @@ Two model outputs exist: `IntentClassification` (first call) and `DraftReply`
 proposed action are produced by backend code, never by the model.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -61,6 +61,19 @@ class ProposedAction(BaseModel):
     requires_approval: bool = True
 
 
+class PolicyExcerptFact(BaseModel):
+    """A clause retrieved from the policy knowledge base (ADR-014). Reference text only:
+    it explains a rule decision, it never decides or instructs."""
+
+    policy_id: str
+    title: str
+    version: int
+    effective_from: date
+    clause_id: str
+    heading: str
+    text: str
+
+
 class TicketSnapshot(BaseModel):
     ticket_id: int
     customer_id: str  # taken from the database, never from model output
@@ -81,6 +94,7 @@ class DraftFacts(BaseModel):
     unknown_order_ids: list[str]
     previous_tickets: list[PreviousTicketFact]
     policy_checks: list[PolicyCheck]
+    policy_excerpts: list[PolicyExcerptFact] = Field(default_factory=list)
     planned_action: str | None
     missing_information: list[str]
     reference_time: datetime
@@ -124,6 +138,11 @@ class DraftReply(BaseModel):
     evidence_order_ids: list[str] = Field(
         max_length=10, description="IDs from the provided orders that the reply relies on."
     )
+    cited_clause_ids: list[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="clause_id values from policy_excerpts that the reply relies on.",
+    )
 
 
 # --- Stored result ----------------------------------------------------------------------
@@ -151,6 +170,11 @@ class AnalysisResult(BaseModel):
     outcome_status: TicketStatus
     prompt_version: str
     policy_checks: list[PolicyCheck] = Field(default_factory=list)
+    # Retrieved policy clauses, and which of them the reply cites (verified against the
+    # retrieved set; anything else the model cited is listed as unverified and dropped).
+    policy_excerpts: list[PolicyExcerptFact] = Field(default_factory=list)
+    cited_clause_ids: list[str] = Field(default_factory=list)
+    unverified_clause_ids: list[str] = Field(default_factory=list)
     proposed_action: ProposedAction | None = None
 
 

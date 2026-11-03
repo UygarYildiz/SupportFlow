@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     llm_timeout_seconds: float = 30.0
     llm_max_attempts: int = 3
+    # Policy RAG embeddings (ADR-014). `fake` is a deterministic offline embedder.
+    embedding_mode: Literal["fake", "live"] = "fake"
+    gemini_embedding_model: str = "gemini-embedding-2"
     # Per-run limits of the analysis graph (Phase 4).
     agent_max_tokens_per_run: int = 12_000
     agent_run_timeout_seconds: float = 120.0
@@ -54,6 +57,8 @@ class Settings(BaseSettings):
             raise ValueError("JWT_SECRET_KEY must be set to a random value of 32+ characters")
         if self.llm_mode == "live" and not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY is required when LLM_MODE=live")
+        if self.embedding_mode == "live" and not self.gemini_api_key:
+            raise ValueError("GEMINI_API_KEY is required when EMBEDDING_MODE=live")
         return self
 
 

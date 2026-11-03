@@ -1,6 +1,9 @@
 from app.agent.llm.base import LLMClient, RetryingLLMClient
 from app.agent.llm.fake import FakeLLMClient
+from app.agent.llm.fake_embeddings import FakeEmbedder
 from app.core.config import Settings
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
+from app.services.policy_knowledge import Embedder
 
 
 def build_llm_client(settings: Settings) -> LLMClient:
@@ -18,3 +21,19 @@ def build_llm_client(settings: Settings) -> LLMClient:
         timeout_seconds=settings.llm_timeout_seconds,
     )
     return RetryingLLMClient(gemini, max_attempts=settings.llm_max_attempts)
+
+
+def build_embedder(settings: Settings) -> Embedder:
+    if settings.embedding_mode == "fake":
+        return FakeEmbedder(EMBEDDING_DIMENSIONS)
+
+    from app.agent.llm.gemini import GeminiEmbedder
+
+    if settings.gemini_api_key is None:  # also enforced by Settings validation
+        raise ValueError("GEMINI_API_KEY is required when EMBEDDING_MODE=live")
+    return GeminiEmbedder(
+        api_key=settings.gemini_api_key.get_secret_value(),
+        model=settings.gemini_embedding_model,
+        dimensions=EMBEDDING_DIMENSIONS,
+        timeout_seconds=settings.llm_timeout_seconds,
+    )

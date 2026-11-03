@@ -47,12 +47,12 @@ def test_analysis_records_every_graph_step(
     run = _analyze(client, shipped_ticket.id, auth_headers(agent))
 
     assert run["status"] == "succeeded"
-    assert run["prompt_version"] == "graph-v3"
+    assert run["prompt_version"] == "graph-v4"
     assert [step["node"] for step in run["steps"]] == [
         "load_ticket", "resolve_orders", "classify", "fetch_context",
-        "check_policy", "plan_action", "draft", "validate",
+        "check_policy", "plan_action", "retrieve_policy", "draft", "validate",
     ]  # fmt: skip
-    assert [step["sequence"] for step in run["steps"]] == list(range(1, 9))
+    assert [step["sequence"] for step in run["steps"]] == list(range(1, 10))
     policy_step = next(s for s in run["steps"] if s["node"] == "check_policy")
     assert policy_step["summary"]["tool_calls"] == [
         {"tool": "get_policy", "policy": "delivery", "order_id": "ORD-A1", "found": True}

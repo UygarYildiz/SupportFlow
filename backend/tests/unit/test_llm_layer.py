@@ -84,3 +84,28 @@ def test_draft_prompt_forbids_inventing_facts_and_promising_actions() -> None:
 def test_live_mode_requires_an_api_key() -> None:
     with pytest.raises(ValueError, match="GEMINI_API_KEY"):
         Settings(llm_mode="live", gemini_api_key=None, _env_file=None)  # type: ignore[call-arg]
+
+
+def test_gemini_embedder_sends_one_content_per_text() -> None:
+    """gemini-embedding-2 embeds a plain list of strings as one multi-part content."""
+    from types import SimpleNamespace
+
+    from app.agent.llm.gemini import GeminiEmbedder
+
+    embedder = GeminiEmbedder(api_key="test", model="gemini-embedding-2", dimensions=4,
+                              timeout_seconds=5)  # fmt: skip
+    seen: dict[str, object] = {}
+
+    def embed_content(*, model: str, contents: list, config: object) -> SimpleNamespace:
+        seen["contents"] = contents
+        return SimpleNamespace(embeddings=[SimpleNamespace(values=[0.5] * 4) for _ in contents])
+
+    embedder._client = SimpleNamespace(models=SimpleNamespace(embed_content=embed_content))  # type: ignore[assignment]
+
+    vectors = embedder.embed_documents(["bir", "iki", "üç"])
+
+    assert len(vectors) == 3
+    contents = seen["contents"]
+    assert isinstance(contents, list)
+    assert [c.parts[0].text for c in contents] == ["bir", "iki", "üç"]
+    assert embedder.model_name == "gemini-embedding-2@4"

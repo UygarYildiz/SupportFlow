@@ -6,7 +6,9 @@ Usage (from backend/):
 
 Besides the records, a few tickets are analyzed with the fake LLM (never a paid
 API) and one proposal is approved, so the dashboard and approval queue open
-with something to show. Pass --no-activity to skip that.
+with something to show. Pass --no-activity to skip that. The policy knowledge base
+is indexed with the offline embedder first (idempotent), so those analyses cite
+policy clauses; run `poe ingest` for live embeddings.
 """
 
 import argparse
@@ -15,9 +17,13 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.agent.llm.fake_embeddings import FakeEmbedder
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
 from app.db.session import get_engine
 from app.demo.activity import seed_demo_activity
 from app.demo.seed import reset_demo_data, seed_demo_data
+from app.services.policy_knowledge import PolicyIngestionService
+from scripts.ingest_policies import load_policy_sources
 
 DEFAULT_DEMO_PASSWORD = "supportflow-demo"  # noqa: S105 - documented demo-only credential
 
@@ -35,6 +41,9 @@ def main() -> None:
         if args.reset:
             reset_demo_data(session)
         summary = seed_demo_data(session, datetime.now(UTC), password)
+        knowledge = PolicyIngestionService(session, FakeEmbedder(EMBEDDING_DIMENSIONS)).ingest(
+            load_policy_sources()
+        )
         activity = None
         if not args.no_activity:
             activity = seed_demo_activity(session, lambda: datetime.now(UTC))
@@ -43,6 +52,7 @@ def main() -> None:
         f"Inserted: {summary.users} users, {summary.customers} customers, "
         f"{summary.orders} orders, {summary.tickets} tickets"
     )
+    print(f"Policies: {', '.join(knowledge.current)} (offline embedder)")
     if activity is not None:
         print(f"Demo activity: {activity.analyzed} tickets analyzed, {activity.approved} approved")
     print("Demo logins: admin@novashop.example (admin), selin@novashop.example (agent_user)")

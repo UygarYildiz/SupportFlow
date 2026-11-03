@@ -72,6 +72,7 @@ Bir önerinin hangi listeye düşeceği tarayıcıdaki bir rol kontrolünden de�
 ## Davranış kuralları
 
 - Yapay zekâ çıktısı her zaman taslak olarak etiketlenir; dayandığı bilgiler listelenir ("ORD-1001'e dayanarak"), uyarılar gizlenmez, gösterilir.
+- Politika maddeleri yapay zekâ çıktısı değil, kaynaktır: karbon çerçeve yerine "Mağaza kuralı" kutusunda, kural sonucunun altında, rota turkuazı sol çizgili alıntı olarak durur ("İade Politikası v1 · IADE-2", açılınca madde metni ve yürürlük tarihi). Taslağın atıf yaptığı maddeler "Dayanağı", atıf yoksa getirilenler "İlgili politika maddeleri" başlığıyla gösterilir; doğrulanmamış atıf hiç gösterilmez.
 - Bir karar işlenirken Onayla ve Reddet devre dışıdır; 409 durumunda sunucunun gerekçesi gösterilir ve kart gerçek durumla yenilenir.
 - Karar veremeyen roller gizemli bir devre dışı buton değil, nedenini görür.
 - Tek animasyon, kullanıcının kararıyla tetiklenen mühür basmasıdır (260ms); `prefers-reduced-motion` açıkken kapalıdır.

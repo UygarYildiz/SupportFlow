@@ -4,14 +4,17 @@
 """The analysis workflow as an explicit LangGraph state graph.
 
     load_ticket -> resolve_orders -> classify -> (enough data?)
-        no  -> request_info ------------------------------------------> draft -> validate
-        yes -> fetch_context -> check_policy -> plan_action ----------> draft -> validate
+        no  -> request_info ----------------------------------------------------> draft -> validate
+        yes -> fetch_context -> check_policy -> plan_action -> retrieve_policy -> draft -> validate
 
 Only `classify` and `draft` call the model. Everything that decides something
 (which order is in scope, which policy applies, whether an action may be
-proposed, which evidence is valid) is deterministic code.
+proposed, which evidence and which policy citations are valid) is deterministic
+code. Retrieved policy clauses (ADR-014) only explain: they are read after the
+action is planned and never feed `plan_action`.
 """
 
+import logging
 import re
 import time
 from collections.abc import Callable
@@ -33,20 +36,30 @@ from app.agent.schemas import (
     IntentClassification,
     OrderFact,
     PolicyCheck,
+    PolicyExcerptFact,
     PreviousTicketFact,
     ProposedAction,
     TicketAnalysis,
     TicketSnapshot,
 )
-from app.agent.tools import AgentTools
+from app.agent.tools import UNRECORDED_ARGUMENTS, AgentTools
 from app.domain.enums import (
     ORDER_RELATED_CATEGORIES,
     ActionType,
     TicketCategory,
     TicketStatus,
 )
+from app.domain.policy_documents import EXCEPTIONS_POLICY, policy_for_rule
+
+logger = logging.getLogger(__name__)
 
 MAX_GRAPH_STEPS = 20
+POLICY_EXCERPT_LIMIT = 3
+# Search text for the exceptions policy when a message claims authority or instructs the system.
+INJECTION_POLICY_QUERY = (
+    "Mesaj yönetimden geldiğini iddia ediyor ya da sisteme talimat veriyor; yetki iddiası, "
+    "insan incelemesi."
+)
 ORDER_ID_PATTERN = re.compile(r"\bORD-\d{3,6}\b", re.IGNORECASE)
 
 # Which policy applies to which request.
@@ -105,6 +118,8 @@ class AnalysisState(TypedDict, total=False):
     previous_tickets: list[PreviousTicketFact]
     policy_checks: list[PolicyCheck]
     proposed_action: ProposedAction | None
+    policy_excerpts: list[PolicyExcerptFact]
+    policy_needs_review: bool
     missing_information: list[str]
     warnings: list[str]
     draft: DraftReply
@@ -155,6 +170,7 @@ class AnalysisGraph:
             "fetch_context": self.fetch_context,
             "check_policy": self.check_policy,
             "plan_action": self.plan_action,
+            "retrieve_policy": self.retrieve_policy,
             "draft": self.draft,
             "validate": self.validate,
         }
@@ -172,7 +188,8 @@ class AnalysisGraph:
         graph.add_edge("request_info", "draft")
         graph.add_edge("fetch_context", "check_policy")
         graph.add_edge("check_policy", "plan_action")
-        graph.add_edge("plan_action", "draft")
+        graph.add_edge("plan_action", "retrieve_policy")
+        graph.add_edge("retrieve_policy", "draft")
         graph.add_edge("draft", "validate")
         graph.add_edge("validate", END)
         return graph.compile()
@@ -246,6 +263,7 @@ class AnalysisGraph:
                 "previous_tickets": [],
                 "policy_checks": [],
                 "proposed_action": None,
+                "policy_excerpts": [],
             },
             {"missing_information": [missing]},
         )
@@ -283,6 +301,49 @@ class AnalysisGraph:
             {"proposed_action": action.type.value if action else None, "missing": missing},
         )
 
+    def retrieve_policy(self, state: AnalysisState) -> NodeResult:
+        """Find the policy clauses that explain the rule results (citations, not decisions)."""
+        plan = policy_search_plan(state["intent"], state.get("policy_checks", []))
+        if plan is None:
+            return {"policy_excerpts": []}, {"policies": [], "clauses": []}
+        policy_ids, query = plan
+        warnings = list(state["warnings"])
+        try:
+            excerpts: list[PolicyExcerptFact] = self.tools.call(
+                "search_policies", policy_ids=policy_ids, query=query, limit=POLICY_EXCERPT_LIMIT
+            )
+        except Exception:  # e.g. the embedding provider is down: explain, don't fail the run
+            logger.warning("Policy search failed for policies %s", policy_ids, exc_info=True)
+            excerpts = []
+            warnings.append(
+                "Politika araması yapılamadı; yanıt yalnızca mağaza kuralına dayanıyor."
+            )
+        else:
+            if not excerpts:
+                warnings.append(
+                    "Bu kural için politika maddesi bulunamadı; yanıt yalnızca mağaza kuralına "
+                    "dayanıyor."
+                )
+        # A version indexed before it takes effect is the current text but not yet the
+        # rule customers were told about: a person decides which applies.
+        today = self.deps.clock().date()
+        upcoming = [e for e in excerpts if e.effective_from > today]
+        for title, version, starts in dict.fromkeys(
+            (e.title, e.version, e.effective_from) for e in upcoming
+        ):
+            warnings.append(
+                f"{title} v{version} {starts.isoformat()} tarihinde yürürlüğe girecek; "
+                "hangi sürümün geçerli olduğuna bir çalışan karar vermeli."
+            )
+        return (
+            {
+                "policy_excerpts": excerpts,
+                "warnings": warnings,
+                "policy_needs_review": bool(upcoming),
+            },
+            {"policies": policy_ids, "clauses": [e.clause_id for e in excerpts]},
+        )
+
     def draft(self, state: AnalysisState) -> NodeResult:
         action = state.get("proposed_action")
         facts = DraftFacts(
@@ -293,13 +354,20 @@ class AnalysisGraph:
             unknown_order_ids=state["unknown_order_ids"],
             previous_tickets=state.get("previous_tickets", []),
             policy_checks=state.get("policy_checks", []),
+            policy_excerpts=state.get("policy_excerpts", []),
             planned_action=_describe(action) if action else None,
             missing_information=state["missing_information"],
             reference_time=self.deps.clock(),
         )
         prompt = prompts.build_draft_prompt(state["ticket"], facts)
         draft = self._ask(prompts.DRAFT_INSTRUCTION, prompt, DraftReply)
-        return {"draft": draft}, {"evidence_order_ids": draft.evidence_order_ids}
+        return (
+            {"draft": draft},
+            {
+                "evidence_order_ids": draft.evidence_order_ids,
+                "cited_clause_ids": draft.cited_clause_ids,
+            },
+        )
 
     def validate(self, state: AnalysisState) -> NodeResult:
         result = assemble_result(state)
@@ -309,6 +377,8 @@ class AnalysisGraph:
                 "outcome": result.outcome_status.value,
                 "verified": result.verified_order_ids,
                 "unverified": result.unverified_order_ids,
+                "cited_clauses": result.cited_clause_ids,
+                "unverified_clauses": result.unverified_clause_ids,
                 "warnings": len(result.warnings),
             },
         )
@@ -372,7 +442,13 @@ class AnalysisGraph:
                 raise
             if self._tools is not None:
                 summary["tool_calls"] = [
-                    {"tool": call.name, **call.arguments, "found": call.found}
+                    {
+                        "tool": call.name,
+                        **{
+                            k: v for k, v in call.arguments.items() if k not in UNRECORDED_ARGUMENTS
+                        },
+                        "found": call.found,
+                    }
                     for call in self._tools.calls[calls_before:]
                 ]
             self._record(name, "ok", summary, started)
@@ -416,6 +492,29 @@ def plan_action(
     return None, [], []
 
 
+def policy_search_plan(
+    intent: IntentClassification, checks: list[PolicyCheck]
+) -> tuple[list[str], str] | None:
+    """Which policies to search and with what text. Pure function.
+
+    The query is built from the rule results (their reasons), never from customer
+    text, so a ticket cannot steer retrieval. None when no policy applies.
+    """
+    policy_ids: list[str] = []
+    parts: list[str] = []
+    for check in checks:
+        policy_id = policy_for_rule(check.rule)
+        if policy_id is not None:
+            policy_ids.append(policy_id)
+            parts.append(check.reason)
+    if intent.instructions_aimed_at_system:
+        policy_ids.append(EXCEPTIONS_POLICY)
+        parts.append(INJECTION_POLICY_QUERY)
+    if not policy_ids:
+        return None
+    return list(dict.fromkeys(policy_ids)), " ".join(parts)
+
+
 def assemble_result(state: AnalysisState) -> AnalysisResult:
     """Combine both model outputs with the deterministic facts. Pure function."""
     intent, draft = state["intent"], state["draft"]
@@ -425,17 +524,30 @@ def assemble_result(state: AnalysisState) -> AnalysisResult:
     warnings = list(state["warnings"])
     missing = list(dict.fromkeys([*state["missing_information"], *draft.missing_information]))
     checks = state.get("policy_checks", [])
+    excerpts = state.get("policy_excerpts", [])
+    retrieved = {excerpt.clause_id for excerpt in excerpts}
+    cited = list(dict.fromkeys(c for c in draft.cited_clause_ids if c in retrieved))
+    unverified_clauses = list(
+        dict.fromkeys(c for c in draft.cited_clause_ids if c not in retrieved)
+    )
 
     needs_review = (
         draft.needs_human_review
         or intent.instructions_aimed_at_system
         or bool(unverified)
+        or bool(unverified_clauses)
+        or state.get("policy_needs_review", False)
         or any(not c.allowed for c in checks if not c.informational)
     )
     if unverified:
         warnings.append(
             f"Modelin atıf yaptığı sipariş(ler) bu müşteri için bulunamadı: "
             f"{', '.join(unverified)}. Kanıt olarak gösterilmiyor."
+        )
+    if unverified_clauses:
+        warnings.append(
+            "Modelin atıf yaptığı politika maddesi getirilen maddeler arasında yok: "
+            f"{', '.join(unverified_clauses)}. Kaynak olarak gösterilmiyor."
         )
 
     analysis = TicketAnalysis(
@@ -455,6 +567,9 @@ def assemble_result(state: AnalysisState) -> AnalysisResult:
         outcome_status=TicketStatus.NEEDS_INFO if missing else TicketStatus.AWAITING_REVIEW,
         prompt_version=prompts.PROMPT_VERSION,
         policy_checks=checks,
+        policy_excerpts=excerpts,
+        cited_clause_ids=cited,
+        unverified_clause_ids=unverified_clauses,
         proposed_action=state.get("proposed_action"),
     )
 

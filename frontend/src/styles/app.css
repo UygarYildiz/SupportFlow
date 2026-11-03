@@ -793,6 +793,48 @@
   color: var(--stamp-red);
 }
 
+/* Policy clauses behind a rule result: quoted sources, not AI output (no carbon frame). */
+.checks + .citations {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+}
+
+.citations__title {
+  margin: 0 0 var(--s2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.citations__list {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.citation summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.citation__ref {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.citation__heading {
+  color: var(--ink-muted);
+}
+
+.citation__text {
+  margin: var(--s2) 0 var(--s1);
+  padding-left: var(--s3);
+  border-left: 3px solid var(--route);
+  font-size: var(--text-sm);
+}
+
 /* --- Login -------------------------------------------------------------------------- */
 
 .login {

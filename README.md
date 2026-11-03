@@ -37,7 +37,7 @@ Asıl ilginç kısım bir LLM'in yanıt yazması değil, etrafına çizilen sın
 - **Model asla yazmaz.** Ajan yalnızca okuyabilir (izin listesindeki araçlarla) ve bekleyen bir öneri kaydedebilir. Siparişleri, yalnızca onay uç noktasından erişilebilen tek bir yürütücü değiştirir; bir test, ajan kodunun bu yürütücüyü import edemediğini garanti eder. ([ADR-002](docs/DECISIONS.md#adr-002-llm-yazma-işlemi-yapamaz))
 - **Kararı kod verir, model anlatır.** Hangi siparişin kapsamda olduğu, hangi kuralın uygulandığı ve bir aksiyonun önerilip önerilemeyeceği, birim testleri olan düz Python kodudur. Model, şemayla doğrulanan iki çağrıda talebi sınıflandırır ve metni yazar. ([ADR-011](docs/DECISIONS.md#adr-011-kararları-kodun-verdiği-modeli-iki-kez-çağıran-analiz-grafiği))
 - **Araçlar talebin müşterisiyle sınırlıdır.** Müşteri kimliği modelden değil, talepten gelir. Başka bir müşterinin siparişi, olmayan bir siparişle tamamen aynı görünür; böylece hiçbir şey sızmaz.
-- **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle karşılaştırılır; kanıt olarak yalnızca doğrulananlar gösterilir.
+- **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle, politika maddeleri de gerçekten getirilen maddelerle karşılaştırılır; kanıt ve kaynak olarak yalnızca doğrulananlar gösterilir.
 - **Değişiklikler tam olarak bir kez uygulanır.** Onay ajan grafiğinin dışındadır ve veritabanında saklanır; uygulama yeniden başlasa da kaybolmaz. İyimser kilitleme, benzersiz kısıtlı bir idempotency anahtarı, siparişin onay anında yeniden kontrolü (öneriden bu yana kargoya verilmiş olabilir) ve açılışta kurtarması olan iki adımlı bir commit kullanır. Çift tıklamalar ve eşzamanlı onaylar `409` alır. ([ADR-006](docs/DECISIONS.md#adr-006-onay-ve-yürütme-ajan-grafiğinin-dışında-gerçekleşir), [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay))
 - **Roller sunucuda zorunlu kılınır.** Onaylayıcı kuralları domain katmanında yaşar. Arayüz yalnızca bunları açıklar.
 
@@ -65,15 +65,16 @@ flowchart TD
     API --> A[Yalnızca eklemeli denetim kaydı]
 ```
 
-Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle → sınıflandır (LLM) → bağlamı getir → kuralı kontrol et → aksiyonu planla → taslak yaz (LLM) → doğrula. Her adım kaydedilir ve panelde "Bu öneri nasıl hazırlandı" başlığı altında gösterilir. Ayrıntılar: [Mimari](docs/ARCHITECTURE.md) ve [13 karar kaydı](docs/DECISIONS.md).
+Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle → sınıflandır (LLM) → bağlamı getir → kuralı kontrol et → aksiyonu planla → taslak yaz (LLM) → doğrula. Her adım kaydedilir ve panelde "Bu öneri nasıl hazırlandı" başlığı altında gösterilir. Ayrıntılar: [Mimari](docs/ARCHITECTURE.md) ve [14 karar kaydı](docs/DECISIONS.md).
 
 ## Test ve değerlendirme
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 160 |
-| Frontend bileşen testleri (Vitest, Testing Library) | 17 |
-| Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. `gemini-3.5-flash-lite` ile Türkçe sette 13/13 (tek canlı çalıştırma, 2026-11-03) |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 200 |
+| Frontend bileşen testleri (Vitest, Testing Library) | 20 |
+| Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13; `gemini-3.5-flash-lite` ile 13/13 kritik, 12/13 tam (politika atıflarıyla, 2026-11-03) |
+| Politika getirme ([`evals/policy_retrieval.jsonl`](evals/policy_retrieval.jsonl): 20 soru) | `gemini-embedding-2`: hit@3 1.00, MRR 0.94; çevrimdışı embedder: hit@3 0.95 (CI'da taban) |
 
 Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontrolleri (güvensiz öneri yok, başka müşterinin verisi yok, uydurma yok) **kalite** kontrollerinden (kategori, atıf yapılan kanıt) ayırır. Testler ve CI asla ücretli bir API çağırmaz; deterministik bir sahte model kullanır. [Test planı](docs/TEST_PLAN.md) her gereksinimi ve tehdidi onu kanıtlayan testlere eşler; [Güvenlik](docs/SECURITY.md) tehditleri ve önlemleri listeler.
 
@@ -141,7 +142,7 @@ Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 - **Demo kimlik doğrulaması.** Seed ile oluşturulan kullanıcılar ve kısa ömürlü JWT'ler. Gerçek bir kurulum bir kimlik sağlayıcı (OIDC/SSO) kullanırdı.
 - **Süreç içi worker.** Analiz çalıştırmaları, API süreci içindeki bir worker'ın yürüttüğü veritabanı satırlarıdır. Yeniden başlatmayla yarıda kalan çalıştırmalar başarısız olarak işaretlenir ve yeniden denenebilir. Yük altında bir sonraki adım ayrı bir kuyruk olurdu ([ADR-005](docs/DECISIONS.md#adr-005-analiz-çalıştırmaları-kalıcı-arka-plan-işleridir)).
 - **Mock sipariş sistemi.** Değişiklikler mock bir sipariş deposuna gider; iadeler yalnızca bir iade talebi oluşturur, para hareketi olmaz. Gerçek bir entegrasyon [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay) içinde anlatılan mutabakat akışını gerektirirdi.
-- **Kurallar koddur.** Mağaza kuralları, getirilen dokümanlar değil, sürümlenen Python kurallarıdır (kaynak gösteren doküman getirme sıradaki adım).
+- **Kararları kurallar verir, dokümanlar açıklar.** Mağaza kuralları sürümlenen Python kodudur; politika dokümanları yalnızca kaynak göstermek için getirilir ve karar vermez ([ADR-014](docs/DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)). Bilgi tabanı beş dokümanlık küçük bir set.
 - **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
 - **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
 
@@ -151,7 +152,7 @@ Tüm dokümanların haritası ve hangi değişiklikte hangisinin güncelleneceğ
 
 - [Gereksinimler](docs/REQUIREMENTS.md): problem, roller, erişim modeli, senaryolar, kapsam
 - [Mimari](docs/ARCHITECTURE.md): bileşenler, katmanlar, temel akışlar, durum makineleri
-- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-013
+- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-014
 - [Güvenlik](docs/SECURITY.md): tehditler, önlemler ve bunları kanıtlayan testler
 - [Test planı](docs/TEST_PLAN.md): senaryolar, test matrisi ve eval sonuçları
 - [API referansı](docs/API.md): uç noktalar, kimlik doğrulama, hata kodları

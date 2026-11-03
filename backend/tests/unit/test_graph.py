@@ -88,7 +88,7 @@ def test_happy_path_visits_every_node_in_order() -> None:
 
     assert recorder.nodes == [
         "load_ticket", "resolve_orders", "classify", "fetch_context",
-        "check_policy", "plan_action", "draft", "validate",
+        "check_policy", "plan_action", "retrieve_policy", "draft", "validate",
     ]  # fmt: skip
     assert all(status == "ok" for _, status, _ in recorder.steps)
     assert llm.schemas == ["IntentClassification", "DraftReply"]
