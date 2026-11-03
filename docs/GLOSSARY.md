@@ -102,6 +102,8 @@ Durumlar (`AgentRunStatus`): `queued` (kuyrukta) → `running` (çalışıyor) �
 | `run_timeout` | Çalıştırma süre sınırını (`AGENT_RUN_TIMEOUT_SECONDS`) aştı |
 | `step_limit_exceeded` | Graf adım sınırını aştı |
 | `interrupted` | Sunucu çalıştırma sırasında yeniden başladı |
+| `tool_timeout` | Bir MCP araç çağrısı süre sınırını (`MCP_TOOL_TIMEOUT_SECONDS`) aştı |
+| `tool_error` | MCP aracı hata döndürdü (ör. `forbidden`, `internal_error`) ya da şemaya uymayan yanıt verdi |
 | `ticket_missing`, `internal_error` | Beklenmeyen iç hata |
 
 ## Analiz grafiği düğümleri
@@ -135,4 +137,8 @@ Durumlar (`AgentRunStatus`): `queued` (kuyrukta) → `running` (çalışıyor) �
 | Embedding | Metnin anlamını temsil eden sayı vektörü; benzer metinlerin vektörleri birbirine yakındır |
 | İndeksleme (`ingest`) | Politika dokümanlarını maddelere ayırıp embedding'leriyle veritabanına yazma (`uv run poe ingest`) |
 | pgvector | PostgreSQL'in vektör saklama ve benzerlik araması eklentisi |
+| MCP | Model Context Protocol: yapay zekâ istemcilerinin araçları standart bir JSON-RPC arayüzüyle çağırması. SupportFlow'da üç salt okunur araç sunar ([ADR-015](DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)) |
+| MCP aracı (`get_order_status`, `get_customer_orders`, `get_ticket_history`) | Bir talep adına salt okunur sorgu; arayüzdeki "Bu öneri nasıl hazırlandı" listesinde "· MCP" ile işaretlenir |
+| stdio taşıma | MCP istemcisinin sunucuyu yerel bir süreç olarak başlatıp stdin/stdout üzerinden konuşması (`uv run poe mcp`) |
+| `call_id` | Her MCP araç çağrısına verilen kimlik; log satırında ve denetim kaydında aynıdır |
 | hit@k, MRR | Getirme kalitesi ölçüleri: doğru maddenin ilk k sonuç içinde olma oranı; doğru maddenin sırasının tersinin ortalaması ([TEST_PLAN](TEST_PLAN.md#politika-getirme-kalitesi)) |

@@ -50,6 +50,9 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | `PROPOSAL_TTL_HOURS` | `48` | Bekleyen önerinin karar süresi |
 | `EMBEDDING_MODE` | `fake` | Politika araması için embedding: `fake` (çevrimdışı, deterministik) ya da `live` (Gemini, `GEMINI_API_KEY` gerekir) |
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-2` | Canlı embedding modeli; 768 boyutla kullanılır ([ADR-014](DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)) |
+| `AGENT_TOOL_TRANSPORT` | `mcp` | Ajanın sipariş ve talep geçmişini nasıl okuduğu: `mcp` (süreç içi MCP sunucusu) ya da `direct` (servisler; geri dönüş yolu) ([ADR-015](DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)) |
+| `MCP_TOOL_TIMEOUT_SECONDS` | `10` | Bir MCP araç çağrısının süre sınırı; aşılırsa analiz `tool_timeout` ile biter |
+| `MCP_ACCESS_TOKEN` | yok | stdio MCP sunucusunun adına çalıştığı personel token'ı (`poe mcp-token`); boşsa `poe mcp` başlamaz |
 | `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları görünür (geliştirmede hep görünür) |
 
 ## Rutin prosedürler
@@ -84,6 +87,37 @@ uv run poe ingest --fake   # her zaman sahte embedder
 
 Çıktı eklenen, yerini alan ve değişmeyen doküman sayısını ve güncel sürümleri listeler. Tekrar çalıştırmak güvenlidir. Bir politikayı değiştirmek için dokümanın `version` değerini artırın; sürümü artırılmadan değiştirilmiş doküman reddedilir (`Ingestion failed: ... sürüm artırılmamış`) ve veritabanı değişmez. Sonuç her çalıştırmada `ingestion_jobs` tablosuna da yazılır. Canlı ve sahte embedding'ler ayrı tutulur; `EMBEDDING_MODE` değiştirilince `poe ingest` yeniden çalıştırılmalıdır.
 
+### MCP sunucusunu bir istemciye bağlamak
+
+Sunucu salt okunurdur ve istemcinin başlattığı yerel bir süreç olarak stdio üzerinden konuşur ([ADR-015](DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)). Önce bir personel token'ı alın, sonra istemciye komutu ve token'ı verin:
+
+```bash
+cd backend
+uv run poe mcp-token --email selin@novashop.example   # parola: MCP_LOGIN_PASSWORD ya da sorulur
+```
+
+MCP Inspector ile (Node.js gerekir; `localhost:6274`'te bir arayüz açar):
+
+```bash
+npx @modelcontextprotocol/inspector -e MCP_ACCESS_TOKEN=<token> uv --directory backend run python -m app.mcp
+```
+
+Masaüstü asistanı gibi JSON yapılandırması kullanan bir istemci için:
+
+```json
+{{
+  "mcpServers": {{
+    "supportflow": {{
+      "command": "uv",
+      "args": ["--directory", "C:/yol/SupportFlow/backend", "run", "python", "-m", "app.mcp"],
+      "env": {{ "MCP_ACCESS_TOKEN": "<token>" }}
+    }}
+  }}
+}}
+```
+
+Token `ACCESS_TOKEN_EXPIRE_MINUTES` (30 dk) sonra geçersizleşir; araçlar `[unauthorized]` döndürünce yeni token alın. Her çağrı backend log'una `MCP tool call <call_id>: tool=… caller=user:<id> ticket=… outcome=…` satırı ve denetim kaydına `mcp.tool_called` girdisi yazar. stdout protokole ayrıldığı için loglar stderr'e gider.
+
 ### Migration
 
 ```bash
@@ -106,6 +140,10 @@ Mesaj nedeni söyler: sürümü artırılmadan değiştirilmiş doküman, günce
 ### `extension "vector" is not available`
 
 Postgres eski `postgres:17-alpine` imajıyla çalışıyor. `compose.yaml` artık `pgvector/pgvector:pg17` kullanır; yerel veritabanını yeni imajla kurun: `docker compose down -v && docker compose up -d db`, ardından `poe migrate`, `poe seed`, `poe ingest` (yerel demo verisi silinir ve yeniden oluşur).
+
+### Analiz `tool_timeout` ya da `tool_error` ile bitiyor
+
+Ajanın MCP üzerinden yaptığı sipariş sorgusu süre sınırını aştı ya da sunucu bir hata döndürdü. Ayrıntı backend log'undaki `MCP tool call … outcome=…` satırındadır (`internal_error` ise hemen öncesinde `crashed` satırı ve hata izi vardır). Veritabanının ayakta olduğunu (`/ready`) kontrol edip talebi yeniden açın ve tekrar deneyin. Sorun MCP katmanındaysa `AGENT_TOOL_TRANSPORT=direct` ile geçici olarak doğrudan servis çağrısına dönülebilir.
 
 ### `/ready` 503 dönüyor
 

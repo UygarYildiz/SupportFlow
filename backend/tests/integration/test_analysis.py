@@ -55,7 +55,13 @@ def test_analysis_records_every_graph_step(
     assert [step["sequence"] for step in run["steps"]] == list(range(1, 10))
     policy_step = next(s for s in run["steps"] if s["node"] == "check_policy")
     assert policy_step["summary"]["tool_calls"] == [
-        {"tool": "get_policy", "policy": "delivery", "order_id": "ORD-A1", "found": True}
+        {"tool": "get_policy", "policy": "delivery", "order_id": "ORD-A1", "found": True,
+         "via": "direct"}
+    ]  # fmt: skip
+    # Customer data is read through the MCP server (ADR-015); rules stay direct calls.
+    orders_step = next(s for s in run["steps"] if s["node"] == "resolve_orders")
+    assert orders_step["summary"]["tool_calls"] == [
+        {"tool": "get_customer_orders", "limit": 10, "found": True, "via": "mcp"}
     ]
     result = run["result"]
     assert result["analysis"]["category"] == "delivery_delay"

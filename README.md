@@ -37,6 +37,7 @@ Asıl ilginç kısım bir LLM'in yanıt yazması değil, etrafına çizilen sın
 - **Model asla yazmaz.** Ajan yalnızca okuyabilir (izin listesindeki araçlarla) ve bekleyen bir öneri kaydedebilir. Siparişleri, yalnızca onay uç noktasından erişilebilen tek bir yürütücü değiştirir; bir test, ajan kodunun bu yürütücüyü import edemediğini garanti eder. ([ADR-002](docs/DECISIONS.md#adr-002-llm-yazma-işlemi-yapamaz))
 - **Kararı kod verir, model anlatır.** Hangi siparişin kapsamda olduğu, hangi kuralın uygulandığı ve bir aksiyonun önerilip önerilemeyeceği, birim testleri olan düz Python kodudur. Model, şemayla doğrulanan iki çağrıda talebi sınıflandırır ve metni yazar. ([ADR-011](docs/DECISIONS.md#adr-011-kararları-kodun-verdiği-modeli-iki-kez-çağıran-analiz-grafiği))
 - **Araçlar talebin müşterisiyle sınırlıdır.** Müşteri kimliği modelden değil, talepten gelir. Başka bir müşterinin siparişi, olmayan bir siparişle tamamen aynı görünür; böylece hiçbir şey sızmaz.
+- **MCP yetki vermez, yalnızca kapı açar.** Sipariş ve talep geçmişi sorguları üç salt okunur MCP aracıdır; ajan da bunları MCP üzerinden çağırır, bir MCP istemcisi de stdio ile bağlanabilir. Kimlik araç parametresinden değil bağlantıdan gelir: analiz yalnızca kendi talebini, personel token'ı yalnızca yetkili olduğu veriyi okur. ([ADR-015](docs/DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir))
 - **Hiçbir şey uydurulmaz.** Modelin atıf yaptığı sipariş kimlikleri araçların döndürdükleriyle, politika maddeleri de gerçekten getirilen maddelerle karşılaştırılır; kanıt ve kaynak olarak yalnızca doğrulananlar gösterilir.
 - **Değişiklikler tam olarak bir kez uygulanır.** Onay ajan grafiğinin dışındadır ve veritabanında saklanır; uygulama yeniden başlasa da kaybolmaz. İyimser kilitleme, benzersiz kısıtlı bir idempotency anahtarı, siparişin onay anında yeniden kontrolü (öneriden bu yana kargoya verilmiş olabilir) ve açılışta kurtarması olan iki adımlı bir commit kullanır. Çift tıklamalar ve eşzamanlı onaylar `409` alır. ([ADR-006](docs/DECISIONS.md#adr-006-onay-ve-yürütme-ajan-grafiğinin-dışında-gerçekleşir), [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay))
 - **Roller sunucuda zorunlu kılınır.** Onaylayıcı kuralları domain katmanında yaşar. Arayüz yalnızca bunları açıklar.
@@ -71,8 +72,8 @@ Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle �
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 200 |
-| Frontend bileşen testleri (Vitest, Testing Library) | 20 |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 232 |
+| Frontend bileşen testleri (Vitest, Testing Library) | 22 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13; `gemini-3.5-flash-lite` ile 13/13 kritik, 12/13 tam (politika atıflarıyla, 2026-11-03) |
 | Politika getirme ([`evals/policy_retrieval.jsonl`](evals/policy_retrieval.jsonl): 20 soru) | `gemini-embedding-2`: hit@3 1.00, MRR 0.94; çevrimdışı embedder: hit@3 0.95 (CI'da taban) |
 
@@ -83,7 +84,7 @@ Eval'ler her senaryoyu gerçek analiz akışından geçirir ve **kritik** kontro
 | Alan | Seçim |
 |---|---|
 | Backend | Python 3.12, FastAPI, Pydantic, psycopg 3 ile SQLAlchemy 2 (senkron), Alembic |
-| Ajan | LangGraph, `LLMClient` arayüzünün arkasında Gemini API (`google-genai`), testler için sahte istemci |
+| Ajan | LangGraph, `LLMClient` arayüzünün arkasında Gemini API (`google-genai`), testler için sahte istemci; salt okunur araçlar için MCP Python SDK |
 | Veri | PostgreSQL 17 |
 | Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, tasarım token'ları üzerine düz CSS, OpenAPI'den üretilen tipler |
 | Kalite | Ruff, Pyright, pytest, oxlint, Vitest, senaryo eval'leri |
@@ -143,6 +144,7 @@ Bunlar bir demo için bilinçli tercihlerdir ve her biri belgelenmiştir:
 - **Süreç içi worker.** Analiz çalıştırmaları, API süreci içindeki bir worker'ın yürüttüğü veritabanı satırlarıdır. Yeniden başlatmayla yarıda kalan çalıştırmalar başarısız olarak işaretlenir ve yeniden denenebilir. Yük altında bir sonraki adım ayrı bir kuyruk olurdu ([ADR-005](docs/DECISIONS.md#adr-005-analiz-çalıştırmaları-kalıcı-arka-plan-işleridir)).
 - **Mock sipariş sistemi.** Değişiklikler mock bir sipariş deposuna gider; iadeler yalnızca bir iade talebi oluşturur, para hareketi olmaz. Gerçek bir entegrasyon [ADR-012](docs/DECISIONS.md#adr-012-idempotent-yürütücü-ile-iki-adımlı-onay) içinde anlatılan mutabakat akışını gerektirirdi.
 - **Kararları kurallar verir, dokümanlar açıklar.** Mağaza kuralları sürümlenen Python kodudur; politika dokümanları yalnızca kaynak göstermek için getirilir ve karar vermez ([ADR-014](docs/DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)). Bilgi tabanı beş dokümanlık küçük bir set.
+- **MCP yalnızca yerel.** MCP sunucusu stdio ile yerel istemcilere açıktır; uzaktan erişim (HTTP + OAuth 2.1) yoktur ve araçlar yalnızca okur ([ADR-015](docs/DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)).
 - **Küçük eval seti.** On üç senaryo kritik davranışı korur; model kalitesinin istatistiksel bir ölçüsü değildir ve canlı çalıştırmalar değişkenlik gösterir.
 - **Yanıtlar taslaktır.** SupportFlow e-posta göndermez; çalışan yanıtı kopyalar.
 

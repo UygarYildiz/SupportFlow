@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     agent_run_timeout_seconds: float = 120.0
     # Pending action proposals expire if nobody decides in time; they never auto-execute.
     proposal_ttl_hours: int = 48
+    # Read-only MCP tools (ADR-015). `mcp`: the agent reads orders and ticket history
+    # through the in-process MCP server; `direct`: through the services (fallback).
+    agent_tool_transport: Literal["mcp", "direct"] = "mcp"
+    mcp_tool_timeout_seconds: float = 10.0
+    # Staff access token the stdio MCP server acts with (`poe mcp-token`).
+    mcp_access_token: SecretStr | None = None
 
     @model_validator(mode="after")
     def _require_real_secret_in_production(self) -> "Settings":

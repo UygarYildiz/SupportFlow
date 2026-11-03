@@ -7,10 +7,10 @@ it is never left `running` while this process is alive.
 import logging
 import time
 from collections.abc import Callable
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
@@ -23,10 +23,13 @@ from app.agent.graph import (
 )
 from app.agent.llm.base import LLMClient
 from app.agent.llm.fake_embeddings import FakeEmbedder
+from app.agent.mcp_tools import McpAgentTools
 from app.agent.schemas import ProposedAction, TicketSnapshot
-from app.agent.tools import DatabaseTools
+from app.agent.tools import AgentTools, DatabaseTools
 from app.db.models import AgentRunStep, Customer, Ticket
 from app.db.models.knowledge import EMBEDDING_DIMENSIONS
+from app.mcp.access import agent_run_authenticator
+from app.mcp.server import build_server
 from app.services.analysis_runs import AnalysisRunService
 from app.services.policy_knowledge import Embedder
 from app.services.proposals import ProposalDraft
@@ -75,6 +78,8 @@ class AnalysisExecutor:
         run_timeout_seconds: float = 120.0,
         proposal_ttl_hours: int = 48,
         embedder: Embedder | None = None,
+        tool_transport: Literal["mcp", "direct"] = "mcp",
+        tool_timeout_seconds: float = 10.0,
     ) -> None:
         self.session_scope = session_scope
         self.llm = llm
@@ -84,6 +89,8 @@ class AnalysisExecutor:
         self.max_tokens_per_run = max_tokens_per_run
         self.run_timeout_seconds = run_timeout_seconds
         self.proposal_ttl_hours = proposal_ttl_hours
+        self.tool_transport = tool_transport
+        self.tool_timeout_seconds = tool_timeout_seconds
 
     def execute(self, run_id: int) -> None:
         with self.session_scope() as session:
@@ -150,13 +157,29 @@ class AnalysisExecutor:
         return GraphDeps(
             llm=self.llm,
             load_ticket=load_ticket,
-            tools_for=lambda customer_id: DatabaseTools(
-                session, customer_id, self.clock, embedder=self.embedder
-            ),
+            tools_for=lambda ticket: self._tools(session, run_id, ticket),
             recorder=DatabaseStepRecorder(session, run_id),
             clock=self.clock,
             budget=TokenBudget(self.max_tokens_per_run),
             deadline=time.monotonic() + self.run_timeout_seconds,
+        )
+
+    def _tools(self, session: Session, run_id: int, ticket: TicketSnapshot) -> AgentTools:
+        local = DatabaseTools(session, ticket.customer_id, self.clock, embedder=self.embedder)
+        if self.tool_transport == "direct":
+            return local
+        # The run's own MCP connection: it shares the run's session (and transaction)
+        # and may read only this ticket (ADR-015).
+        server = build_server(
+            session_scope=lambda: nullcontext(session),
+            authenticate=agent_run_authenticator(ticket.ticket_id, run_id),
+            audit_calls=False,
+        )
+        return McpAgentTools(
+            local=local,
+            server=server,
+            ticket_id=ticket.ticket_id,
+            timeout_seconds=self.tool_timeout_seconds,
         )
 
 

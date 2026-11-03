@@ -101,7 +101,8 @@ class TokenBudget:
 class GraphDeps:
     llm: LLMClient
     load_ticket: Callable[[int], TicketSnapshot]
-    tools_for: Callable[[str], AgentTools]  # bound to the customer from the database
+    # Bound to the ticket and its customer, both read from the database.
+    tools_for: Callable[[TicketSnapshot], AgentTools]
     recorder: StepRecorder
     clock: Callable[[], datetime]
     budget: TokenBudget
@@ -198,7 +199,7 @@ class AnalysisGraph:
 
     def load_ticket(self, state: AnalysisState) -> NodeResult:
         ticket = self.deps.load_ticket(state["ticket_id"])
-        self._tools = self.deps.tools_for(ticket.customer_id)
+        self._tools = self.deps.tools_for(ticket)
         return (
             {"ticket": ticket, "warnings": [], "missing_information": []},
             {"customer_id": ticket.customer_id, "mentioned_order_ids": ticket.mentioned_order_ids},
@@ -448,6 +449,7 @@ class AnalysisGraph:
                             k: v for k, v in call.arguments.items() if k not in UNRECORDED_ARGUMENTS
                         },
                         "found": call.found,
+                        "via": call.via,
                     }
                     for call in self._tools.calls[calls_before:]
                 ]
