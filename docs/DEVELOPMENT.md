@@ -17,6 +17,7 @@ cd backend
 uv sync                           # bağımlılıklar + .venv
 uv run poe migrate                # şemayı oluştur
 uv run poe seed                   # NovaShop demo verisi
+uv run poe ingest                 # politika bilgi tabanı (sahte embedder, ücretsiz)
 uv run poe dev                    # API: http://localhost:8000 (dokümantasyon: /docs)
 
 cd ../frontend                    # ikinci terminal
@@ -47,7 +48,8 @@ SupportFlow/
 │   │   └── demo/           # seed verisi ve demo hareketleri
 │   ├── alembic/            # migration'lar
 │   ├── evals/              # eval çalıştırıcı (senaryolar kökteki evals/ altında)
-│   ├── scripts/            # seed_demo.py, check_docs.py
+│   ├── knowledge/policies/ # sürümlü NovaShop politika dokümanları (RAG kaynağı)
+│   ├── scripts/            # seed_demo.py, ingest_policies.py, check_docs.py
 │   └── tests/              # unit/ (DB'siz) ve integration/ (gerçek Postgres)
 ├── frontend/src/
 │   ├── api/                # client.ts (tüm HTTP), queries.ts (hook'lar), üretilmiş tipler
@@ -75,6 +77,7 @@ Backend komutları `backend/` içinde çalışır.
 | Senaryo eval'leri | `uv run poe eval` (sahte model) · `uv run poe eval --live` (Gemini, kota kullanır) |
 | Doküman kontrolü | `uv run poe docs` |
 | Demo verisini sıfırla | `uv run poe seed --reset` (`--no-activity`: analiz edilmiş talepler olmadan) |
+| Politika dokümanlarını indeksle | `uv run poe ingest` (`--fake`: her zaman çevrimdışı embedder) |
 | Frontend kontrolleri (`frontend/`) | `npm run lint` · `npm run typecheck` · `npm test` · `npm run build` |
 | API tiplerini yeniden üret (backend çalışırken) | `npm run gen:api` |
 
@@ -121,6 +124,13 @@ Kurallar `app/domain/policies.py` içinde saf fonksiyonlardır ve şimdiki zaman
 
 Araçlar salt okunur ve talebin müşterisiyle sınırlıdır. Ekleme: `ALLOWED_TOOLS` + `DatabaseTools` (`app/agent/tools.py`) + `tests.fakes.InMemoryTools`. Müşteri adına yapılan her sipariş sorgusu `OrderService.get_customer_order(customer_id, order_id)` üzerinden geçer.
 
+### Politika dokümanını değiştirmek
+
+1. `backend/knowledge/policies/` altındaki dokümanı düzenleyin ve ön bilgideki `version` değerini artırın (gerekiyorsa `effective_from`'u da). Klasör her politikanın yalnızca güncel sürümünü tutar; eski sürüm veritabanında kalır.
+2. Maddeler `## KİMLİK başlık` biçimindedir (ör. `## IADE-2 İade süresi`); kimlikler bilgi tabanı genelinde benzersiz olmalıdır, çünkü kaynak gösterme bu kimliklerle yapılır.
+3. Bir süre ya da koşul değiştiyse önce kuralın kendisini `app/domain/policies.py`'de değiştirin; `tests/unit/test_policy_documents.py` doküman ile kodun aynı sayıları söylediğini kontrol eder.
+4. `uv run poe ingest` ile yeniden indeksleyin.
+
 ### Yeni bir eval senaryosu
 
 `evals/scenarios.jsonl`'a bir satır ekleyin (biçim: `backend/evals/runner.py` içindeki `Scenario` modeli). Talep metni Türkçe, sipariş kimlikleri dosya genelinde benzersiz olmalı. `uv run poe eval` ile çalıştırın; [TEST_PLAN](TEST_PLAN.md)'daki senaryo sayısını güncelleyin.
@@ -142,6 +152,7 @@ Metinler Türkçe ve cümle düzeninde yazılır (yalnızca mühür büyük harf
 
 | Belirti | Neden ve çözüm |
 |---|---|
+| `extension "vector" is not available` | Eski Postgres imajı: `docker compose down -v && docker compose up -d db` (bkz. [OPERATIONS](OPERATIONS.md#extension-vector-is-not-available)) |
 | `connection refused ... 5433` | Postgres çalışmıyor: `docker compose up -d db`. Port başka bir süreçteyse `.env`'deki `POSTGRES_HOST_PORT`'u değiştirin |
 | `database "supportflow_test" does not exist` | Volume, init betiğinden önce oluşturulmuş: `docker compose down -v && docker compose up -d db` (yerel demo verisi silinir) |
 | Git Bash'te `docker: command not found` | Docker komutlarını PowerShell'den çalıştırın |

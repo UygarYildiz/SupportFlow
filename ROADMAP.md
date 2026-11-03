@@ -708,12 +708,12 @@ Sahte fakat tutarlı, versiyonlu markdown/PDF politikaları oluştur:
 
 ### Görevler
 
-- [ ] `policy_documents`, `policy_chunks`, `ingestion_jobs` modelini oluştur.
-- [ ] Doküman alma → parse → normalize → chunk → embedding → pgvector indeks süreci.
-- [ ] Belge kimliği, versiyon, bölüm, kaynak yolu ve effective date metadata tut.
-- [ ] İndekslemeyi idempotent yap; aynı dokümanın tekrar yüklenmesi duplicate üretmesin.
-- [ ] Politika aramasında erişim/versiyon filtresi uygula; eski sürüme sessizce dayanma.
-- [ ] İlk olarak basit dense vector retrieval; gerekirse keyword + hybrid search ekle.
+- [x] `policy_documents`, `policy_chunks`, `ingestion_jobs` modelini oluştur. (2026-11-03, migration `29965e867c2d`; pgvector imajı compose + CI.)
+- [x] Doküman alma → parse → normalize → chunk → embedding → pgvector indeks süreci. (`uv run poe ingest`; madde bazlı parçalar; `gemini-embedding-2@768` ya da sahte embedder; HNSW kosinüs.)
+- [x] Belge kimliği, versiyon, bölüm, kaynak yolu ve effective date metadata tut.
+- [x] İndekslemeyi idempotent yap; aynı dokümanın tekrar yüklenmesi duplicate üretmesin. (İçerik hash'i; sürüm artırılmadan değişiklik reddediliyor.)
+- [x] Politika aramasında erişim/versiyon filtresi uygula; eski sürüme sessizce dayanma. (Yalnızca `is_current` sürüm ve aynı embedding modeli aranıyor; politika kimliğiyle daraltılabiliyor.)
+- [x] İlk olarak basit dense vector retrieval; gerekirse keyword + hybrid search ekle. (Dense; hibrit gerekirse 7.4 ölçümüne göre.)
 - [ ] Agent'a yalnız seçilmiş politika alıntılarını, kaynak ID'leri ve tarihlerini ver.
 - [ ] Kaynak yoksa “politika bulunamadı” de; cevap uydurma.
 - [ ] Politika belgeleri kurala dair *kanıt* sunar; iade yapma yetkisini tek başına vermez.

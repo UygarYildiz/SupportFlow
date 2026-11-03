@@ -5,7 +5,8 @@ name: supportflow
 
 services:
   db:
-    image: postgres:17-alpine
+    # pgvector: policy RAG (ADR-014). Same PostgreSQL 17, with the vector extension.
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: supportflow
       POSTGRES_PASSWORD: supportflow
@@ -41,6 +42,7 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
+      - ./backend/knowledge:/app/knowledge
 
   frontend:
     image: node:24-alpine

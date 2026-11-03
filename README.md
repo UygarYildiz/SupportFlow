@@ -65,13 +65,13 @@ flowchart TD
     API --> A[Yalnızca eklemeli denetim kaydı]
 ```
 
-Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle → sınıflandır (LLM) → bağlamı getir → kuralı kontrol et → aksiyonu planla → taslak yaz (LLM) → doğrula. Her adım kaydedilir ve panelde "Bu öneri nasıl hazırlandı" başlığı altında gösterilir. Ayrıntılar: [Mimari](docs/ARCHITECTURE.md) ve [13 karar kaydı](docs/DECISIONS.md).
+Analiz grafı şu sırayla ilerler: talebi yükle → siparişleri çözümle → sınıflandır (LLM) → bağlamı getir → kuralı kontrol et → aksiyonu planla → taslak yaz (LLM) → doğrula. Her adım kaydedilir ve panelde "Bu öneri nasıl hazırlandı" başlığı altında gösterilir. Ayrıntılar: [Mimari](docs/ARCHITECTURE.md) ve [14 karar kaydı](docs/DECISIONS.md).
 
 ## Test ve değerlendirme
 
 | Ne | Sonuç |
 |---|---|
-| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 160 |
+| Backend testleri (pytest, gerçek PostgreSQL, her test geri alınır) | 180 |
 | Frontend bileşen testleri (Vitest, Testing Library) | 17 |
 | Senaryo eval'leri ([`evals/scenarios.jsonl`](evals/scenarios.jsonl): S1–S6 ve P0 güvenlik senaryoları) | Her CI çalıştırmasında sahte modelle 13/13. `gemini-3.5-flash-lite` ile Türkçe sette 13/13 (tek canlı çalıştırma, 2026-11-03) |
 
@@ -151,7 +151,7 @@ Tüm dokümanların haritası ve hangi değişiklikte hangisinin güncelleneceğ
 
 - [Gereksinimler](docs/REQUIREMENTS.md): problem, roller, erişim modeli, senaryolar, kapsam
 - [Mimari](docs/ARCHITECTURE.md): bileşenler, katmanlar, temel akışlar, durum makineleri
-- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-013
+- [Kararlar](docs/DECISIONS.md): mimari karar kayıtları ADR-001 – ADR-014
 - [Güvenlik](docs/SECURITY.md): tehditler, önlemler ve bunları kanıtlayan testler
 - [Test planı](docs/TEST_PLAN.md): senaryolar, test matrisi ve eval sonuçları
 - [API referansı](docs/API.md): uç noktalar, kimlik doğrulama, hata kodları

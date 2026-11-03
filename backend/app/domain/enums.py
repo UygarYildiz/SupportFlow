@@ -108,6 +108,12 @@ class AgentRunStatus(StrEnum):
 ACTIVE_RUN_STATUSES = frozenset({AgentRunStatus.QUEUED, AgentRunStatus.RUNNING})
 
 
+class IngestionStatus(StrEnum):
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
 class ActorType(StrEnum):
     USER = "user"
     SYSTEM = "system"

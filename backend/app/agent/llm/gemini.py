@@ -1,4 +1,4 @@
-"""Gemini adapter. The only module that imports the Google SDK."""
+"""Gemini adapters (generation and embeddings). The only module that imports the Google SDK."""
 
 import httpx
 from google import genai
@@ -57,6 +57,49 @@ class GeminiClient:
             input_tokens=usage.prompt_token_count if usage else None,
             output_tokens=usage.candidates_token_count if usage else None,
         )
+
+
+class GeminiEmbedder:
+    """Embeddings for policy retrieval (ADR-014). Documents and queries use different task
+    types, which Gemini tunes separately."""
+
+    def __init__(
+        self, *, api_key: str, model: str, dimensions: int, timeout_seconds: float
+    ) -> None:
+        self._model = model
+        self._dimensions = dimensions
+        self._client = genai.Client(
+            api_key=api_key, http_options=types.HttpOptions(timeout=int(timeout_seconds * 1000))
+        )
+
+    @property
+    def model_name(self) -> str:
+        return f"{self._model}@{self._dimensions}"
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._embed(texts, "RETRIEVAL_DOCUMENT")
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._embed([text], "RETRIEVAL_QUERY")[0]
+
+    def _embed(self, texts: list[str], task_type: str) -> list[list[float]]:
+        config = types.EmbedContentConfig(
+            task_type=task_type, output_dimensionality=self._dimensions
+        )
+        try:
+            response = self._client.models.embed_content(
+                model=self._model, contents=list(texts), config=config
+            )
+        except errors.APIError as exc:
+            raise _map_api_error(exc) from exc
+        except httpx.TimeoutException as exc:
+            raise LLMTimeoutError("Gemini isteği zaman aşımına uğradı") from exc
+        except httpx.TransportError as exc:
+            raise LLMRetryableError("Gemini'ye ulaşılamadı") from exc
+        vectors = [list(e.values or []) for e in (response.embeddings or [])]
+        if len(vectors) != len(texts) or any(len(v) != self._dimensions for v in vectors):
+            raise LLMRequestError("Gemini beklenen boyutta embedding döndürmedi")
+        return vectors
 
 
 def _map_api_error(exc: errors.APIError) -> LLMError:

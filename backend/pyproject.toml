@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.162.0",
     "google-genai>=2.34.0",
     "langgraph>=1.2.19",
+    "pgvector>=0.5.1",
     "psycopg[binary]>=3.2",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.16.2",
@@ -36,8 +37,8 @@ extend-exclude = ["alembic/versions"]
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "S", "PT"]
 ignore = []
-# Turkish user-facing text uses the dotless i on purpose.
-allowed-confusables = ["ı"]
+# Turkish text uses the dotless i, and ranges such as "3–5 iş günü" use an en dash.
+allowed-confusables = ["ı", "–"]
 
 [tool.ruff.lint.isort]
 # The local `alembic/` migrations folder must not shadow the alembic package.
@@ -70,6 +71,7 @@ typecheck = { cmd = "pyright", help = "Static type check" }
 test = { cmd = "pytest", help = "Run tests (extra args are passed through)" }
 migrate = { cmd = "alembic upgrade head", help = "Apply migrations" }
 seed = { cmd = "python -m scripts.seed_demo", help = "Insert demo data (add --reset to wipe first)" }
+ingest = { cmd = "python -m scripts.ingest_policies", help = "Index policy documents for retrieval (--fake: offline embedder)" }
 docs = { cmd = "python -m scripts.check_docs", help = "Check docs for broken links, anchors and API drift" }
 eval = { cmd = "python -m evals", help = "Run scenario evals (fake model; --live for Gemini)" }
 check = { sequence = ["lint", "format-check", "typecheck", "test"], help = "Everything CI runs" }

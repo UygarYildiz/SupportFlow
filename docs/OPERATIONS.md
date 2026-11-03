@@ -8,7 +8,7 @@ SupportFlow'u çalıştıran, demosunu hazırlayan ya da bir sorunu gideren kiş
 
 | Servis | Adres | Sağlık |
 |---|---|---|
-| PostgreSQL 17 (`db`) | `localhost:5433` (container içinde `db:5432`) | Compose `pg_isready` healthcheck |
+| PostgreSQL 17 + pgvector (`db`, imaj `pgvector/pgvector:pg17`) | `localhost:5433` (container içinde `db:5432`) | Compose `pg_isready` healthcheck |
 | Backend (FastAPI) | http://localhost:8000 | `GET /health` (süreç), `GET /ready` (veritabanı) |
 | API dokümantasyonu | http://localhost:8000/docs | |
 | Frontend (Vite) | http://localhost:5173 | `/api`, `/health`, `/ready` isteklerini backend'e yönlendirir |
@@ -48,6 +48,8 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | `AGENT_MAX_TOKENS_PER_RUN` | `12000` | Bir analizin token bütçesi; aşılırsa `token_budget_exceeded` |
 | `AGENT_RUN_TIMEOUT_SECONDS` | `120` | Bir analizin süre sınırı; aşılırsa `run_timeout` |
 | `PROPOSAL_TTL_HOURS` | `48` | Bekleyen önerinin karar süresi |
+| `EMBEDDING_MODE` | `fake` | Politika araması için embedding: `fake` (çevrimdışı, deterministik) ya da `live` (Gemini, `GEMINI_API_KEY` gerekir) |
+| `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-2` | Canlı embedding modeli; 768 boyutla kullanılır ([ADR-014](DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)) |
 | `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları görünür (geliştirmede hep görünür) |
 
 ## Rutin prosedürler
@@ -72,6 +74,16 @@ Seed idempotenttir: `--reset` olmadan tekrar çalıştırmak eksik kayıtları e
 
 Seed her zaman sahte modeli kullanır, `LLM_MODE`'dan etkilenmez. Ücretsiz kota hızlı tükenebilir; canlı eval betiği istekleri bu yüzden aralıklı gönderir.
 
+### Politika bilgi tabanını indekslemek
+
+```bash
+cd backend
+uv run poe ingest          # EMBEDDING_MODE'a göre (varsayılan: sahte, ücretsiz)
+uv run poe ingest --fake   # her zaman sahte embedder
+```
+
+Çıktı eklenen, yerini alan ve değişmeyen doküman sayısını ve güncel sürümleri listeler. Tekrar çalıştırmak güvenlidir. Bir politikayı değiştirmek için dokümanın `version` değerini artırın; sürümü artırılmadan değiştirilmiş doküman reddedilir (`Ingestion failed: ... sürüm artırılmamış`) ve veritabanı değişmez. Sonuç her çalıştırmada `ingestion_jobs` tablosuna da yazılır. Canlı ve sahte embedding'ler ayrı tutulur; `EMBEDDING_MODE` değiştirilince `poe ingest` yeniden çalıştırılmalıdır.
+
 ### Migration
 
 ```bash
@@ -86,6 +98,14 @@ uv run alembic downgrade -1                # bir geri al (yerel veride dikkat)
 `JWT_SECRET_KEY`'i değiştirip backend'i yeniden başlatın. Verilmiş tüm token'lar geçersizleşir; kullanıcılar yeniden giriş yapar.
 
 ## Sorun giderme
+
+### `Ingestion failed` hatası
+
+Mesaj nedeni söyler: sürümü artırılmadan değiştirilmiş doküman, güncelden eski sürüm, iki dosyada aynı `id` ya da biçim hatası (ön bilgi eksik, `## KİMLİK başlık` bölümü yok, tekrarlanan madde). Dosyayı düzeltip yeniden çalıştırın; başarısız çalıştırma hiçbir şeyi değiştirmez.
+
+### `extension "vector" is not available`
+
+Postgres eski `postgres:17-alpine` imajıyla çalışıyor. `compose.yaml` artık `pgvector/pgvector:pg17` kullanır; yerel veritabanını yeni imajla kurun: `docker compose down -v && docker compose up -d db`, ardından `poe migrate`, `poe seed`, `poe ingest` (yerel demo verisi silinir ve yeniden oluşur).
 
 ### `/ready` 503 dönüyor
 

@@ -20,6 +20,8 @@ Kodda, arayüzde ve dokümanlarda aynı şeyi aynı kelimeyle anlatmak için. **
 | `policy`, policy check | Mağaza kuralı, kural kontrolü | NovaShop kuralının (iade süresi, adres değişikliği…) bir siparişe uygulanması ([REQUIREMENTS §4](REQUIREMENTS.md#4-demo-alanı-novashop)) |
 | draft reply | Taslak yanıt | Yapay zekânın müşteri için yazdığı, personelin inceleyip kopyaladığı yanıt; asla kendiliğinden gönderilmez |
 | evidence | Kanıt (dayanak) | Taslağın dayandığı, backend tarafından doğrulanmış sipariş kimlikleri |
+| policy document | Politika dokümanı | `backend/knowledge/policies/` altındaki sürümlü NovaShop politikası (ör. İade Politikası v1) |
+| clause | Madde | Politika dokümanının kimlikli bir bölümü (`IADE-2`); arama ve kaynak gösterme birimi |
 | `needs_human_review` | İnsan incelemesi gerekli | Talebin olağan dışı olduğu ya da bir kuralla çeliştiği işareti |
 
 ## Roller
@@ -127,3 +129,7 @@ Durumlar (`AgentRunStatus`): `queued` (kuyrukta) → `running` (çalışıyor) �
 | Canlı model (`LLM_MODE=live`) | Gemini API |
 | Eval | Bir senaryoyu gerçek analiz akışından geçirip kritik ve kalite kontrollerini ölçen değerlendirme ([TEST_PLAN](TEST_PLAN.md#senaryo-evalleri)) |
 | Seed | Kurgusal NovaShop demo verisini oluşturan betik (`uv run poe seed`) |
+| RAG | Getirme destekli üretim: modele, aranarak bulunan politika maddeleri kaynaklarıyla verilir ([ADR-014](DECISIONS.md#adr-014-politika-bilgi-tabanı-pgvector-madde-bazlı-parçalar-kararlar-kodda-kalır)) |
+| Embedding | Metnin anlamını temsil eden sayı vektörü; benzer metinlerin vektörleri birbirine yakındır |
+| İndeksleme (`ingest`) | Politika dokümanlarını maddelere ayırıp embedding'leriyle veritabanına yazma (`uv run poe ingest`) |
+| pgvector | PostgreSQL'in vektör saklama ve benzerlik araması eklentisi |

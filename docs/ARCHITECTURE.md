@@ -32,6 +32,7 @@ flowchart TD
 | `domain/` | Varlıklar, durum makineleri, kurallar, onaylayıcı rol kuralları | — (saf Python) |
 | `services/` | Kullanım senaryoları: talepler, siparişler, çalıştırmalar, öneriler, aksiyon yürütücü, denetim | `domain`, `db`, `integrations` |
 | `integrations/` | Mock sipariş/CRM veri erişimi; ileride MCP / n8n adaptörleri | `db` |
+| `knowledge/policies/` (veri) | Sürümlü NovaShop politika dokümanları (markdown); `poe ingest` ile indekslenir | — |
 | `agent/` | Graf durumu, düğümler, kenarlar, prompt'lar, araç sarmalayıcıları, LLM adaptörleri | `services` (salt okunur metotlar), `domain` |
 | `db/` | SQLAlchemy modelleri, oturum, migration'lar | — |
 
@@ -124,6 +125,23 @@ sequenceDiagram
 - Onaylayıcı roller: adres değişikliklerini her personel rolü, iade taleplerini yalnızca `admin` onaylar (`app/domain/proposals.py`).
 - Açılıştaki kurtarma, süresi geçmiş önerileri sonlandırır ve iki adım arasında yarıda kalan yürütmeleri tamamlar.
 - `refund_requests` mock bir finans kaydıdır; para hareketi yoktur.
+
+### 3.4 Politika bilgi tabanı (ADR-014)
+
+```mermaid
+flowchart LR
+    K[knowledge/policies/*.md] -->|poe ingest| P[ayrıştır: madde bazlı]
+    P --> H{aynı sürüm + aynı hash?}
+    H -->|evet| S[atla]
+    H -->|yeni sürüm| E[embedding: Gemini ya da sahte]
+    E --> V[(policy_chunks: pgvector)]
+    Q[arama sorgusu] --> R[güncel sürüm + aynı model filtresi, kosinüs]
+    V --> R
+```
+
+- Ayrıştırma `app/domain/policy_documents.py` (saf), indeksleme ve arama `app/services/policy_knowledge.py`. Embedder dışarıdan verilir: `app/agent/llm/factory.py` → `GeminiEmbedder` ya da `FakeEmbedder`.
+- Her indeksleme bir `ingestion_jobs` satırı yazar (durum, model, sayılar, hata).
+- Dokümanlar karar vermez; kararlar `domain/policies.py`'de kalır. Bilgi tabanının analiz grafına bağlanması Faz 7'nin ikinci dilimidir.
 
 ## 4. Durum makineleri
 

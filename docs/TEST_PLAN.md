@@ -3,7 +3,7 @@
 Gereksinimlerin nasıl doğrulandığı. Backend testleri gerçek bir PostgreSQL test veritabanında çalışır (her test geri alınan bir transaction içinde); hiçbir test ücretli LLM API'sini çağırmaz.
 
 ```bash
-cd backend && uv run poe check        # lint, format, tip kontrolü, 160 test
+cd backend && uv run poe check        # lint, format, tip kontrolü, 180 test
 cd backend && uv run poe eval         # senaryo eval'leri (sahte model); Gemini için --live
 cd frontend && npm test               # 17 bileşen testi (Vitest + Testing Library)
 ```
@@ -53,7 +53,7 @@ Canlı sonuçlar (her biri tek çalıştırma; sonuçlar çalıştırmadan çal�
 | TC-12 | Webhook tekrarı | Faz 9 (n8n) | |
 | TC-13 | Bir onay beklerken yeniden başlatma | Kapsandı | `test_ticket_to_ai_proposal_to_approval_to_single_change`, `test_restart_between_decision_and_execution_is_reconciled_once` |
 | TC-14 | Yetkisiz siparişle MCP aracı | Faz 8 (MCP) | |
-| TC-15 | Kural sürümü değişti | Faz 7 (RAG) | |
+| TC-15 | Kural sürümü değişti | Kısmen (indeksleme): yeni sürüm eskisinin yerini alıyor, arama yalnızca güncel sürümü görüyor; taslağa yansıması Faz 7.2 | `test_a_new_version_supersedes_the_old_one_for_search`, `test_editing_a_document_without_a_new_version_is_refused` |
 | TC-16 | Veritabanına erişilemiyor → `/ready` 503 | Kapsandı | `test_ready_returns_503_when_database_is_unreachable` |
 | TC-17 | Eşzamanlı iki analiz → biri çalışır | Kapsandı | `test_second_analysis_request_while_queued_is_rejected`, `test_database_allows_only_one_active_run_per_ticket` |
 | TC-18 | Model başka müşterinin sipariş kimliğini verir | Kapsandı | `test_model_cannot_point_the_agent_at_an_order_the_customer_never_mentioned`, `test_database_tools_are_scoped_to_one_customer` |

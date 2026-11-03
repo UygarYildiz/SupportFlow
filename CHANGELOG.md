@@ -4,6 +4,14 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ## [Yayınlanmamış]
 
+### Eklendi
+
+- **Politika bilgi tabanı (Faz 7, ilk dilim):** sürümlü Türkçe NovaShop politika dokümanları (teslimat, iade, hasarlı ürün, adres değişikliği, istisnalar); pgvector ile madde bazlı indeksleme (`poe ingest`), idempotent ve sürüm denetimli; yalnızca güncel sürümde arama. Canlıda Gemini embedding'leri, testlerde ücretsiz sahte embedder.
+
+### Değişti
+
+- Veritabanı imajı `pgvector/pgvector:pg17` (yerel volume'un yeniden kurulması gerekir, bkz. Operasyon kılavuzu).
+
 ## [0.1.0] - 2026-11-03
 
 İlk sürüm: insan onaylı yapay zekâ destek masasının MVP'si. Demo videosu sonraki bir sürümde README'ye eklenecek.
