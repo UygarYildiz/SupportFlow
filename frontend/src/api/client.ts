@@ -22,6 +22,14 @@ export function apiUrl(path: string, query: Record<string, string | number | und
   return API_BASE ? url.href : url.pathname + url.search
 }
 
+/**
+ * Fire-and-forget request to /health so a sleeping backend starts booting while a visitor
+ * reads the product page. The result does not matter, so errors are swallowed.
+ */
+export function wakeBackend(): void {
+  fetch(`${API_BASE}/health`, { cache: 'no-store' }).catch(() => {})
+}
+
 let accessToken: string | null = null
 let onUnauthorized: () => void = () => {}
 

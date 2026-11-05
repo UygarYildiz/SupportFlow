@@ -1,7 +1,8 @@
 import { type FormEvent, useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { useSetupStatus } from '../api/queries'
+import { showLanding } from '../app/landing'
 import { useAuth } from '../auth/useAuth'
 
 // Seeded demo accounts (scripts/seed_demo.py). Shown only in development or demo builds,
@@ -51,6 +52,11 @@ export function LoginPage() {
   return (
     <div className="login">
       <div className="login__panel">
+        {showLanding() ? (
+          <Link className="login__back" to="/">
+            ← SupportFlow nedir?
+          </Link>
+        ) : null}
         <div className="wordmark wordmark--large">SupportFlow</div>
         <p className="login__intro">
           {selfHosted

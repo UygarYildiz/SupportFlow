@@ -57,7 +57,7 @@ Değerler ortam değişkenlerinden ve repo kökündeki `.env`'den okunur (`backe
 | `AGENT_TOOL_TRANSPORT` | `mcp` | Ajanın sipariş ve talep geçmişini nasıl okuduğu: `mcp` (süreç içi MCP sunucusu) ya da `direct` (servisler; geri dönüş yolu) ([ADR-015](DECISIONS.md#adr-015-salt-okunur-mcp-adaptörü-stdio--süreç-içi-bağlantı-kimlik-bağlantıdan-gelir)) |
 | `MCP_TOOL_TIMEOUT_SECONDS` | `10` | Bir MCP araç çağrısının süre sınırı; aşılırsa analiz `tool_timeout` ile biter |
 | `MCP_ACCESS_TOKEN` | yok | stdio MCP sunucusunun adına çalıştığı personel token'ı (`poe mcp-token`); boşsa `poe mcp` başlamaz |
-| `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları görünür (geliştirmede hep görünür) |
+| `VITE_DEMO_MODE` (frontend) | yok | `true` ise üretim derlemesinde de demo giriş butonları ve `/` adresinde, oturum açmamış ziyaretçiye tanıtım sayfası görünür (geliştirmede ikisi de hep görünür). Kendi kurulum imajı `false` ile derlenir: orada `/` doğrudan giriş ekranına gider |
 | `VITE_API_BASE_URL` (frontend) | yok | Backend'in adresi (canlıda `https://supportflow-api-e4i6.onrender.com`); boşsa istekler aynı kaynağa gider (geliştirmede Vite proxy'si). Derleme sırasında okunur |
 | `CORS_ALLOW_ORIGINS` | yok | API'yi tarayıcıdan çağırabilecek kaynaklar, virgülle (canlıda Pages adresi). Boşsa CORS başlığı eklenmez |
 

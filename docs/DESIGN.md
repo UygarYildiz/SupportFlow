@@ -69,6 +69,17 @@ Merhaba, Selin                   Destek uzmanı. Adres değişikliklerini onayla
 
 Bir önerinin hangi listeye düşeceği tarayıcıdaki bir rol kontrolünden değil, API'nin `can_decide` alanından gelir. Destek uzmanlarına denetim kaydının sessizce kaybolması yerine, var olduğu ve yalnızca yöneticilerin görebildiği söylenir.
 
+## Tanıtım sayfası (canlı demo)
+
+Sahip isteğiyle eklendi (2026-11-05): canlı demoya gelen ziyaretçi doğrudan giriş ekranına düşüyor, ürünün ne olduğunu ve kime hitap ettiğini görmüyordu. `/` adresi, oturum açmamış ziyaretçiye artık bir tanıtım sayfası gösterir (`pages/LandingPage.tsx`, `styles/landing.css`); oturum açmış personel doğrudan genel bakışa gider, diğer adresler yine giriş ister.
+
+- **Konumlandırma:** "Küçük işletmeler için müşteri destek masası". CRM denmez: müşteri kartı, satış hunisi gibi olmayan özellikleri vaat etmemek için. Ana cümle ürünün ilkesini söyler: "Yanıtı yapay zekâ hazırlar, son sözü siz söylersiniz."
+- **Görsel:** yeni bir dil yok. Giriş bölümündeki görsel, uygulamanın kendi parçalarından kurulmuş bir natürmorttur: gelen e-posta, karbon çerçeveli yapay zekâ taslağı (politika maddesine atıfla) ve ONAYLANDI mühürlü adres değişikliği etiketi. Kâğıtlar hafif eğik durur; mühür yeni adresin altında kalır, üstüne binmez.
+- **Bölümler:** nasıl çalışır (3 adım), güvence ("Yapay zekâ önerir, insan karar verir"), neler var, kendi kurulumu ve sıradakiler, SSS, kapanış çağrısı. Sıradaki işler yalnızca "Sırada ne var" kutusunda, karbon çerçeveyle (henüz kesin değil) durur; özellik listesine karışmaz.
+- **Dürüstlük:** uydurma müşteri yorumu, fiyat ya da kullanıcı sayısı yok; "erken sürüm" ve "demo yalnızca sentetik veri kullanır" açıkça yazar.
+- **Ne zaman görünür:** derleme sırasında karar verilir (`VITE_DEMO_MODE`, [OPERATIONS](OPERATIONS.md#yapılandırma)); böylece sayfa uyuyan backend'i beklemeden açılır. Sayfa açılırken arka planda `/health` isteği atılır, ziyaretçi "Canlı demoyu dene"ye bastığında backend uyanmış olur. Kendi kurulumda sayfa hiç yoktur: oradaki ziyaretçiler işletmenin kendi personelidir.
+- Giriş ekranında "← SupportFlow nedir?" linki tanıtım sayfasına döner. 640px'in altında üst menü gizlenir, yalnız "Giriş yap" kalır; 900px'in altında sütunlar alt alta dizilir.
+
 ## Davranış kuralları
 
 - Yapay zekâ çıktısı her zaman taslak olarak etiketlenir; dayandığı bilgiler listelenir ("ORD-1001'e dayanarak"), uyarılar gizlenmez, gösterilir.

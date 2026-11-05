@@ -6,6 +6,7 @@ Bu projedeki kullanıcıya görünen değişiklikler bu dosyada tutulur. Biçim 
 
 ### Eklendi
 
+- **Tanıtım sayfası:** canlı demonun ana sayfası artık giriş ekranı değil; ürünü küçük işletmelere anlatan bir tanıtım sayfası (nasıl çalışır, güvenceler, özellikler, kendi kurulumu, SSS). "Canlı demoyu dene" giriş ekranına götürür, giriş ekranındaki "SupportFlow nedir?" geri döner. Sayfa açılırken uyuyan backend arka planda uyandırılır. Kendi kurulumda görünmez; oturum açmış personel doğrudan genel bakışa gider.
 - **Kendi kurulumu (Blok D1, ADR-017):** SupportFlow bir işletmenin kendi bilgisayarında ya da sunucusunda, kendi verisiyle çalışabiliyor. `deploy/selfhost/` altında tek komutla kurulum (`init.sh` / `init.ps1` rastgele sırları üretir, `docker compose up -d --build`); panel nginx ile sunuluyor, veritabanı dışarı açılmıyor. Kılavuz: `docs/SELF_HOSTING.md`.
 - **İlk açılış kurulumu:** boş bir kendi kurulum, giriş ekranı yerine kurulum sayfasını açıyor: işletme adı, ilk yönetici ve kurulum kodu. Kurulum bir kez yapılabiliyor. Yeni uç noktalar: `GET /api/v1/setup/status`, `POST /api/v1/setup`.
 - **Ekip yönetimi:** yöneticiler "Ekip" sayfasından hesap ekliyor, rol değiştiriyor, pasifleştiriyor ve parola sıfırlıyor; herkes "Hesabım" sayfasından kendi parolasını değiştirebiliyor. Parola en az 12 karakter; kurulum hiçbir zaman yöneticisiz kalmıyor; her değişiklik denetim kaydında. Yeni uç noktalar: `POST /api/v1/users`, `PATCH /api/v1/users/{user_id}`, `POST /api/v1/auth/password`.
