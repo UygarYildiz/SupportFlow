@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/UygarYildiz/SupportFlow/actions/workflows/ci.yml)
 
-**Canlı demo: [supportflow-w7q.pages.dev](https://supportflow-w7q.pages.dev)**. Giriş ekranındaki demo butonlarıyla destek uzmanı ya da yönetici olarak girin. Model sahtedir (ücretsiz, deterministik), veriler kurgusaldır ve her gece sıfırlanır. Sunucu boştayken uyur; ilk açılış 30–60 saniye sürebilir.
+**Canlı demo: [supportflow-w7q.pages.dev](https://supportflow-w7q.pages.dev)**. Tanıtım sayfasından "Canlı demoyu dene"ye basın ve giriş ekranındaki demo butonlarıyla destek uzmanı ya da yönetici olarak girin. Model sahtedir (ücretsiz, deterministik), veriler kurgusaldır ve her gece sıfırlanır. Sunucu boştayken uyur; ilk açılış 30–60 saniye sürebilir.
 
 ![Destek uzmanı için genel bakış: talep sayıları, uzmanın kararını bekleyenler, yönetici onayı bekleyen iade talepleri](docs/images/overview-agent.png)
 

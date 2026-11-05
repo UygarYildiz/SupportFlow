@@ -1,0 +1,370 @@
+/* Public product page of the live demo (pages/LandingPage.tsx). Same dispatch-desk language
+   as the app (docs/DESIGN.md): the hero is a still life of a ticket, a carbon draft and a
+   stamped label; everything else stays quiet. */
+
+.landing {
+  --landing-width: 1120px;
+  --landing-gutter: clamp(var(--s4), 4vw, var(--s6));
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.landing main,
+.landing__bar,
+.landing__footer {
+  width: min(100%, calc(var(--landing-width) + 2 * var(--landing-gutter)));
+  margin-inline: auto;
+  padding-inline: var(--landing-gutter);
+}
+
+/* --- Top bar ------------------------------------------------------------------------- */
+
+.landing__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding-block: var(--s4);
+}
+
+.landing__brand {
+  text-decoration: none;
+}
+
+.landing__brand:hover {
+  color: var(--ink);
+}
+
+.landing__nav {
+  display: flex;
+  gap: var(--s5);
+  margin-left: auto;
+  font-size: var(--text-sm);
+}
+
+.landing__nav a {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.landing__nav a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.landing .button {
+  text-decoration: none;
+}
+
+.landing__login {
+  min-height: 36px;
+}
+
+/* --- Hero ---------------------------------------------------------------------------- */
+
+.landing__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: var(--s7) clamp(var(--s6), 6vw, 88px);
+  align-items: center;
+  padding-block: var(--s7) 72px;
+}
+
+.landing__pitch {
+  display: grid;
+  justify-items: start;
+  gap: var(--s5);
+}
+
+.landing__eyebrow {
+  color: var(--route);
+  font-weight: 700;
+}
+
+.landing__title {
+  max-width: 18ch;
+  font-size: clamp(2rem, 4.4vw, 3.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.landing__lede {
+  max-width: 44ch;
+  font-size: var(--text-lg);
+  color: var(--ink-muted);
+}
+
+.landing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+
+.landing__cta {
+  min-height: 48px;
+  padding-inline: var(--s5);
+  font-size: var(--text-md);
+}
+
+/* The still life: three papers on a desk, slightly askew. */
+.desk {
+  position: relative;
+  display: grid;
+  gap: var(--s4);
+  margin: 0;
+}
+
+.desk__mail {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s4) var(--s5);
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-sheet);
+  background: var(--sheet);
+  transform: rotate(-1.2deg);
+}
+
+.desk__draft {
+  order: 0; /* app.css reorders .carbon in the narrow ticket layout */
+  gap: var(--s3);
+  margin-left: var(--s6);
+  padding: var(--s4) var(--s5);
+}
+
+.desk__label {
+  margin-right: var(--s6);
+  transform: rotate(0.8deg);
+}
+
+/* Room under the addresses so the stamp does not cover the new one. */
+.desk__label .label__body {
+  padding-bottom: 76px;
+}
+
+.desk__old {
+  color: var(--ink-muted);
+  font-weight: 400;
+  text-decoration: line-through;
+}
+
+/* --- Sections ------------------------------------------------------------------------ */
+
+.landing__section {
+  display: grid;
+  gap: var(--s5);
+  padding-block: 56px;
+  border-top: 1.5px solid var(--rule);
+}
+
+.landing__heading {
+  font-size: var(--text-xl);
+}
+
+.landing__sub {
+  max-width: 62ch;
+  color: var(--ink-muted);
+}
+
+.landing__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing__step {
+  display: grid;
+  align-content: start;
+  gap: var(--s2);
+}
+
+.landing__step .intro__num {
+  margin-bottom: var(--s1);
+  background: var(--sheet);
+}
+
+.landing__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s4);
+}
+
+.landing__grid--two {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.landing__card {
+  display: grid;
+  align-content: start;
+  gap: var(--s2);
+  padding: var(--s5);
+  border: var(--label-border);
+  border-radius: var(--radius-label);
+  background: var(--sheet);
+}
+
+.landing__feature {
+  display: grid;
+  align-content: start;
+  gap: var(--s1);
+  padding: var(--s4) 0 0;
+  border-top: 2px solid var(--ink);
+}
+
+.landing__feature p,
+.landing__card p,
+.landing__step p {
+  font-size: var(--text-sm);
+}
+
+/* --- Self-hosting -------------------------------------------------------------------- */
+
+.landing__setup {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  gap: var(--s6);
+  align-items: start;
+}
+
+.landing__setup-main {
+  display: grid;
+  justify-items: start;
+  gap: var(--s4);
+}
+
+.landing__code {
+  justify-self: stretch;
+  margin: 0;
+  padding: var(--s4) var(--s5);
+  overflow-x: auto;
+  border-radius: var(--radius-sheet);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+.landing__next {
+  display: grid;
+  gap: var(--s3);
+  padding: var(--s5);
+  border: 1.5px dashed var(--carbon-line);
+  border-radius: var(--radius-sheet);
+  background: var(--carbon);
+}
+
+.landing__next ul {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding-left: var(--s5);
+  font-size: var(--text-sm);
+}
+
+/* --- FAQ, closing, footer ------------------------------------------------------------ */
+
+.landing__faq {
+  display: grid;
+  max-width: 760px;
+  border-top: 1.5px solid var(--rule);
+}
+
+.landing__qa {
+  border-bottom: 1.5px solid var(--rule);
+}
+
+.landing__qa summary {
+  padding: var(--s4) 0;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.landing__qa p {
+  max-width: 64ch;
+  padding-bottom: var(--s4);
+  color: var(--ink-muted);
+}
+
+.landing__closing {
+  display: grid;
+  justify-items: center;
+  gap: var(--s4);
+  margin-block: var(--s6) var(--s7);
+  padding: var(--s7) var(--s5);
+  border: var(--label-border);
+  border-radius: var(--radius-label);
+  background: var(--sheet);
+  text-align: center;
+}
+
+.landing__closing h2 {
+  font-size: var(--text-xl);
+}
+
+.landing__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3) var(--s5);
+  padding-block: var(--s5) var(--s6);
+  border-top: 1.5px solid var(--rule);
+  font-size: var(--text-sm);
+}
+
+.landing__footer .wordmark {
+  margin-right: auto;
+  font-size: 1.25rem;
+}
+
+/* Login page: way back to the product page. */
+.login__back {
+  justify-self: start;
+  font-size: var(--text-sm);
+}
+
+/* --- Narrow screens ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .landing__hero,
+  .landing__setup {
+    grid-template-columns: 1fr;
+  }
+
+  .landing__hero {
+    padding-block: var(--s6) var(--s7);
+  }
+
+  .desk {
+    max-width: 480px;
+  }
+
+  .landing__steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing__nav {
+    display: none;
+  }
+
+  .landing__login {
+    margin-left: auto;
+  }
+
+  .desk__draft {
+    margin-left: var(--s4);
+  }
+
+  .desk__label {
+    margin-right: var(--s4);
+  }
+
+  .landing__grid--two {
+    grid-template-columns: 1fr;
+  }
+
+  .landing__section {
+    padding-block: var(--s7);
+  }
+}

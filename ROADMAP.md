@@ -936,6 +936,7 @@ Kural: her bilginin tek evi var; `docs/README.md` haritası ve "Ne değişince n
 - [x] **Public demo `LLM_MODE=fake` (veya kayıtlı yanıtlar) ile çalışır.** (Render'da `LLM_MODE=fake`, `EMBEDDING_MODE=fake`; çalıştırmalarda model `fake-llm`.) Gerçek LLM açılacaksa: sert bütçe sınırı, rate limit, yalnız giriş yapmış demo kullanıcıları.
 - [ ] Demo verisi periyodik reset (örn. günlük seed). (`.github/workflows/demo-reset.yml` hazır; `DEMO_DATABASE_URL` secret'ı sahip tarafından eklenecek, ilk çalıştırma doğrulanacak.)
 - [x] n8n yayınlanıyorsa admin panelini halka açık bırakma. (n8n yayınlanmadı; Faz 9 opsiyonel.)
+- [x] Ziyaretçiyi giriş ekranı yerine bir tanıtım sayfası karşılasın (2026-11-05, `feat/landing-page`: `/` oturum açmamış ziyaretçiye ürünü anlatır, yalnız `VITE_DEMO_MODE=true` derlemede; kendi kurulumda yok; testler ve masaüstü/mobil tarayıcı kontrolü tamam).
 
 ### İş görüşmesi için 5 dakikalık demo
 

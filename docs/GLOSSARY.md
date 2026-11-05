@@ -28,6 +28,7 @@ Kodda, arayüzde ve dokümanlarda aynı şeyi aynı kelimeyle anlatmak için. **
 | `DEPLOYMENT_MODE=demo` | Demo modu | Sentetik NovaShop verisi ve herkese açık demo hesaplarıyla çalışma (geliştirme, canlı demo) |
 | `installation` | Kurulum kaydı | Kendi kurulumun işletme adı ve kurulumu yapan yönetici; en fazla bir satır |
 | setup | İlk açılış kurulumu | Boş bir kendi kurulumda işletme adının ve ilk yöneticinin oluşturulması; bir kez yapılır |
+| landing page | Tanıtım sayfası | Canlı demonun `/` adresinde, oturum açmamış ziyaretçiye ürünü anlatan sayfa; kendi kurulumda yoktur |
 | `SETUP_TOKEN` | Kurulum kodu | Kurulum sayfasının istediği tek seferlik kod; kurulumu başkasının sahiplenmesini önler |
 | team | Ekip | Kurulumdaki çalışan hesapları; yönetici "Ekip" sayfasından yönetir |
 
